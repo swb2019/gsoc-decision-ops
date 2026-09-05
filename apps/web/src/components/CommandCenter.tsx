@@ -60,12 +60,16 @@ const SESSION_STORAGE_KEY = 'hourglass-command-session';
 
 // Sound effect URLs (Web Audio API compatible)
 const SOUND_EFFECTS = {
-  injectArrive: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAiuHqkGYXD3C03O+FPgkWf8/u9IpHBA6P4fF/QwAJi+Duh0EACI3f7odAAAmL3+6HQAAL',
-  decisionConfirm: 'data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YToFAACAf35+gICBgoKCgoGAf359fHt7e3x9fn+AgYKDg4SDg4KBgH9+fXx7e3t8fH1+f4CAgYGBgYGAgH9+fn19fX1+fn9/gICAgYGBgICAf39+fn5+fn5+f3+AgICAgICAgA==',
-  escalation: 'data:audio/wav;base64,UklGRpIGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YW4GAACAgIB/fn18e3p5eHd2dXRzcnFwcG9vb29wcHFycnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wA==',
+  injectArrive:
+    'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAiuHqkGYXD3C03O+FPgkWf8/u9IpHBA6P4fF/QwAJi+Duh0EACI3f7odAAAmL3+6HQAAL',
+  decisionConfirm:
+    'data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YToFAACAf35+gICBgoKCgoGAf359fHt7e3x9fn+AgYKDg4SDg4KBgH9+fXx7e3t8fH1+f4CAgYGBgYGAgH9+fn19fX1+fn9/gICAgYGBgICAf39+fn5+fn5+f3+AgICAgICAgA==',
+  escalation:
+    'data:audio/wav;base64,UklGRpIGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YW4GAACAgIB/fn18e3p5eHd2dXRzcnFwcG9vb29wcHFycnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wA==',
   error: 'data:audio/wav;base64,UklGRjIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ4FAACA',
   tick: 'data:audio/wav;base64,UklGRiQCAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQACAACAf4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/',
-  microTaskComplete: 'data:audio/wav;base64,UklGRlIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YS4FAACAgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==',
+  microTaskComplete:
+    'data:audio/wav;base64,UklGRlIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YS4FAACAgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==',
 };
 
 // ESRM Prep Micro-tasks for keeping players engaged during wait gaps
@@ -165,55 +169,72 @@ const ESRM_MICRO_TASKS = [
 // Decision prompt variations to reduce repetition
 const DECISION_PROMPT_VARIATIONS = [
   { header: 'Decision Required', subtext: 'Assess and commit to a posture' },
-  { header: 'Posture Call Needed', subtext: 'What\'s your recommendation?' },
+  { header: 'Posture Call Needed', subtext: "What's your recommendation?" },
   { header: 'Treatment Decision', subtext: 'Select risk response strategy' },
   { header: 'Action Required', subtext: 'Time-sensitive posture decision' },
-  { header: 'Commander Decision', subtext: 'Your call—what\'s the posture?' },
+  { header: 'Commander Decision', subtext: "Your call—what's the posture?" },
   { header: 'Risk Treatment', subtext: 'Recommend action to asset owner' },
 ];
 
 // Custom hook for sound effects
-function useSoundEffects(enabled: boolean, reducedMotion: boolean): { playSound: (soundType: keyof typeof SOUND_EFFECTS) => void } {
+function useSoundEffects(
+  enabled: boolean,
+  reducedMotion: boolean
+): { playSound: (soundType: keyof typeof SOUND_EFFECTS) => void } {
   const audioContextRef = useRef<AudioContext | null>(null);
-  
-  const playSound = useCallback((soundType: keyof typeof SOUND_EFFECTS): void => {
-    if (!enabled || reducedMotion) return;
-    
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+
+  const playSound = useCallback(
+    (soundType: keyof typeof SOUND_EFFECTS): void => {
+      if (!enabled || reducedMotion) return;
+
+      try {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+          )();
+        }
+
+        const audio = new Audio(SOUND_EFFECTS[soundType]);
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+      } catch {
+        // Silently fail if audio not supported
       }
-      
-      const audio = new Audio(SOUND_EFFECTS[soundType]);
-      audio.volume = 0.3;
-      audio.play().catch(() => {});
-    } catch {
-      // Silently fail if audio not supported
-    }
-  }, [enabled, reducedMotion]);
-  
+    },
+    [enabled, reducedMotion]
+  );
+
   return { playSound };
 }
 
 // Custom hook for haptic feedback
-function useHaptics(reducedMotion: boolean): { tapFeedback: () => void; confirmFeedback: () => void; errorFeedback: () => void; urgentFeedback: () => void } {
-  const vibrate = useCallback((pattern: number | number[]): void => {
-    if (reducedMotion) return;
-    
-    try {
-      if ('vibrate' in navigator) {
-        navigator.vibrate(pattern);
+function useHaptics(reducedMotion: boolean): {
+  tapFeedback: () => void;
+  confirmFeedback: () => void;
+  errorFeedback: () => void;
+  urgentFeedback: () => void;
+} {
+  const vibrate = useCallback(
+    (pattern: number | number[]): void => {
+      if (reducedMotion) return;
+
+      try {
+        if ('vibrate' in navigator) {
+          navigator.vibrate(pattern);
+        }
+      } catch {
+        // Silently fail if vibration not supported
       }
-    } catch {
-      // Silently fail if vibration not supported
-    }
-  }, [reducedMotion]);
-  
+    },
+    [reducedMotion]
+  );
+
   const tapFeedback = useCallback((): void => vibrate(10), [vibrate]);
   const confirmFeedback = useCallback((): void => vibrate([15, 50, 15]), [vibrate]);
   const errorFeedback = useCallback((): void => vibrate([30, 100, 30, 100, 30]), [vibrate]);
   const urgentFeedback = useCallback((): void => vibrate([50, 100, 50]), [vibrate]);
-  
+
   return { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback };
 }
 
@@ -402,12 +423,16 @@ const POSTURE_CONFIG: Record<
   },
 };
 
-export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'unknown' }: CommandCenterProps): JSX.Element {
+export default function CommandCenter({
+  initialLog,
+  esrmConfig,
+  scenarioId = 'unknown',
+}: CommandCenterProps): JSX.Element {
   // Session recovery state
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedSession, setSavedSession] = useState<SessionState | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  
+
   // Core game state
   const [log, setLog] = useState<DecisionLog>(initialLog);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -446,20 +471,20 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
   const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>(
     'ACTIVITY'
   );
-  
+
   // Micro-task state for filling wait gaps
   const [activeMicroTask, setActiveMicroTask] = useState<MicroTask | null>(null);
   const [microTaskTimer, setMicroTaskTimer] = useState(0);
   const [completedMicroTasks, setCompletedMicroTasks] = useState<string[]>([]);
   const [lastActivityTime, setLastActivityTime] = useState(0);
   const [microTaskAnimating, setMicroTaskAnimating] = useState(false);
-  
+
   // Animation tracking
   const [tabAnimating, setTabAnimating] = useState(false);
-  
+
   // Decision variety tracking
   const [decisionPromptIndex, setDecisionPromptIndex] = useState(0);
-  
+
   const [dispatchResources, setDispatchResources] = useState<{
     guards: {
       available: number;
@@ -544,7 +569,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
   // Auto-save session periodically when running
   useEffect(() => {
     if (!isRunning) return;
-    
+
     const saveSession = (): void => {
       try {
         const session: SessionState = {
@@ -560,11 +585,11 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
         // Ignore localStorage errors
       }
     };
-    
+
     // Save immediately and then every 10 seconds
     saveSession();
     sessionSaveRef.current = setInterval(saveSession, 10000);
-    
+
     return () => {
       if (sessionSaveRef.current) {
         clearInterval(sessionSaveRef.current);
@@ -598,8 +623,8 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
       setElapsedSeconds(savedSession.elapsedSeconds);
       setGameState(savedSession.gameState);
       // Rebuild processed injects set
-      savedSession.log.decisions.forEach(d => {
-        const inject = savedSession.log.injects.find(i => i.title === d.title);
+      savedSession.log.decisions.forEach((d) => {
+        const inject = savedSession.log.injects.find((i) => i.title === d.title);
         if (inject) {
           processedInjectsRef.current.add(inject.id);
         }
@@ -635,15 +660,18 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
   }, []);
 
   // Tab change with animation
-  const handleTabChange = useCallback((newTab: MobileTab) => {
-    if (newTab === mobileTab || tabAnimating) return;
-    tapFeedback();
-    setTabAnimating(true);
-    setTimeout(() => {
-      setMobileTab(newTab);
-      setTabAnimating(false);
-    }, 150);
-  }, [mobileTab, tabAnimating, tapFeedback]);
+  const handleTabChange = useCallback(
+    (newTab: MobileTab) => {
+      if (newTab === mobileTab || tabAnimating) return;
+      tapFeedback();
+      setTabAnimating(true);
+      setTimeout(() => {
+        setMobileTab(newTab);
+        setTabAnimating(false);
+      }, 150);
+    },
+    [mobileTab, tabAnimating, tapFeedback]
+  );
 
   // Main game timer
   useEffect(() => {
@@ -739,12 +767,12 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
   // Micro-task system for filling wait gaps (no dead air > 20s)
   useEffect(() => {
     if (!isRunning || pendingDecision || activeMicroTask) return;
-    
+
     const timeSinceActivity = elapsedSeconds - lastActivityTime;
-    
+
     // If more than 20 seconds of inactivity, spawn a micro-task
     if (timeSinceActivity > 20) {
-      const availableTasks = ESRM_MICRO_TASKS.filter(t => !completedMicroTasks.includes(t.id));
+      const availableTasks = ESRM_MICRO_TASKS.filter((t) => !completedMicroTasks.includes(t.id));
       if (availableTasks.length > 0) {
         const randomTask = availableTasks[Math.floor(Math.random() * availableTasks.length)];
         setActiveMicroTask(randomTask);
@@ -754,14 +782,22 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
         playSound('tick');
       }
     }
-  }, [elapsedSeconds, isRunning, pendingDecision, activeMicroTask, lastActivityTime, completedMicroTasks, playSound]);
+  }, [
+    elapsedSeconds,
+    isRunning,
+    pendingDecision,
+    activeMicroTask,
+    lastActivityTime,
+    completedMicroTasks,
+    playSound,
+  ]);
 
   // Micro-task timer countdown
   useEffect(() => {
     if (!activeMicroTask || !isRunning) return;
-    
+
     microTaskTimerRef.current = setInterval(() => {
-      setMicroTaskTimer(t => {
+      setMicroTaskTimer((t) => {
         if (t <= 1) {
           // Time expired, task failed
           setActiveMicroTask(null);
@@ -770,7 +806,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
         return t - 1;
       });
     }, 1000);
-    
+
     return () => {
       if (microTaskTimerRef.current) {
         clearInterval(microTaskTimerRef.current);
@@ -781,18 +817,18 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
   // Complete micro-task handler
   const completeMicroTask = useCallback(() => {
     if (!activeMicroTask) return;
-    
+
     const points = activeMicroTask.points;
-    setGameState(prev => ({
+    setGameState((prev) => ({
       ...prev,
       score: prev.score + points,
       esrmBonus: prev.esrmBonus + points,
     }));
-    
-    setCompletedMicroTasks(prev => [...prev, activeMicroTask.id]);
+
+    setCompletedMicroTasks((prev) => [...prev, activeMicroTask.id]);
     setShowScorePopup({ points, message: 'ESRM Prep Complete!' });
     setTimeout(() => setShowScorePopup(null), 2000);
-    
+
     playSound('microTaskComplete');
     confirmFeedback();
     setActiveMicroTask(null);
@@ -1000,28 +1036,31 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
     }
   }, [log.decisions.length]);
 
-  const triggerInjectAlert = useCallback((inject: ScenarioInject): void => {
-    const urgency = (inject as unknown as { urgencyLevel?: string }).urgencyLevel;
-    if (urgency === 'IMMEDIATE') {
-      setScreenFlash('red');
-      playSound('escalation');
-      urgentFeedback();
-    } else if (urgency === 'URGENT') {
-      setScreenFlash('amber');
-      playSound('injectArrive');
-      tapFeedback();
-    } else {
-      playSound('injectArrive');
-      tapFeedback();
-    }
-    setTimeout(() => setScreenFlash(null), 300);
-    setLastActivityTime(elapsedSeconds);
-    
-    // Dismiss any active micro-task when real inject arrives
-    if (activeMicroTask) {
-      setActiveMicroTask(null);
-    }
-  }, [playSound, urgentFeedback, tapFeedback, elapsedSeconds, activeMicroTask]);
+  const triggerInjectAlert = useCallback(
+    (inject: ScenarioInject): void => {
+      const urgency = (inject as unknown as { urgencyLevel?: string }).urgencyLevel;
+      if (urgency === 'IMMEDIATE') {
+        setScreenFlash('red');
+        playSound('escalation');
+        urgentFeedback();
+      } else if (urgency === 'URGENT') {
+        setScreenFlash('amber');
+        playSound('injectArrive');
+        tapFeedback();
+      } else {
+        playSound('injectArrive');
+        tapFeedback();
+      }
+      setTimeout(() => setScreenFlash(null), 300);
+      setLastActivityTime(elapsedSeconds);
+
+      // Dismiss any active micro-task when real inject arrives
+      if (activeMicroTask) {
+        setActiveMicroTask(null);
+      }
+    },
+    [playSound, urgentFeedback, tapFeedback, elapsedSeconds, activeMicroTask]
+  );
 
   const handleTimeoutDecision = useCallback((): void => {
     if (!pendingDecision) return;
@@ -1035,7 +1074,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
 
     playSound('error');
     errorFeedback();
-    
+
     setShowScorePopup({ points: -50, message: 'Decision timeout!' });
     setTimeout(() => setShowScorePopup(null), 2000);
 
@@ -1180,7 +1219,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
       // Visual and audio feedback
       setScreenFlash(isCorrect ? 'green' : 'amber');
       setTimeout(() => setScreenFlash(null), 200);
-      
+
       // Play sound and haptic
       playSound('decisionConfirm');
       if (isCorrect) {
@@ -1190,7 +1229,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
       }
 
       // Rotate decision prompt variation for next decision
-      setDecisionPromptIndex(prev => (prev + 1) % DECISION_PROMPT_VARIATIONS.length);
+      setDecisionPromptIndex((prev) => (prev + 1) % DECISION_PROMPT_VARIATIONS.length);
 
       setShowScorePopup({
         points: totalPoints,
@@ -1201,7 +1240,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
           : 'Documented',
       });
       setTimeout(() => setShowScorePopup(null), 2000);
-      
+
       // Update activity time
       setLastActivityTime(elapsedSeconds);
 
@@ -1317,7 +1356,9 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
                       isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'
                     )}
                   />
-                  <span className={clsx('truncate', isRunning ? 'text-emerald-400' : 'text-gray-500')}>
+                  <span
+                    className={clsx('truncate', isRunning ? 'text-emerald-400' : 'text-gray-500')}
+                  >
                     {isRunning ? 'ACTIVE' : 'STANDBY'}
                   </span>
                 </div>
@@ -1351,7 +1392,11 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
                 )}
                 aria-label={isRunning ? 'Pause' : 'Start'}
               >
-                {isRunning ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
+                {isRunning ? (
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
               </button>
               <div
                 className={clsx(
@@ -1553,12 +1598,19 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
             aria-current={mobileTab === 'intel' ? 'page' : undefined}
           >
             <div className="relative">
-              <Radio className={clsx('w-6 h-6 transition-transform', mobileTab === 'intel' && !reducedMotion && 'animate-pulse-slow')} />
+              <Radio
+                className={clsx(
+                  'w-6 h-6 transition-transform',
+                  mobileTab === 'intel' && !reducedMotion && 'animate-pulse-slow'
+                )}
+              />
               {revealedInjects.length > 0 && (
-                <span className={clsx(
-                  'absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-2xs font-bold text-black flex items-center justify-center',
-                  !reducedMotion && 'animate-badge-pop'
-                )}>
+                <span
+                  className={clsx(
+                    'absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-2xs font-bold text-black flex items-center justify-center',
+                    !reducedMotion && 'animate-badge-pop'
+                  )}
+                >
                   {revealedInjects.length}
                 </span>
               )}
@@ -1821,10 +1873,12 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
         <div className="flex lg:hidden flex-1 flex-col overflow-hidden">
           {/* Mobile Intel Tab */}
           {mobileTab === 'intel' && (
-            <div className={clsx(
-              'flex-1 flex flex-col overflow-hidden',
-              !reducedMotion && 'animate-tab-enter'
-            )}>
+            <div
+              className={clsx(
+                'flex-1 flex flex-col overflow-hidden',
+                !reducedMotion && 'animate-tab-enter'
+              )}
+            >
               <div className="p-4 border-b border-gray-800/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Radio
@@ -1881,10 +1935,12 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
 
           {/* Mobile Decision Tab */}
           {mobileTab === 'decision' && (
-            <div className={clsx(
-              'flex-1 flex flex-col overflow-hidden',
-              !reducedMotion && 'animate-tab-enter'
-            )}>
+            <div
+              className={clsx(
+                'flex-1 flex flex-col overflow-hidden',
+                !reducedMotion && 'animate-tab-enter'
+              )}
+            >
               {pendingDecision ? (
                 <DecisionConsole
                   inject={pendingDecision}
@@ -1918,10 +1974,7 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
 
           {/* Mobile COP Tab */}
           {mobileTab === 'cop' && (
-            <div className={clsx(
-              'flex-1 overflow-y-auto',
-              !reducedMotion && 'animate-tab-enter'
-            )}>
+            <div className={clsx('flex-1 overflow-y-auto', !reducedMotion && 'animate-tab-enter')}>
               {/* Stats */}
               <div className="p-4 border-b border-gray-800/50">
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Situation Board</h3>
@@ -2082,10 +2135,12 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
       {/* Resume Session Prompt */}
       {showResumePrompt && savedSession && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-modal-backdrop">
-          <div className={clsx(
-            'bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl max-w-md w-full p-6 shadow-2xl',
-            !reducedMotion && 'animate-modal-enter'
-          )}>
+          <div
+            className={clsx(
+              'bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl max-w-md w-full p-6 shadow-2xl',
+              !reducedMotion && 'animate-modal-enter'
+            )}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
                 <RotateCcw className="w-6 h-6 text-amber-400" />
@@ -2093,15 +2148,17 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
               <div>
                 <h2 className="text-lg font-bold text-white">Session Found</h2>
                 <p className="text-xs text-gray-500">
-                  {Math.floor(savedSession.elapsedSeconds / 60)}m elapsed • {savedSession.gameState.decisionsTotal} decisions
+                  {Math.floor(savedSession.elapsedSeconds / 60)}m elapsed •{' '}
+                  {savedSession.gameState.decisionsTotal} decisions
                 </p>
               </div>
             </div>
-            
+
             <p className="text-sm text-gray-400 mb-6">
-              You have an in-progress session for this scenario. Would you like to resume where you left off?
+              You have an in-progress session for this scenario. Would you like to resume where you
+              left off?
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={handleResumeSession}
@@ -2123,10 +2180,12 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
       {/* Exit Confirmation Modal */}
       {showExitConfirm && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-modal-backdrop">
-          <div className={clsx(
-            'bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl max-w-md w-full p-6 shadow-2xl',
-            !reducedMotion && 'animate-modal-enter'
-          )}>
+          <div
+            className={clsx(
+              'bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl max-w-md w-full p-6 shadow-2xl',
+              !reducedMotion && 'animate-modal-enter'
+            )}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
                 <AlertTriangle className="w-6 h-6 text-amber-400" />
@@ -2136,11 +2195,12 @@ export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'un
                 <p className="text-xs text-gray-500">Your progress will be saved</p>
               </div>
             </div>
-            
+
             <p className="text-sm text-gray-400 mb-6">
-              Your session ({Math.floor(elapsedSeconds / 60)}m, {gameState.decisionsTotal} decisions, {gameState.score} pts) will be saved. You can resume when you return.
+              Your session ({Math.floor(elapsedSeconds / 60)}m, {gameState.decisionsTotal}{' '}
+              decisions, {gameState.score} pts) will be saved. You can resume when you return.
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowExitConfirm(false)}
@@ -2552,10 +2612,12 @@ function DecisionConsole({
               </div>
 
               {inject.decisionPressure && (
-                <div className={clsx(
-                  'p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4',
-                  !reducedMotion && 'animate-slide-in-up'
-                )}>
+                <div
+                  className={clsx(
+                    'p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4',
+                    !reducedMotion && 'animate-slide-in-up'
+                  )}
+                >
                   <div className="flex items-center gap-2 text-amber-400 text-sm font-semibold mb-1">
                     <AlertTriangle className="w-4 h-4" />
                     {promptVariation.header}
@@ -3472,31 +3534,125 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   ];
 
   const glossaryTerms = [
-    { term: 'AAR', definition: 'After-Action Review — Structured debrief to capture lessons learned after an incident or exercise' },
-    { term: 'ACS', definition: 'Access Control System — Electronic system that manages physical entry to secured areas' },
-    { term: 'BMS', definition: 'Building Management System — Centralized system controlling HVAC, lighting, and other building functions' },
-    { term: 'COP', definition: 'Common Operating Picture — Shared situational awareness display showing facts, assumptions, and unknowns' },
-    { term: 'ESRM', definition: 'Enterprise Security Risk Management — Holistic approach where security advises asset owners who own risk decisions' },
-    { term: 'ETA', definition: 'Estimated Time of Arrival — Projected time for resource or personnel arrival' },
-    { term: 'GSOC', definition: 'Global Security Operations Center — Centralized facility for monitoring and coordinating security operations' },
-    { term: 'IR', definition: 'Incident Response — Coordinated approach to managing security incidents' },
-    { term: 'MFA', definition: 'Multi-Factor Authentication — Security requiring multiple verification methods for access' },
-    { term: 'OSINT', definition: 'Open-Source Intelligence — Information gathered from publicly available sources' },
-    { term: 'SIEM', definition: 'Security Information and Event Management — Platform aggregating and analyzing security logs' },
-    { term: 'SLA', definition: 'Service Level Agreement — Contractual commitment defining expected service standards' },
-    { term: 'SOP', definition: 'Standard Operating Procedure — Documented step-by-step instructions for routine operations' },
-    { term: 'T×V×I', definition: 'Threat × Vulnerability × Impact — Risk calculation formula: likelihood of threat exploiting vulnerability times potential impact' },
-    { term: 'VMS', definition: 'Video Management System — Software platform for managing surveillance camera feeds and recordings' },
-    { term: 'RPD', definition: 'Recognition-Primed Decision — Decision model where experts recognize patterns and mentally simulate outcomes' },
-    { term: 'ICS', definition: 'Incident Command System — Standardized management structure for emergency response' },
-    { term: 'CISA', definition: 'Cybersecurity and Infrastructure Security Agency — US federal agency for cyber and physical security' },
-    { term: 'NIST', definition: 'National Institute of Standards and Technology — US agency developing security frameworks and standards' },
-    { term: 'ASIS', definition: 'ASIS International — Global organization for security professionals, publisher of ESRM guidelines' },
-    { term: 'SOC', definition: 'Security Operations Center — Facility for monitoring and responding to security threats' },
-    { term: 'IOC', definition: 'Indicator of Compromise — Artifact indicating potential security breach' },
-    { term: 'TTPs', definition: 'Tactics, Techniques, and Procedures — Patterns describing adversary behavior' },
-    { term: 'BCP', definition: 'Business Continuity Plan — Strategy for maintaining operations during disruptions' },
-    { term: 'DR', definition: 'Disaster Recovery — Process for restoring systems after major incidents' },
+    {
+      term: 'AAR',
+      definition:
+        'After-Action Review — Structured debrief to capture lessons learned after an incident or exercise',
+    },
+    {
+      term: 'ACS',
+      definition:
+        'Access Control System — Electronic system that manages physical entry to secured areas',
+    },
+    {
+      term: 'BMS',
+      definition:
+        'Building Management System — Centralized system controlling HVAC, lighting, and other building functions',
+    },
+    {
+      term: 'COP',
+      definition:
+        'Common Operating Picture — Shared situational awareness display showing facts, assumptions, and unknowns',
+    },
+    {
+      term: 'ESRM',
+      definition:
+        'Enterprise Security Risk Management — Holistic approach where security advises asset owners who own risk decisions',
+    },
+    {
+      term: 'ETA',
+      definition: 'Estimated Time of Arrival — Projected time for resource or personnel arrival',
+    },
+    {
+      term: 'GSOC',
+      definition:
+        'Global Security Operations Center — Centralized facility for monitoring and coordinating security operations',
+    },
+    {
+      term: 'IR',
+      definition: 'Incident Response — Coordinated approach to managing security incidents',
+    },
+    {
+      term: 'MFA',
+      definition:
+        'Multi-Factor Authentication — Security requiring multiple verification methods for access',
+    },
+    {
+      term: 'OSINT',
+      definition: 'Open-Source Intelligence — Information gathered from publicly available sources',
+    },
+    {
+      term: 'SIEM',
+      definition:
+        'Security Information and Event Management — Platform aggregating and analyzing security logs',
+    },
+    {
+      term: 'SLA',
+      definition:
+        'Service Level Agreement — Contractual commitment defining expected service standards',
+    },
+    {
+      term: 'SOP',
+      definition:
+        'Standard Operating Procedure — Documented step-by-step instructions for routine operations',
+    },
+    {
+      term: 'T×V×I',
+      definition:
+        'Threat × Vulnerability × Impact — Risk calculation formula: likelihood of threat exploiting vulnerability times potential impact',
+    },
+    {
+      term: 'VMS',
+      definition:
+        'Video Management System — Software platform for managing surveillance camera feeds and recordings',
+    },
+    {
+      term: 'RPD',
+      definition:
+        'Recognition-Primed Decision — Decision model where experts recognize patterns and mentally simulate outcomes',
+    },
+    {
+      term: 'ICS',
+      definition:
+        'Incident Command System — Standardized management structure for emergency response',
+    },
+    {
+      term: 'CISA',
+      definition:
+        'Cybersecurity and Infrastructure Security Agency — US federal agency for cyber and physical security',
+    },
+    {
+      term: 'NIST',
+      definition:
+        'National Institute of Standards and Technology — US agency developing security frameworks and standards',
+    },
+    {
+      term: 'ASIS',
+      definition:
+        'ASIS International — Global organization for security professionals, publisher of ESRM guidelines',
+    },
+    {
+      term: 'SOC',
+      definition:
+        'Security Operations Center — Facility for monitoring and responding to security threats',
+    },
+    {
+      term: 'IOC',
+      definition: 'Indicator of Compromise — Artifact indicating potential security breach',
+    },
+    {
+      term: 'TTPs',
+      definition: 'Tactics, Techniques, and Procedures — Patterns describing adversary behavior',
+    },
+    {
+      term: 'BCP',
+      definition:
+        'Business Continuity Plan — Strategy for maintaining operations during disruptions',
+    },
+    {
+      term: 'DR',
+      definition: 'Disaster Recovery — Process for restoring systems after major incidents',
+    },
   ];
 
   return (
@@ -4392,8 +4548,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
               <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 mt-4">
                 <p className="text-sm text-violet-200">
-                  <strong>Tip:</strong> Tap any underlined term in the simulation to see its definition.
-                  ESRM-specific concepts are explained in context throughout gameplay.
+                  <strong>Tip:</strong> Tap any underlined term in the simulation to see its
+                  definition. ESRM-specific concepts are explained in context throughout gameplay.
                 </p>
               </div>
             </div>
@@ -4697,17 +4853,28 @@ function MicroTaskCard({
 }): JSX.Element {
   const getIcon = (): JSX.Element => {
     switch (task.icon) {
-      case 'Target': return <Target className="w-5 h-5" />;
-      case 'AlertTriangle': return <AlertTriangle className="w-5 h-5" />;
-      case 'FileQuestion': return <FileQuestion className="w-5 h-5" />;
-      case 'MessageSquare': return <MessageSquare className="w-5 h-5" />;
-      case 'Shuffle': return <Shuffle className="w-5 h-5" />;
-      case 'Eye': return <Eye className="w-5 h-5" />;
-      case 'Users': return <Users className="w-5 h-5" />;
-      case 'ClipboardList': return <ClipboardList className="w-5 h-5" />;
-      case 'Radar': return <Radar className="w-5 h-5" />;
-      case 'ShieldAlert': return <ShieldAlert className="w-5 h-5" />;
-      default: return <ListChecks className="w-5 h-5" />;
+      case 'Target':
+        return <Target className="w-5 h-5" />;
+      case 'AlertTriangle':
+        return <AlertTriangle className="w-5 h-5" />;
+      case 'FileQuestion':
+        return <FileQuestion className="w-5 h-5" />;
+      case 'MessageSquare':
+        return <MessageSquare className="w-5 h-5" />;
+      case 'Shuffle':
+        return <Shuffle className="w-5 h-5" />;
+      case 'Eye':
+        return <Eye className="w-5 h-5" />;
+      case 'Users':
+        return <Users className="w-5 h-5" />;
+      case 'ClipboardList':
+        return <ClipboardList className="w-5 h-5" />;
+      case 'Radar':
+        return <Radar className="w-5 h-5" />;
+      case 'ShieldAlert':
+        return <ShieldAlert className="w-5 h-5" />;
+      default:
+        return <ListChecks className="w-5 h-5" />;
     }
   };
 
@@ -4722,31 +4889,39 @@ function MicroTaskCard({
   const isUrgent = timer <= 5;
 
   return (
-    <div className={clsx(
-      'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-96 z-40',
-      !reducedMotion && animating && 'animate-microtask-enter'
-    )}>
-      <div className={clsx(
-        'p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all',
-        isUrgent 
-          ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/50'
-          : 'bg-gradient-to-br from-gray-800/90 to-gray-900/80 border-gray-700/60'
-      )}>
+    <div
+      className={clsx(
+        'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-96 z-40',
+        !reducedMotion && animating && 'animate-microtask-enter'
+      )}
+    >
+      <div
+        className={clsx(
+          'p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all',
+          isUrgent
+            ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/50'
+            : 'bg-gradient-to-br from-gray-800/90 to-gray-900/80 border-gray-700/60'
+        )}
+      >
         {/* Header with category */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
-            <div className={clsx(
-              'w-10 h-10 rounded-xl flex items-center justify-center',
-              categoryColors[task.category] || 'bg-gray-700 text-gray-400'
-            )}>
+            <div
+              className={clsx(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                categoryColors[task.category] || 'bg-gray-700 text-gray-400'
+              )}
+            >
               {getIcon()}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className={clsx(
-                  'text-2xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider',
-                  categoryColors[task.category] || 'bg-gray-700 text-gray-400'
-                )}>
+                <span
+                  className={clsx(
+                    'text-2xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider',
+                    categoryColors[task.category] || 'bg-gray-700 text-gray-400'
+                  )}
+                >
                   {task.category}
                 </span>
                 <span className="text-2xs text-emerald-400 font-semibold">+{task.points} pts</span>
@@ -4754,12 +4929,14 @@ function MicroTaskCard({
               <h4 className="text-sm font-semibold text-white mt-0.5">{task.title}</h4>
             </div>
           </div>
-          
+
           {/* Timer */}
-          <div className={clsx(
-            'text-lg font-mono font-bold tabular-nums',
-            isUrgent ? 'text-amber-400 animate-pulse' : 'text-gray-400'
-          )}>
+          <div
+            className={clsx(
+              'text-lg font-mono font-bold tabular-nums',
+              isUrgent ? 'text-amber-400 animate-pulse' : 'text-gray-400'
+            )}
+          >
             {timer}s
           </div>
         </div>
@@ -4768,7 +4945,7 @@ function MicroTaskCard({
 
         {/* Progress bar */}
         <div className="h-1 bg-gray-800 rounded-full mb-4 overflow-hidden">
-          <div 
+          <div
             className={clsx(
               'h-full transition-all duration-1000 rounded-full',
               isUrgent ? 'bg-amber-500' : 'bg-emerald-500'
