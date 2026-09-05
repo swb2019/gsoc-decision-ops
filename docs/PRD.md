@@ -94,14 +94,14 @@ A **simulation game** for practicing first-hour decision-making under pressure:
 
 ### Jobs to Be Done
 
-| JTBD                             | Success Criteria                             |
-| -------------------------------- | -------------------------------------------- |
-| Practice first-hour judgment     | Complete scenario in < 5 min                 |
-| Separate facts from assumptions  | Document both with metadata                  |
-| Make defensible posture calls    | Record CONTINUE/DEGRADE/PAUSE with rationale |
-| Follow structured playbook       | Complete checklist phases                    |
-| Generate after-action docs       | Export in < 2 min                            |
-| Frame risk in ESRM terms         | Decisions capture residual risk, asset owner |
+| JTBD                             | Success Criteria                               |
+| -------------------------------- | ---------------------------------------------- |
+| Practice first-hour judgment     | Complete scenario in < 5 min                   |
+| Separate facts from assumptions  | Document both with metadata                    |
+| Make defensible posture calls    | Record CONTINUE/DEGRADE/PAUSE with rationale   |
+| Follow structured playbook       | Complete checklist phases                      |
+| Generate after-action docs       | Export in < 2 min                              |
+| Frame risk in ESRM terms         | Decisions capture residual risk, asset owner   |
 | Train alongside enterprise tools | Language/workflow familiar to enterprise users |
 
 ---
@@ -148,12 +148,12 @@ The following 12 invariants must **always** hold. Any PR violating an invariant 
 
 ### Truthfulness Locks
 
-| ID         | Invariant                                             | Violation Example                                             |
-| ---------- | ----------------------------------------------------- | ------------------------------------------------------------- |
-| **INV-01** | All scenarios are training simulations               | Implying real vendor data                                      |
-| **INV-02** | Quiet honesty: subtle footer/chip indicates training | Loud distracting banners that break immersion                  |
-| **INV-03** | Simulation framing clear without wall of disclaimers | Production UI that implies system of record                    |
-| **INV-04** | Export includes training watermark                   | Clean exports that look official                               |
+| ID         | Invariant                                            | Violation Example                             |
+| ---------- | ---------------------------------------------------- | --------------------------------------------- |
+| **INV-01** | All scenarios are training simulations               | Implying real vendor data                     |
+| **INV-02** | Quiet honesty: subtle footer/chip indicates training | Loud distracting banners that break immersion |
+| **INV-03** | Simulation framing clear without wall of disclaimers | Production UI that implies system of record   |
+| **INV-04** | Export includes training watermark                   | Clean exports that look official              |
 
 ### Anti-Theater Locks
 
@@ -311,18 +311,18 @@ Before merge to `main` or deploy to Pages, **all** gates must pass:
 
 ### Manual Gates (PR Review)
 
-| Gate                      | Verification                           |
-| ------------------------- | -------------------------------------- |
-| ☐ PRD present             | `docs/PRD.md` exists, version ≥ 1.1    |
-| ☐ PRD linked              | README references PRD                  |
-| ☐ No auth added           | No sign-in/sign-up routes              |
-| ☐ No pricing added        | No /pricing or tier UI                 |
-| ☐ No SaaS theater         | No team/settings/billing/org UI        |
-| ☐ Quiet honesty present   | Subtle training indicator visible      |
-| ☐ No distracting banners  | Immersion not broken by disclaimers    |
-| ☐ 2-click path works      | Home → Scenario → Decision in 2 clicks |
-| ☐ Mobile works            | Core loop on 375px viewport            |
-| ☐ Invariants respected    | All 12 invariants verified             |
+| Gate                     | Verification                           |
+| ------------------------ | -------------------------------------- |
+| ☐ PRD present            | `docs/PRD.md` exists, version ≥ 1.1    |
+| ☐ PRD linked             | README references PRD                  |
+| ☐ No auth added          | No sign-in/sign-up routes              |
+| ☐ No pricing added       | No /pricing or tier UI                 |
+| ☐ No SaaS theater        | No team/settings/billing/org UI        |
+| ☐ Quiet honesty present  | Subtle training indicator visible      |
+| ☐ No distracting banners | Immersion not broken by disclaimers    |
+| ☐ 2-click path works     | Home → Scenario → Decision in 2 clicks |
+| ☐ Mobile works           | Core loop on 375px viewport            |
+| ☐ Invariants respected   | All 12 invariants verified             |
 
 ---
 
@@ -358,11 +358,11 @@ Ways this product could mislead employers, with explicit mitigations:
 
 ### Threat 9.4: Overclaiming Credentials
 
-| Attack Vector           | Misleading Because        | Mitigation                                |
-| ----------------------- | ------------------------- | ----------------------------------------- |
-| Inflated tenure         | "10 years SOC" when false | **INV-12** requires factual only          |
-| Fake certs              | Listing certs not held    | **INV-12** requires factual only          |
-| "Built enterprise SIEM" | Simulation ≠ production system  | **INV-02, INV-03** make training nature clear |
+| Attack Vector           | Misleading Because             | Mitigation                                    |
+| ----------------------- | ------------------------------ | --------------------------------------------- |
+| Inflated tenure         | "10 years SOC" when false      | **INV-12** requires factual only              |
+| Fake certs              | Listing certs not held         | **INV-12** requires factual only              |
+| "Built enterprise SIEM" | Simulation ≠ production system | **INV-02, INV-03** make training nature clear |
 
 ### Threat 9.5: Job-Hunt Pollution
 
@@ -386,15 +386,15 @@ Ways this product could mislead employers, with explicit mitigations:
 
 Features that are **closed by default** — require explicit PRD amendment to open:
 
-| Feature                            | Default | Rationale                     | Open Condition                              |
-| ---------------------------------- | ------- | ----------------------------- | ------------------------------------------- |
-| Production incident management     | CLOSED  | Training only, not production | Never (invariant)                           |
-| Phase timer / countdown mode       | OPEN    | Core to simulation pressure   | Implemented in 1.2                          |
-| "Featured" badge on scenarios      | CLOSED  | Wait until UI SOTA ships      | After UI SOTA merged, demo-appropriate only |
-| Local storage persistence          | CLOSED  | Adds state complexity         | PRD 1.2+ if training value proven           |
-| Custom scenario builder            | CLOSED  | Scope creep risk              | PRD 2.0+                                    |
-| Keyboard shortcuts                 | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
-| Print stylesheet                   | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
+| Feature                        | Default | Rationale                     | Open Condition                              |
+| ------------------------------ | ------- | ----------------------------- | ------------------------------------------- |
+| Production incident management | CLOSED  | Training only, not production | Never (invariant)                           |
+| Phase timer / countdown mode   | OPEN    | Core to simulation pressure   | Implemented in 1.2                          |
+| "Featured" badge on scenarios  | CLOSED  | Wait until UI SOTA ships      | After UI SOTA merged, demo-appropriate only |
+| Local storage persistence      | CLOSED  | Adds state complexity         | PRD 1.2+ if training value proven           |
+| Custom scenario builder        | CLOSED  | Scope creep risk              | PRD 2.0+                                    |
+| Keyboard shortcuts             | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
+| Print stylesheet               | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
 
 ---
 
@@ -507,25 +507,25 @@ The following are **permanently out of scope** per invariants:
 
 ## §15 Glossary
 
-| Term               | Definition                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **GSOC**           | Global Security Operations Center                                                                                                     |
-| **ESRM**           | Enterprise Security Risk Management — ASIS International framework where asset owners own risk and security serves as trusted advisor |
-| **Residual Risk**  | Risk remaining after treatment (accept/mitigate/transfer/avoid); must be explicit in decisions                                        |
-| **Asset Owner**    | Business stakeholder who owns the risk; GSOC advises, asset owner decides                                                             |
+| Term                | Definition                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **GSOC**            | Global Security Operations Center                                                                                                     |
+| **ESRM**            | Enterprise Security Risk Management — ASIS International framework where asset owners own risk and security serves as trusted advisor |
+| **Residual Risk**   | Risk remaining after treatment (accept/mitigate/transfer/avoid); must be explicit in decisions                                        |
+| **Asset Owner**     | Business stakeholder who owns the risk; GSOC advises, asset owner decides                                                             |
 | **Enterprise ESRM** | Category of enterprise platforms providing incident lifecycle management                                                              |
-| **Posture**        | Operational stance: CONTINUE (accept), DEGRADE (mitigate), or PAUSE (avoid)                                                           |
-| **Treatment**      | Risk response: accept, mitigate, transfer, or avoid — maps to postures                                                                |
-| **Wedge**          | Market entry that complements rather than competes                                                                                    |
-| **SaaS Theater**   | Non-functional features simulating enterprise software                                                                                |
-| **Invariant**      | Rule that must always hold; violation = PR rejection                                                                                  |
-| **Closed Default** | Feature disabled until explicit PRD amendment                                                                                         |
-| **RACI**           | Responsibility matrix: Responsible, Accountable, Consulted, Informed                                                                  |
-| **P0**             | Priority 0 (must-have for release)                                                                                                    |
-| **SOTA**           | State of the Art                                                                                                                      |
-| **COP**            | Common Operating Picture — shared situational awareness across stakeholders                                                           |
-| **RPD**            | Recognition-Primed Decision — Klein's naturalistic decision-making model                                                              |
-| **AAR**            | After-Action Review — structured debrief: intended vs actual, sustains, improves                                                      |
+| **Posture**         | Operational stance: CONTINUE (accept), DEGRADE (mitigate), or PAUSE (avoid)                                                           |
+| **Treatment**       | Risk response: accept, mitigate, transfer, or avoid — maps to postures                                                                |
+| **Wedge**           | Market entry that complements rather than competes                                                                                    |
+| **SaaS Theater**    | Non-functional features simulating enterprise software                                                                                |
+| **Invariant**       | Rule that must always hold; violation = PR rejection                                                                                  |
+| **Closed Default**  | Feature disabled until explicit PRD amendment                                                                                         |
+| **RACI**            | Responsibility matrix: Responsible, Accountable, Consulted, Informed                                                                  |
+| **P0**              | Priority 0 (must-have for release)                                                                                                    |
+| **SOTA**            | State of the Art                                                                                                                      |
+| **COP**             | Common Operating Picture — shared situational awareness across stakeholders                                                           |
+| **RPD**             | Recognition-Primed Decision — Klein's naturalistic decision-making model                                                              |
+| **AAR**             | After-Action Review — structured debrief: intended vs actual, sustains, improves                                                      |
 
 ---
 

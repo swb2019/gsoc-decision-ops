@@ -47,7 +47,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
   const [isRunning, setIsRunning] = useState(false);
   const [showQuickDecision, setShowQuickDecision] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [expandedPanel, setExpandedPanel] = useState<'facts' | 'assumptions' | 'unknowns' | null>('facts');
+  const [expandedPanel, setExpandedPanel] = useState<'facts' | 'assumptions' | 'unknowns' | null>(
+    'facts'
+  );
   const [isLoading, setIsLoading] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -244,7 +246,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                   >
                     {log.incident.severity}
                   </span>
-                  <span className="text-2xs text-ops-dark-500">{log.vendorContext?.vendorType}</span>
+                  <span className="text-2xs text-ops-dark-500">
+                    {log.vendorContext?.vendorType}
+                  </span>
                 </div>
               </div>
             </div>
@@ -263,10 +267,14 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                   {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </button>
                 <div className="text-center">
-                  <div className="font-mono text-xl font-bold text-ops-dark-50">{formatTime(elapsedSeconds)}</div>
+                  <div className="font-mono text-xl font-bold text-ops-dark-50">
+                    {formatTime(elapsedSeconds)}
+                  </div>
                   <div className="text-2xs text-ops-dark-500">{remainingMinutes}m remaining</div>
                 </div>
-                <Timer className={`w-5 h-5 ${remainingMinutes <= 10 ? 'text-ops-accent-red-400 animate-pulse' : 'text-ops-dark-500'}`} />
+                <Timer
+                  className={`w-5 h-5 ${remainingMinutes <= 10 ? 'text-ops-accent-red-400 animate-pulse' : 'text-ops-dark-500'}`}
+                />
               </div>
               <button
                 onClick={() => setShowExport(true)}
@@ -314,7 +322,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                 </h3>
               </div>
               <div className="p-4">
-                <p className="text-sm text-ops-dark-300 leading-relaxed mb-3">{log.incident.description}</p>
+                <p className="text-sm text-ops-dark-300 leading-relaxed mb-3">
+                  {log.incident.description}
+                </p>
                 {log.vendorContext && (
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span className="px-2 py-1 rounded bg-ops-dark-800/60 text-ops-dark-300">
@@ -342,7 +352,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
               <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
                 {revealedInjects.length === 0 && (
                   <div className="text-center py-6 text-ops-dark-500 text-sm">
-                    {isRunning ? 'Waiting for intel...' : 'Start the timer to begin receiving intel'}
+                    {isRunning
+                      ? 'Waiting for intel...'
+                      : 'Start the timer to begin receiving intel'}
                   </div>
                 )}
                 {revealedInjects.map((inject) => (
@@ -404,7 +416,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                           >
                             {decision.posture}
                           </span>
-                          <span className="font-medium text-ops-dark-100 text-sm">{decision.title}</span>
+                          <span className="font-medium text-ops-dark-100 text-sm">
+                            {decision.title}
+                          </span>
                         </div>
                         <p className="text-xs text-ops-dark-400">{decision.rationale}</p>
                       </div>
@@ -434,7 +448,10 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
               onToggle={() => setExpandedPanel(expandedPanel === 'facts' ? null : 'facts')}
               onAdd={handleAddFact}
               renderItem={(fact) => (
-                <div key={fact.id} className="p-3 rounded-lg bg-ops-dark-800/40 border border-ops-dark-700/30">
+                <div
+                  key={fact.id}
+                  className="p-3 rounded-lg bg-ops-dark-800/40 border border-ops-dark-700/30"
+                >
                   <p className="text-sm text-ops-dark-200">{fact.description}</p>
                   <p className="text-2xs text-ops-dark-500 mt-1">Source: {fact.source}</p>
                 </div>
@@ -447,12 +464,19 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
               color="amber"
               items={log.assumptions}
               expanded={expandedPanel === 'assumptions'}
-              onToggle={() => setExpandedPanel(expandedPanel === 'assumptions' ? null : 'assumptions')}
+              onToggle={() =>
+                setExpandedPanel(expandedPanel === 'assumptions' ? null : 'assumptions')
+              }
               onAdd={handleAddAssumption}
               renderItem={(assumption) => (
-                <div key={assumption.id} className="p-3 rounded-lg bg-ops-dark-800/40 border border-ops-dark-700/30">
+                <div
+                  key={assumption.id}
+                  className="p-3 rounded-lg bg-ops-dark-800/40 border border-ops-dark-700/30"
+                >
                   <p className="text-sm text-ops-dark-200">{assumption.description}</p>
-                  <p className="text-2xs text-ops-accent-red-400/80 mt-1">Risk: {assumption.riskIfWrong}</p>
+                  <p className="text-2xs text-ops-accent-red-400/80 mt-1">
+                    Risk: {assumption.riskIfWrong}
+                  </p>
                 </div>
               )}
             />
@@ -466,13 +490,20 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
               onToggle={() => setExpandedPanel(expandedPanel === 'unknowns' ? null : 'unknowns')}
               onAdd={handleAddUnknown}
               renderItem={(unknown) => (
-                <div key={unknown.id} className="p-3 rounded-lg bg-ops-dark-800/40 border border-ops-dark-700/30">
+                <div
+                  key={unknown.id}
+                  className="p-3 rounded-lg bg-ops-dark-800/40 border border-ops-dark-700/30"
+                >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-2xs px-1.5 py-0.5 rounded font-bold ${
-                      unknown.priority === 'CRITICAL' ? 'bg-ops-accent-red-500/20 text-ops-accent-red-400' :
-                      unknown.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-400' :
-                      'bg-ops-dark-700 text-ops-dark-400'
-                    }`}>
+                    <span
+                      className={`text-2xs px-1.5 py-0.5 rounded font-bold ${
+                        unknown.priority === 'CRITICAL'
+                          ? 'bg-ops-accent-red-500/20 text-ops-accent-red-400'
+                          : unknown.priority === 'HIGH'
+                            ? 'bg-orange-500/20 text-orange-400'
+                            : 'bg-ops-dark-700 text-ops-dark-400'
+                      }`}
+                    >
                       {unknown.priority}
                     </span>
                   </div>
@@ -496,7 +527,9 @@ function InjectCard({ inject }: { inject: ScenarioInject }): JSX.Element {
   return (
     <div className="p-4 rounded-lg bg-ops-accent-amber-500/5 border border-ops-accent-amber-500/20">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-2xs font-bold text-ops-accent-amber-400">INJECT {inject.sequenceNumber}</span>
+        <span className="text-2xs font-bold text-ops-accent-amber-400">
+          INJECT {inject.sequenceNumber}
+        </span>
         <span className="text-2xs text-ops-dark-500">@ {inject.revealAtMinute}min</span>
       </div>
       <p className="text-sm font-medium text-ops-dark-100 mb-1">{inject.title}</p>
@@ -510,7 +543,15 @@ function InjectCard({ inject }: { inject: ScenarioInject }): JSX.Element {
   );
 }
 
-function StatBox({ label, value, color }: { label: string; value: number; color: 'green' | 'amber' | 'red' }): JSX.Element {
+function StatBox({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: 'green' | 'amber' | 'red';
+}): JSX.Element {
   const colorClasses = {
     green: 'text-ops-accent-green-400',
     amber: 'text-ops-accent-amber-400',
@@ -567,7 +608,11 @@ function COPPanel<T extends { id: string }>({
           <span className="font-semibold text-ops-dark-100 text-sm">{title}</span>
           <span className="text-2xs text-ops-dark-500">({items.length})</span>
         </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-ops-dark-500" /> : <ChevronDown className="w-4 h-4 text-ops-dark-500" />}
+        {expanded ? (
+          <ChevronUp className="w-4 h-4 text-ops-dark-500" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-ops-dark-500" />
+        )}
       </button>
       {expanded && (
         <div className="p-3 pt-0 space-y-2">
@@ -586,7 +631,9 @@ function COPPanel<T extends { id: string }>({
             />
           )}
           {items.length === 0 && !showAdd && (
-            <p className="text-xs text-ops-dark-500 text-center py-2">No {title.toLowerCase()} recorded</p>
+            <p className="text-xs text-ops-dark-500 text-center py-2">
+              No {title.toLowerCase()} recorded
+            </p>
           )}
           {items.map(renderItem)}
         </div>
@@ -691,8 +738,12 @@ function AddItemForm({
         </>
       )}
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="btn btn-ghost text-xs py-1.5">Cancel</button>
-        <button onClick={handleSubmit} className="btn btn-primary text-xs py-1.5">Add</button>
+        <button onClick={onClose} className="btn btn-ghost text-xs py-1.5">
+          Cancel
+        </button>
+        <button onClick={handleSubmit} className="btn btn-primary text-xs py-1.5">
+          Add
+        </button>
       </div>
     </div>
   );
@@ -726,7 +777,7 @@ function QuickDecisionForm({
         className="input text-sm"
         autoFocus
       />
-      
+
       <div className="grid grid-cols-3 gap-2">
         {(['CONTINUE', 'DEGRADE', 'PAUSE'] as const).map((p) => (
           <button
@@ -757,7 +808,9 @@ function QuickDecisionForm({
       />
 
       <div className="flex justify-end gap-2">
-        <button onClick={onCancel} className="btn btn-ghost text-xs py-1.5">Cancel</button>
+        <button onClick={onCancel} className="btn btn-ghost text-xs py-1.5">
+          Cancel
+        </button>
         <button
           onClick={() => onSubmit(title, title, posture, rationale)}
           disabled={!title || !rationale}
@@ -780,20 +833,25 @@ function ExportModal({
   onClose: () => void;
 }): JSX.Element {
   const stats = calculateStats(log);
-  
+
   return (
     <div className="fixed inset-0 bg-ops-dark-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="glass-card max-w-md w-full p-6 animate-scale-in">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-ops-dark-50">Export After-Action Report</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-ops-dark-800/60 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-ops-dark-800/60 transition-colors"
+          >
             <X className="w-5 h-5 text-ops-dark-400" />
           </button>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="p-3 rounded-lg bg-ops-dark-800/40 text-center">
-            <div className="text-2xl font-bold text-ops-accent-green-400">{stats.totalDecisions}</div>
+            <div className="text-2xl font-bold text-ops-accent-green-400">
+              {stats.totalDecisions}
+            </div>
             <div className="text-xs text-ops-dark-500">Decisions</div>
           </div>
           <div className="p-3 rounded-lg bg-ops-dark-800/40 text-center">
@@ -824,7 +882,7 @@ function ExportModal({
             JSON
           </button>
         </div>
-        
+
         <p className="text-2xs text-ops-dark-500 text-center mt-4">
           Export includes training watermark
         </p>

@@ -1,10 +1,5 @@
 import Link from 'next/link';
-import {
-  Shield,
-  Clock,
-  Play,
-  AlertCircle,
-} from 'lucide-react';
+import { Shield, Clock, Play, AlertCircle } from 'lucide-react';
 import { getAvailableScenarios } from '@gsoc-decision-ops/core';
 
 export default function HomePage(): JSX.Element {
@@ -49,8 +44,8 @@ export default function HomePage(): JSX.Element {
             <span className="text-gradient-green"> Simulation</span>
           </h1>
           <p className="text-lg text-ops-dark-400 max-w-xl mx-auto leading-relaxed text-balance">
-            You're the GSOC leader. A vendor incident just hit. 
-            Make the calls. Document the rationale. Own the outcome.
+            You're the GSOC leader. A vendor incident just hit. Make the calls. Document the
+            rationale. Own the outcome.
           </p>
         </div>
 
@@ -71,8 +66,8 @@ export default function HomePage(): JSX.Element {
                 <div className="scenario-card flex items-center gap-4 p-4 sm:p-5 rounded-xl">
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      scenario.severity === 'CRITICAL' 
-                        ? 'bg-ops-accent-red-500/15 text-ops-accent-red-400' 
+                      scenario.severity === 'CRITICAL'
+                        ? 'bg-ops-accent-red-500/15 text-ops-accent-red-400'
                         : 'bg-ops-accent-amber-500/15 text-ops-accent-amber-400'
                     }`}
                   >
@@ -118,14 +113,18 @@ export default function HomePage(): JSX.Element {
                 <div className="w-2 h-2 rounded-full bg-ops-accent-green-500" />
                 <span className="font-bold text-ops-accent-green-400 text-sm">CONTINUE</span>
               </div>
-              <p className="text-xs text-ops-dark-400">Risk within tolerance. Proceed with monitoring.</p>
+              <p className="text-xs text-ops-dark-400">
+                Risk within tolerance. Proceed with monitoring.
+              </p>
             </div>
             <div className="p-4 rounded-lg bg-ops-accent-amber-500/8 border border-ops-accent-amber-500/20">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-2 h-2 rounded-full bg-ops-accent-amber-500" />
                 <span className="font-bold text-ops-accent-amber-400 text-sm">DEGRADE</span>
               </div>
-              <p className="text-xs text-ops-dark-400">Reduce exposure via compensating controls.</p>
+              <p className="text-xs text-ops-dark-400">
+                Reduce exposure via compensating controls.
+              </p>
             </div>
             <div className="p-4 rounded-lg bg-ops-accent-red-500/8 border border-ops-accent-red-500/20">
               <div className="flex items-center gap-2 mb-1.5">

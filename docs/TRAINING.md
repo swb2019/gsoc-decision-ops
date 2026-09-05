@@ -201,22 +201,22 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ## §3 Feature-to-Pedagogy Mapping
 
-| Feature                           | Primary Foundation      | Secondary Foundations               |
-| --------------------------------- | ----------------------- | ----------------------------------- |
-| Decision log with timestamp/owner | Enterprise workflow     | Military AAR                        |
-| Timeline event tracking           | Enterprise workflow     | NIST first-hour discipline          |
-| Learning objective per scenario   | Tabletop design         | —                                   |
-| Timed injects                     | Tabletop design         | RPD (situation reassessment)        |
-| Facts/Assumptions/Unknowns panels | COP                     | RPD (cue recognition)               |
-| Required risk-if-wrong            | COP                     | ESRM (residual risk explicit)       |
-| CONTINUE/DEGRADE/PAUSE postures   | ESRM treatment mapping  | RPD (satisficing)                   |
-| Residual risk in decisions        | ESRM principles         | Enterprise workflow                 |
-| Asset owner framing               | ESRM principles         | ASIS ESRM guidelines                |
-| RPD decision prompts              | RPD                     | Tabletop design (force decisions)   |
-| Playbook phases                   | NIST first-hour         | Tabletop design (structure)         |
-| Joint-bridge checklist            | Joint coordination      | NIST (communication requirements)   |
-| AAR export (sustains/improves)    | Military AAR            | Tabletop design (immediate debrief) |
-| Action items with owner/due       | Military AAR            | ESRM (ownership)                    |
+| Feature                           | Primary Foundation     | Secondary Foundations               |
+| --------------------------------- | ---------------------- | ----------------------------------- |
+| Decision log with timestamp/owner | Enterprise workflow    | Military AAR                        |
+| Timeline event tracking           | Enterprise workflow    | NIST first-hour discipline          |
+| Learning objective per scenario   | Tabletop design        | —                                   |
+| Timed injects                     | Tabletop design        | RPD (situation reassessment)        |
+| Facts/Assumptions/Unknowns panels | COP                    | RPD (cue recognition)               |
+| Required risk-if-wrong            | COP                    | ESRM (residual risk explicit)       |
+| CONTINUE/DEGRADE/PAUSE postures   | ESRM treatment mapping | RPD (satisficing)                   |
+| Residual risk in decisions        | ESRM principles        | Enterprise workflow                 |
+| Asset owner framing               | ESRM principles        | ASIS ESRM guidelines                |
+| RPD decision prompts              | RPD                    | Tabletop design (force decisions)   |
+| Playbook phases                   | NIST first-hour        | Tabletop design (structure)         |
+| Joint-bridge checklist            | Joint coordination     | NIST (communication requirements)   |
+| AAR export (sustains/improves)    | Military AAR           | Tabletop design (immediate debrief) |
+| Action items with owner/due       | Military AAR           | ESRM (ownership)                    |
 
 ---
 

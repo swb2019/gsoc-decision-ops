@@ -14,7 +14,7 @@ First-hour decision training for corporate security operations leaders.
 
 A first-hour decision simulation for GSOC leaders. Practice structured decision-making under time pressure through realistic vendor compromise scenarios. Document facts vs. assumptions, make posture calls (CONTINUE/DEGRADE/PAUSE), follow a 60-minute playbook, and export after-action reports.
 
-*Training simulation — not a production system of record.*
+_Training simulation — not a production system of record._
 
 ## Why
 
