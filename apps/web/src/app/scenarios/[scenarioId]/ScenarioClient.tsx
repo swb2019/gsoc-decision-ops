@@ -67,5 +67,5 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
     );
   }
 
-  return <CommandCenter initialLog={log} esrmConfig={esrmConfig} />;
+  return <CommandCenter initialLog={log} esrmConfig={esrmConfig} scenarioId={scenarioId} />;
 }
