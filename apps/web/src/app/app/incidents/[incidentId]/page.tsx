@@ -8,9 +8,7 @@ interface IncidentDetailPageProps {
   params: { incidentId: string };
 }
 
-export default function IncidentDetailPage({
-  params,
-}: IncidentDetailPageProps): JSX.Element {
+export default function IncidentDetailPage({ params }: IncidentDetailPageProps): JSX.Element {
   const router = useRouter();
   const incident = DEMO_INCIDENTS.find((i) => i.id === params.incidentId);
 
@@ -34,12 +32,8 @@ export default function IncidentDetailPage({
     return (
       <div className="p-8">
         <div className="text-center py-12">
-          <h1 className="text-2xl font-bold text-ops-dark-100 mb-2">
-            Incident Not Found
-          </h1>
-          <p className="text-ops-dark-400">
-            The requested incident could not be found.
-          </p>
+          <h1 className="text-2xl font-bold text-ops-dark-100 mb-2">Incident Not Found</h1>
+          <p className="text-ops-dark-400">The requested incident could not be found.</p>
         </div>
       </div>
     );
