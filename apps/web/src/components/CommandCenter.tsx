@@ -2948,7 +2948,11 @@ export default function CommandCenter({
               className="flex p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex-shrink-0"
               aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
             </button>
 
             {/* Ambient music toggle - hidden on very small mobile, accessible via menu */}
@@ -3165,213 +3169,217 @@ export default function CommandCenter({
                       right: Math.max(8, mobileMenuPosition?.right ?? 8),
                     }}
                   >
-                  <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
-                    Dashboards
-                  </div>
+                    <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
+                      Dashboards
+                    </div>
 
-                  {log.linkedEntities && log.linkedEntities.length > 0 && (
+                    {log.linkedEntities && log.linkedEntities.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setShowEntityPanel(true);
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                        role="menuitem"
+                      >
+                        <Link2 className="w-4 h-4" />
+                        Entity Map
+                        {highlightedEntityId && (
+                          <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
+                        )}
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
-                        setShowEntityPanel(true);
+                        setShowValuePanel(true);
                         setShowMobileMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        valueMetrics && valueMetrics.compositeValueScore >= 0.7
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : valueMetrics && valueMetrics.compositeValueScore >= 0.4
+                            ? 'text-amber-400 hover:bg-amber-500/10'
+                            : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
                       role="menuitem"
                     >
-                      <Link2 className="w-4 h-4" />
-                      Entity Map
-                      {highlightedEntityId && (
-                        <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
+                      <TrendingUp className="w-4 h-4" />
+                      Value Metrics
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowKRIPanel(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        kriDashboard?.overallHealth === 'GREEN'
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : kriDashboard?.overallHealth === 'AMBER'
+                            ? 'text-amber-400 hover:bg-amber-500/10'
+                            : kriDashboard?.overallHealth === 'RED'
+                              ? 'text-red-400 hover:bg-red-500/10'
+                              : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      KRI Dashboard
+                      {kriDashboard && kriDashboard.criticalCount > 0 && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                          {kriDashboard.criticalCount}
+                        </span>
                       )}
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => {
-                      setShowValuePanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      valueMetrics && valueMetrics.compositeValueScore >= 0.7
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : valueMetrics && valueMetrics.compositeValueScore >= 0.4
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Value Metrics
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowKRIPanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      kriDashboard?.overallHealth === 'GREEN'
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : kriDashboard?.overallHealth === 'AMBER'
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : kriDashboard?.overallHealth === 'RED'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    KRI Dashboard
-                    {kriDashboard && kriDashboard.criticalCount > 0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
-                        {kriDashboard.criticalCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowPipelinePanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      pipelineHealth?.overallStatus === 'HEALTHY'
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : pipelineHealth?.overallStatus === 'DEGRADED'
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : pipelineHealth?.overallStatus === 'CRITICAL'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Activity className="w-4 h-4" />
-                    Pipeline Health
-                    {pipelineHealth && pipelineHealth.alerts.length > 0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
-                        {pipelineHealth.alerts.length}
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="border-t border-gray-800 my-1" />
-
-                  <button
-                    onClick={() => {
-                      setShowTacticalPanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
-                        ? 'text-cyan-400 hover:bg-cyan-500/10'
-                        : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Crosshair className="w-4 h-4" />
-                    Tactical Actions
-                    {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
-                      0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
-                        {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length}{' '}
-                        active
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowFieldGuide(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
-                    role="menuitem"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Field Guide
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowDebrief(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
-                    role="menuitem"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Debrief
-                  </button>
-
-                  {/* Ambient Music Toggle in mobile menu */}
-                  <button
-                    onClick={() => {
-                      handleAmbientMusicToggle();
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      ambientMusicEnabled && isMusicPlaying
-                        ? 'text-violet-400 hover:bg-violet-500/10'
-                        : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Music className="w-4 h-4" />
-                    Ambient Music
-                    {ambientMusicEnabled && isMusicPlaying && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
-                        On
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Field Guide Tips Toggle in mobile menu */}
-                  <button
-                    onClick={() => {
-                      const newValue = !fieldGuideTipsEnabled;
-                      setFieldGuideTipsEnabled(newValue);
-                      setTipsEnabled(newValue);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      fieldGuideTipsEnabled
-                        ? 'text-cyan-400 hover:bg-cyan-500/10'
-                        : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <HelpCircle className="w-4 h-4" />
-                    JIT Tips
-                    {fieldGuideTipsEnabled && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
-                        On
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="border-t border-gray-800 my-1" />
-
-                  <div className="px-3 py-2 flex items-center justify-between">
-                    <span className="text-2xs text-gray-500 uppercase tracking-wider">
-                      {escalationLevel}
-                    </span>
-                    <span
+                    <button
+                      onClick={() => {
+                        setShowPipelinePanel(true);
+                        setShowMobileMenu(false);
+                      }}
                       className={clsx(
-                        'text-2xs px-1.5 py-0.5 rounded font-semibold',
-                        escalationLevel === 'INVESTIGATION'
-                          ? 'bg-red-500/20 text-red-400'
-                          : escalationLevel === 'INCIDENT'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-gray-700 text-gray-400'
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        pipelineHealth?.overallStatus === 'HEALTHY'
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : pipelineHealth?.overallStatus === 'DEGRADED'
+                            ? 'text-amber-400 hover:bg-amber-500/10'
+                            : pipelineHealth?.overallStatus === 'CRITICAL'
+                              ? 'text-red-400 hover:bg-red-500/10'
+                              : 'text-gray-400 hover:bg-gray-800/50'
                       )}
+                      role="menuitem"
                     >
-                      Level
-                    </span>
-                  </div>
+                      <Activity className="w-4 h-4" />
+                      Pipeline Health
+                      {pipelineHealth && pipelineHealth.alerts.length > 0 && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                          {pipelineHealth.alerts.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="border-t border-gray-800 my-1" />
+
+                    <button
+                      onClick={() => {
+                        setShowTacticalPanel(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
+                          0
+                          ? 'text-cyan-400 hover:bg-cyan-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      Tactical Actions
+                      {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
+                        0 && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                          {
+                            tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE')
+                              .length
+                          }{' '}
+                          active
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowFieldGuide(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
+                      role="menuitem"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Field Guide
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowDebrief(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
+                      role="menuitem"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Debrief
+                    </button>
+
+                    {/* Ambient Music Toggle in mobile menu */}
+                    <button
+                      onClick={() => {
+                        handleAmbientMusicToggle();
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        ambientMusicEnabled && isMusicPlaying
+                          ? 'text-violet-400 hover:bg-violet-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <Music className="w-4 h-4" />
+                      Ambient Music
+                      {ambientMusicEnabled && isMusicPlaying && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
+                          On
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Field Guide Tips Toggle in mobile menu */}
+                    <button
+                      onClick={() => {
+                        const newValue = !fieldGuideTipsEnabled;
+                        setFieldGuideTipsEnabled(newValue);
+                        setTipsEnabled(newValue);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        fieldGuideTipsEnabled
+                          ? 'text-cyan-400 hover:bg-cyan-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      JIT Tips
+                      {fieldGuideTipsEnabled && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                          On
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="border-t border-gray-800 my-1" />
+
+                    <div className="px-3 py-2 flex items-center justify-between">
+                      <span className="text-2xs text-gray-500 uppercase tracking-wider">
+                        {escalationLevel}
+                      </span>
+                      <span
+                        className={clsx(
+                          'text-2xs px-1.5 py-0.5 rounded font-semibold',
+                          escalationLevel === 'INVESTIGATION'
+                            ? 'bg-red-500/20 text-red-400'
+                            : escalationLevel === 'INCIDENT'
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-gray-700 text-gray-400'
+                        )}
+                      >
+                        Level
+                      </span>
+                    </div>
                   </div>
                 </>,
                 document.body
@@ -7771,11 +7779,18 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-bold text-white truncate">ESRM Field Guide</h2>
-              <p className="text-2xs sm:text-xs text-gray-500 truncate">Enterprise Security Risk Management Training</p>
+              <h2 className="text-base sm:text-lg font-bold text-white truncate">
+                ESRM Field Guide
+              </h2>
+              <p className="text-2xs sm:text-xs text-gray-500 truncate">
+                Enterprise Security Risk Management Training
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-800 transition-colors flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-800 transition-colors flex-shrink-0"
+          >
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
