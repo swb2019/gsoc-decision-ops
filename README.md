@@ -1,4 +1,4 @@
-# GSOC Decision Ops
+# Hourglass Command
 
 First-hour decision training for corporate security operations leaders.
 
@@ -18,7 +18,7 @@ _Training simulation — not a production system of record._
 
 ## Why
 
-When a critical vendor reports a security incident, GSOC leaders must make rapid decisions with incomplete information. This skill is difficult to practice in production. GSOC Decision Ops provides a structured training environment to build first-hour judgment.
+When a critical vendor reports a security incident, GSOC leaders must make rapid decisions with incomplete information. This skill is difficult to practice in production. Hourglass Command provides a structured training environment to build first-hour judgment.
 
 ## Who
 

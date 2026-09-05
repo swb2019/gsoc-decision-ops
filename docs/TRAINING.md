@@ -1,4 +1,4 @@
-# GSOC Decision Ops — Training Methodology
+# Hourglass Command — Training Methodology
 
 > **Version:** 1.0  
 > **Effective:** September 2026  
@@ -8,7 +8,7 @@
 
 ## Training Philosophy
 
-GSOC Decision Ops is built on **enterprise incident management patterns**, **SOTA ESRM (ASIS) risk methodology**, and **evidence-based decision training** — not gamification or engagement farming. The goal is skill transfer: what you practice here should improve your judgment in actual first-hour incidents.
+Hourglass Command is built on **enterprise incident management patterns**, **SOTA ESRM (ASIS) risk methodology**, and **evidence-based decision training** — not gamification or engagement farming. The goal is skill transfer: what you practice here should improve your judgment in actual first-hour incidents.
 
 **Foundation stack:**
 
@@ -113,7 +113,7 @@ Recommendation to: Facilities Director (asset owner)
 Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 ```
 
-**How applied in GSOC Decision Ops:**
+**How applied in Hourglass Command:**
 
 | RPD Element              | Feature Implementation                                                               |
 | ------------------------ | ------------------------------------------------------------------------------------ |
@@ -273,4 +273,4 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ---
 
-_GSOC Decision Ops — Training Methodology v1.0_
+_Hourglass Command — Training Methodology v1.0_

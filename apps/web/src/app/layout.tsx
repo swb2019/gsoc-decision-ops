@@ -24,13 +24,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'GSOC Decision Ops | First-Hour Decision Training',
+  title: 'Hourglass Command | First-Hour Decision Training',
   description:
-    'First-hour decision simulation for GSOC operations. Practice facts vs assumptions and CONTINUE/DEGRADE/PAUSE posture calls under time pressure.',
-  keywords: ['GSOC', 'security operations', 'decision making', 'incident response', 'training'],
+    'First-hour decision simulation for security operations. Practice facts vs assumptions and CONTINUE/DEGRADE/PAUSE posture calls under time pressure.',
+  keywords: ['Hourglass Command', 'security operations', 'decision making', 'incident response', 'training'],
   authors: [{ name: 'Shannon Brown' }],
   openGraph: {
-    title: 'GSOC Decision Ops',
+    title: 'Hourglass Command',
     description: 'First-hour decision training for security operations leaders',
     type: 'website',
     url: 'https://swb2019.github.io/gsoc-decision-ops/',
@@ -39,13 +39,13 @@ export const metadata: Metadata = {
         url: 'https://swb2019.github.io/gsoc-decision-ops/og.png',
         width: 1280,
         height: 720,
-        alt: 'GSOC Decision Ops — First-Hour Decision Training',
+        alt: 'Hourglass Command — First-Hour Decision Training',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GSOC Decision Ops',
+    title: 'Hourglass Command',
     description: 'First-hour decision training for security operations leaders',
     images: ['https://swb2019.github.io/gsoc-decision-ops/og.png'],
   },

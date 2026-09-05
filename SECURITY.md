@@ -2,7 +2,7 @@
 
 ## Overview
 
-GSOC Decision Ops is a training and exercise toolkit for corporate security operations professionals. It is designed for educational purposes and does not process, store, or transmit sensitive operational data in production environments.
+Hourglass Command is a training and exercise toolkit for corporate security operations professionals. It is designed for educational purposes and does not process, store, or transmit sensitive operational data in production environments.
 
 ## Supported Versions
 
@@ -26,7 +26,7 @@ This security policy applies to:
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in GSOC Decision Ops:
+If you discover a security vulnerability in Hourglass Command:
 
 ### Do
 
