@@ -4,15 +4,10 @@
  * Audio System for Hourglass Command
  *
  * SFX: High-quality OGG files generated with professional synthesis techniques
- * BGM: Melodic ambient music (ambientBGM_v3.ogg) with:
- *   - Soft arpeggio pattern over Am (A3-C4-E4-A4 at 80 BPM)
- *   - Warm pad chords (Am → F → G progression) with LFO modulation
- *   - Light pulse rhythm and sparse tick texture
- *   - 45-second seamless loop, stereo 48kHz
- *   - Target loudness ~-18 to -24 LUFS (sits under SFX)
- *
- * FFT verified: 98.7% energy in 100-800Hz midrange (peaks at E4=330Hz, C4=262Hz)
- * NOT a bass drone/hum - clear melodic content with musical fundamentals.
+ * BGM: ElevenLabs Music (ambientBGM_v5.ogg)
+ *   - music_v2 model, force_instrumental
+ *   - ~45-second seamless loop
+ *   - Starter plan
  */
 
 export type SFXType =
@@ -162,10 +157,10 @@ export function initAudio(): void {
 }
 
 // Ambient BGM support
-// v3: Melodic ambient with arpeggio + pads (45s stereo, 48kHz) - clear midrange music
-// FFT verified: peaks at E4(330Hz), C4(262Hz) - NOT a bass drone
+// v5: ElevenLabs Music (music_v2, force_instrumental, ~45s, Starter plan)
+// Brighter midrange, seamless loop
 // Cache-bust query ensures CDN/browser serves the new file
-const BGM_FILE = '/audio/ambientBGM_v3.ogg?v=20260906';
+const BGM_FILE = '/audio/ambientBGM_v5.ogg?v=20260905-elevenlabs-v5';
 let ambientAudio: HTMLAudioElement | null = null;
 let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -183,7 +178,7 @@ export function startAmbientMusic(): void {
   ambientAudio
     .play()
     .then(() => {
-      // Fade in to low volume - v2 audio is properly leveled at ~-18dB
+      // Fade in to low volume
       const targetVolume = 0.12;
       const fadeIn = (): void => {
         if (!ambientAudio) return;
