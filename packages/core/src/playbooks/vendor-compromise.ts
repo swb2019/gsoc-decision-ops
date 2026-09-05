@@ -5,12 +5,8 @@
  * a critical vendor experiences a security incident or operational
  * disruption that may impact physical security operations.
  *
- * Built on Resolver-class workflow principles and ASIS ESRM methodology.
+ * Built on enterprise incident management patterns and ASIS ESRM methodology.
  * GSOC serves as trusted advisor to asset owners; asset owners own the risk.
- *
- * GOVERNANCE NOTE: This playbook represents a training framework for
- * educational and exercise purposes. Actual incident response should
- * follow your organization's established procedures and policies.
  */
 
 import type { Playbook, PlaybookPhase, ChecklistItem } from '../types.js';

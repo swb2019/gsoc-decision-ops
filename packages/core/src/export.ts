@@ -462,7 +462,7 @@ export function exportToMarkdown(report: AfterActionReport): string {
   lines.push(`*Organization: ${log.metadata.organization}*`);
   lines.push('');
   lines.push(
-    '> This tool trains first-hour judgment beside Resolver-class platforms — it does not replace enterprise incident management.'
+    '> Training simulation for first-hour decision practice. Not a system of record.'
   );
 
   return lines.join('\n');

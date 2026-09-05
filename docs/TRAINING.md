@@ -8,15 +8,13 @@
 
 ## Training Philosophy
 
-GSOC Decision Ops is built on **Resolver-class workflow principles**, **SOTA ESRM (ASIS) risk methodology**, and **evidence-based decision training** — not gamification or engagement farming. The goal is skill transfer: what you practice here should improve your judgment in actual first-hour incidents.
+GSOC Decision Ops is built on **enterprise incident management patterns**, **SOTA ESRM (ASIS) risk methodology**, and **evidence-based decision training** — not gamification or engagement farming. The goal is skill transfer: what you practice here should improve your judgment in actual first-hour incidents.
 
 **Foundation stack:**
 
-1. Resolver-class workflow fidelity (decision log, timeline, ownership, escalation, COP)
+1. Enterprise workflow fidelity (decision log, timeline, ownership, escalation, COP)
 2. ASIS ESRM risk principles (asset owner owns risk, security as trusted advisor)
 3. Evidence-based pedagogy (Klein RPD, military AAR, tabletop design)
-
-This tool **trains first-hour judgment beside the enterprise suite** — it does not replace Resolver-class incident management or full ESRM programs.
 
 This document maps each feature to its pedagogical foundation, enabling trainers to understand _why_ the tool works, not just _how_ to use it.
 
@@ -24,15 +22,13 @@ This document maps each feature to its pedagogical foundation, enabling trainers
 
 ## §1 Foundation Stack
 
-### 1.1 Resolver-Class Workflow Principles
+### 1.1 Enterprise Incident Management Patterns
 
 **Source:** Enterprise Security Risk Management (ESRM) platforms; incident management workflow design
 
-**What "Resolver-class" means:** Leading ESRM platforms (Resolver, etc.) provide comprehensive incident lifecycle management. GSOC Decision Ops doesn't replicate that — it trains the _decision-making skills_ that make incident management effective.
-
 **Workflow elements trained (pedagogy, not feature parity):**
 
-| Resolver Element             | Training Implementation                                     |
+| Element                      | Training Implementation                                     |
 | ---------------------------- | ----------------------------------------------------------- |
 | **Decision log**             | Timestamped decision capture with posture, rationale, owner |
 | **Timeline**                 | Chronological event tracking with type classification       |
@@ -207,14 +203,14 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 | Feature                           | Primary Foundation      | Secondary Foundations               |
 | --------------------------------- | ----------------------- | ----------------------------------- |
-| Decision log with timestamp/owner | Resolver-class workflow | Military AAR                        |
-| Timeline event tracking           | Resolver-class workflow | NIST first-hour discipline          |
+| Decision log with timestamp/owner | Enterprise workflow     | Military AAR                        |
+| Timeline event tracking           | Enterprise workflow     | NIST first-hour discipline          |
 | Learning objective per scenario   | Tabletop design         | —                                   |
 | Timed injects                     | Tabletop design         | RPD (situation reassessment)        |
 | Facts/Assumptions/Unknowns panels | COP                     | RPD (cue recognition)               |
 | Required risk-if-wrong            | COP                     | ESRM (residual risk explicit)       |
 | CONTINUE/DEGRADE/PAUSE postures   | ESRM treatment mapping  | RPD (satisficing)                   |
-| Residual risk in decisions        | ESRM principles         | Resolver-class workflow             |
+| Residual risk in decisions        | ESRM principles         | Enterprise workflow                 |
 | Asset owner framing               | ESRM principles         | ASIS ESRM guidelines                |
 | RPD decision prompts              | RPD                     | Tabletop design (force decisions)   |
 | Playbook phases                   | NIST first-hour         | Tabletop design (structure)         |
