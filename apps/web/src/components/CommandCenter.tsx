@@ -2908,7 +2908,7 @@ export default function CommandCenter({
           </div>
 
           {/* Right: Score & Actions - Overflow safe with mobile menu */}
-          <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 max-w-[50%] lg:max-w-none">
+          <div className="flex items-center gap-0.5 sm:gap-1 lg:gap-2 flex-shrink-0 max-w-[55%] sm:max-w-[50%] lg:max-w-none overflow-hidden">
             {/* Mobile score badge */}
             <div className="flex lg:hidden items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg bg-gray-800/40 flex-shrink-0">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
@@ -2945,17 +2945,21 @@ export default function CommandCenter({
             {/* Sound toggle - always visible */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="flex p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0"
+              className="flex p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex-shrink-0"
               aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
             >
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              ) : (
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+              )}
             </button>
 
-            {/* Ambient music toggle */}
+            {/* Ambient music toggle - hidden on very small mobile, accessible via menu */}
             <button
               onClick={handleAmbientMusicToggle}
               className={clsx(
-                'flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
+                'hidden xs:flex p-2 rounded-xl transition-all items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex-shrink-0',
                 ambientMusicEnabled && isMusicPlaying
                   ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
                   : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
@@ -2963,10 +2967,10 @@ export default function CommandCenter({
               aria-label={ambientMusicEnabled ? 'Disable ambient music' : 'Enable ambient music'}
               title={ambientMusicEnabled ? 'Ambient music on' : 'Ambient music off'}
             >
-              <Music className="w-5 h-5" />
+              <Music className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Field Guide Tips toggle */}
+            {/* Field Guide Tips toggle - hidden on mobile, accessible via menu */}
             <button
               onClick={() => {
                 const newValue = !fieldGuideTipsEnabled;
@@ -2974,7 +2978,7 @@ export default function CommandCenter({
                 setTipsEnabled(newValue);
               }}
               className={clsx(
-                'flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
+                'hidden sm:flex p-2 rounded-xl transition-all items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex-shrink-0',
                 fieldGuideTipsEnabled
                   ? 'text-cyan-400 bg-cyan-500/20 hover:bg-cyan-500/30'
                   : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
@@ -2982,7 +2986,7 @@ export default function CommandCenter({
               aria-label={fieldGuideTipsEnabled ? 'Disable JIT tips' : 'Enable JIT tips'}
               title={fieldGuideTipsEnabled ? 'Field Guide tips on' : 'Field Guide tips off'}
             >
-              <HelpCircle className="w-5 h-5" />
+              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Escalation Level Indicator - hidden on small mobile */}
@@ -3115,21 +3119,6 @@ export default function CommandCenter({
               </button>
             </div>
 
-            {/* Ambient Music Toggle */}
-            <button
-              onClick={handleAmbientMusicToggle}
-              className={clsx(
-                'hidden sm:flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
-                ambientMusicEnabled && isMusicPlaying
-                  ? 'text-violet-400 hover:text-violet-300 hover:bg-violet-500/10'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
-              )}
-              aria-label={ambientMusicEnabled ? 'Disable ambient music' : 'Enable ambient music'}
-              title={ambientMusicEnabled ? 'Ambient music on' : 'Ambient music off'}
-            >
-              <Music className="w-5 h-5" />
-            </button>
-
             {/* Mobile overflow menu button */}
             <div className="lg:hidden flex-shrink-0">
               <button
@@ -3165,198 +3154,234 @@ export default function CommandCenter({
             {showMobileMenu &&
               typeof document !== 'undefined' &&
               createPortal(
-                <div
-                  className="fixed w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[200] animate-scale-in-fast"
-                  role="menu"
-                  style={{
-                    top: mobileMenuPosition?.top ?? 60,
-                    right: mobileMenuPosition?.right ?? 8,
-                  }}
-                >
-                  <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
-                    Dashboards
-                  </div>
+                <>
+                  {/* Backdrop to indicate overlay state */}
+                  <div
+                    className="fixed inset-0 z-[199]"
+                    onClick={() => setShowMobileMenu(false)}
+                    aria-hidden="true"
+                  />
+                  <div
+                    className="fixed w-52 sm:w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[200] animate-scale-in-fast max-h-[70vh] overflow-y-auto"
+                    role="menu"
+                    style={{
+                      top: mobileMenuPosition?.top ?? 60,
+                      right: Math.max(8, mobileMenuPosition?.right ?? 8),
+                    }}
+                  >
+                    <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
+                      Dashboards
+                    </div>
 
-                  {log.linkedEntities && log.linkedEntities.length > 0 && (
+                    {log.linkedEntities && log.linkedEntities.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setShowEntityPanel(true);
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                        role="menuitem"
+                      >
+                        <Link2 className="w-4 h-4" />
+                        Entity Map
+                        {highlightedEntityId && (
+                          <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
+                        )}
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
-                        setShowEntityPanel(true);
+                        setShowValuePanel(true);
                         setShowMobileMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        valueMetrics && valueMetrics.compositeValueScore >= 0.7
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : valueMetrics && valueMetrics.compositeValueScore >= 0.4
+                            ? 'text-amber-400 hover:bg-amber-500/10'
+                            : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
                       role="menuitem"
                     >
-                      <Link2 className="w-4 h-4" />
-                      Entity Map
-                      {highlightedEntityId && (
-                        <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
+                      <TrendingUp className="w-4 h-4" />
+                      Value Metrics
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowKRIPanel(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        kriDashboard?.overallHealth === 'GREEN'
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : kriDashboard?.overallHealth === 'AMBER'
+                            ? 'text-amber-400 hover:bg-amber-500/10'
+                            : kriDashboard?.overallHealth === 'RED'
+                              ? 'text-red-400 hover:bg-red-500/10'
+                              : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      KRI Dashboard
+                      {kriDashboard && kriDashboard.criticalCount > 0 && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                          {kriDashboard.criticalCount}
+                        </span>
                       )}
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => {
-                      setShowValuePanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      valueMetrics && valueMetrics.compositeValueScore >= 0.7
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : valueMetrics && valueMetrics.compositeValueScore >= 0.4
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Value Metrics
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowKRIPanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      kriDashboard?.overallHealth === 'GREEN'
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : kriDashboard?.overallHealth === 'AMBER'
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : kriDashboard?.overallHealth === 'RED'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    KRI Dashboard
-                    {kriDashboard && kriDashboard.criticalCount > 0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
-                        {kriDashboard.criticalCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowPipelinePanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      pipelineHealth?.overallStatus === 'HEALTHY'
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : pipelineHealth?.overallStatus === 'DEGRADED'
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : pipelineHealth?.overallStatus === 'CRITICAL'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Activity className="w-4 h-4" />
-                    Pipeline Health
-                    {pipelineHealth && pipelineHealth.alerts.length > 0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
-                        {pipelineHealth.alerts.length}
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="border-t border-gray-800 my-1" />
-
-                  <button
-                    onClick={() => {
-                      setShowTacticalPanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
-                        ? 'text-cyan-400 hover:bg-cyan-500/10'
-                        : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Crosshair className="w-4 h-4" />
-                    Tactical Actions
-                    {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
-                      0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
-                        {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length}{' '}
-                        active
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowFieldGuide(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
-                    role="menuitem"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Field Guide
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowDebrief(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
-                    role="menuitem"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Debrief
-                  </button>
-
-                  {/* Ambient Music Toggle in mobile menu */}
-                  <button
-                    onClick={() => {
-                      handleAmbientMusicToggle();
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      ambientMusicEnabled && isMusicPlaying
-                        ? 'text-violet-400 hover:bg-violet-500/10'
-                        : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Music className="w-4 h-4" />
-                    Ambient Music
-                    {ambientMusicEnabled && isMusicPlaying && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
-                        On
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="border-t border-gray-800 my-1" />
-
-                  <div className="px-3 py-2 flex items-center justify-between">
-                    <span className="text-2xs text-gray-500 uppercase tracking-wider">
-                      {escalationLevel}
-                    </span>
-                    <span
+                    <button
+                      onClick={() => {
+                        setShowPipelinePanel(true);
+                        setShowMobileMenu(false);
+                      }}
                       className={clsx(
-                        'text-2xs px-1.5 py-0.5 rounded font-semibold',
-                        escalationLevel === 'INVESTIGATION'
-                          ? 'bg-red-500/20 text-red-400'
-                          : escalationLevel === 'INCIDENT'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-gray-700 text-gray-400'
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        pipelineHealth?.overallStatus === 'HEALTHY'
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : pipelineHealth?.overallStatus === 'DEGRADED'
+                            ? 'text-amber-400 hover:bg-amber-500/10'
+                            : pipelineHealth?.overallStatus === 'CRITICAL'
+                              ? 'text-red-400 hover:bg-red-500/10'
+                              : 'text-gray-400 hover:bg-gray-800/50'
                       )}
+                      role="menuitem"
                     >
-                      Level
-                    </span>
+                      <Activity className="w-4 h-4" />
+                      Pipeline Health
+                      {pipelineHealth && pipelineHealth.alerts.length > 0 && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                          {pipelineHealth.alerts.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="border-t border-gray-800 my-1" />
+
+                    <button
+                      onClick={() => {
+                        setShowTacticalPanel(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
+                          0
+                          ? 'text-cyan-400 hover:bg-cyan-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <Crosshair className="w-4 h-4" />
+                      Tactical Actions
+                      {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
+                        0 && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                          {
+                            tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE')
+                              .length
+                          }{' '}
+                          active
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowFieldGuide(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
+                      role="menuitem"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Field Guide
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowDebrief(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
+                      role="menuitem"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Debrief
+                    </button>
+
+                    {/* Ambient Music Toggle in mobile menu */}
+                    <button
+                      onClick={() => {
+                        handleAmbientMusicToggle();
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        ambientMusicEnabled && isMusicPlaying
+                          ? 'text-violet-400 hover:bg-violet-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <Music className="w-4 h-4" />
+                      Ambient Music
+                      {ambientMusicEnabled && isMusicPlaying && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
+                          On
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Field Guide Tips Toggle in mobile menu */}
+                    <button
+                      onClick={() => {
+                        const newValue = !fieldGuideTipsEnabled;
+                        setFieldGuideTipsEnabled(newValue);
+                        setTipsEnabled(newValue);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        fieldGuideTipsEnabled
+                          ? 'text-cyan-400 hover:bg-cyan-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      JIT Tips
+                      {fieldGuideTipsEnabled && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                          On
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="border-t border-gray-800 my-1" />
+
+                    <div className="px-3 py-2 flex items-center justify-between">
+                      <span className="text-2xs text-gray-500 uppercase tracking-wider">
+                        {escalationLevel}
+                      </span>
+                      <span
+                        className={clsx(
+                          'text-2xs px-1.5 py-0.5 rounded font-semibold',
+                          escalationLevel === 'INVESTIGATION'
+                            ? 'bg-red-500/20 text-red-400'
+                            : escalationLevel === 'INCIDENT'
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-gray-700 text-gray-400'
+                        )}
+                      >
+                        Level
+                      </span>
+                    </div>
                   </div>
-                </div>,
+                </>,
                 document.body
               )}
           </div>
@@ -7745,39 +7770,46 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl sm:rounded-3xl w-full max-w-[calc(100vw-16px)] sm:max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
         {/* Header */}
-        <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+        <div className="p-3 sm:p-5 border-b border-gray-800/60 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">ESRM Field Guide</h2>
-              <p className="text-xs text-gray-500">Enterprise Security Risk Management Training</p>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-white truncate">
+                ESRM Field Guide
+              </h2>
+              <p className="text-2xs sm:text-xs text-gray-500 truncate">
+                Enterprise Security Risk Management Training
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-800 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-800 transition-colors flex-shrink-0"
+          >
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gray-800/60 overflow-x-auto scrollbar-thin">
+        {/* Tab Navigation - horizontal scroll on mobile */}
+        <div className="flex border-b border-gray-800/60 overflow-x-auto scrollbar-thin overscroll-x-contain">
           {sections.map((section) => (
             <button
               key={section.id}
               onClick={() => setActiveSection(section.id)}
               className={clsx(
-                'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all',
+                'flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0',
                 activeSection === section.id
                   ? 'text-amber-400 border-b-2 border-amber-400 bg-amber-500/5'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
               )}
             >
               {section.icon}
-              {section.label}
+              <span className="hidden xs:inline">{section.label}</span>
             </button>
           ))}
         </div>
