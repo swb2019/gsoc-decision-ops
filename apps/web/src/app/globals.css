@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 13 13 16;
+    --foreground: 238 238 240;
+  }
+
+  body {
+    @apply bg-ops-dark-950 text-ops-dark-100;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+  }
+
+  ::selection {
+    @apply bg-ops-accent-green/30 text-ops-dark-50;
+  }
+}
+
+@layer components {
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wider;
+  }
+
+  .status-active {
+    @apply bg-ops-accent-green/20 text-ops-accent-green border border-ops-accent-green/30;
+  }
+
+  .status-monitoring {
+    @apply bg-ops-accent-blue/20 text-ops-accent-blue border border-ops-accent-blue/30;
+  }
+
+  .status-resolved {
+    @apply bg-ops-dark-700/50 text-ops-dark-300 border border-ops-dark-600;
+  }
+
+  .posture-continue {
+    @apply bg-ops-accent-green/20 text-ops-accent-green border border-ops-accent-green/40;
+  }
+
+  .posture-degrade {
+    @apply bg-ops-accent-amber/20 text-ops-accent-amber border border-ops-accent-amber/40;
+  }
+
+  .posture-pause {
+    @apply bg-ops-accent-red/20 text-ops-accent-red border border-ops-accent-red/40;
+  }
+
+  .severity-critical {
+    @apply bg-ops-accent-red/20 text-ops-accent-red;
+  }
+
+  .severity-high {
+    @apply bg-orange-500/20 text-orange-400;
+  }
+
+  .severity-medium {
+    @apply bg-ops-accent-amber/20 text-ops-accent-amber;
+  }
+
+  .severity-low {
+    @apply bg-ops-accent-blue/20 text-ops-accent-blue;
+  }
+
+  .card {
+    @apply bg-ops-dark-900/50 border border-ops-dark-800 rounded-lg backdrop-blur-sm;
+  }
+
+  .card-header {
+    @apply px-4 py-3 border-b border-ops-dark-800 flex items-center justify-between;
+  }
+
+  .card-body {
+    @apply p-4;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-ops-accent-green text-ops-dark-950 hover:bg-ops-accent-green/90 active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply bg-ops-dark-800 text-ops-dark-100 hover:bg-ops-dark-700 border border-ops-dark-700;
+  }
+
+  .btn-danger {
+    @apply bg-ops-accent-red/20 text-ops-accent-red hover:bg-ops-accent-red/30 border border-ops-accent-red/40;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 bg-ops-dark-900 border border-ops-dark-700 rounded-lg text-ops-dark-100 placeholder:text-ops-dark-500 focus:outline-none focus:ring-2 focus:ring-ops-accent-green/50 focus:border-ops-accent-green/50;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-ops-dark-300 mb-1.5;
+  }
+
+  .timeline-dot {
+    @apply absolute left-0 top-1 w-2.5 h-2.5 rounded-full ring-4 ring-ops-dark-900;
+  }
+
+  .checklist-item {
+    @apply flex items-start gap-3 p-3 rounded-lg hover:bg-ops-dark-800/50 transition-colors cursor-pointer;
+  }
+
+  .checklist-checkbox {
+    @apply mt-0.5 w-5 h-5 rounded border-2 border-ops-dark-600 flex items-center justify-center transition-colors;
+  }
+
+  .checklist-checkbox.checked {
+    @apply bg-ops-accent-green border-ops-accent-green;
+  }
+
+  .governance-banner {
+    @apply bg-ops-accent-amber/10 border border-ops-accent-amber/30 rounded-lg p-4 text-ops-accent-amber;
+  }
+
+  .metric-card {
+    @apply bg-ops-dark-900/70 border border-ops-dark-800 rounded-lg p-4 text-center;
+  }
+
+  .metric-value {
+    @apply text-3xl font-bold font-mono;
+  }
+
+  .metric-label {
+    @apply text-sm text-ops-dark-400 mt-1;
+  }
+
+  .phase-indicator {
+    @apply flex items-center gap-2;
+  }
+
+  .phase-dot {
+    @apply w-3 h-3 rounded-full;
+  }
+
+  .phase-dot.completed {
+    @apply bg-ops-accent-green;
+  }
+
+  .phase-dot.active {
+    @apply bg-ops-accent-amber animate-pulse;
+  }
+
+  .phase-dot.pending {
+    @apply bg-ops-dark-700;
+  }
+
+  .terminal-text {
+    @apply font-mono text-sm text-ops-dark-300;
+  }
+
+  .code-block {
+    @apply font-mono text-sm bg-ops-dark-950 border border-ops-dark-800 rounded-lg p-4 overflow-x-auto;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-ops-accent-green via-ops-accent-cyan to-ops-accent-blue bg-clip-text text-transparent;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(to right, rgb(16 185 129), rgb(6 182 212)) 1;
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  }
+
+  .scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(16, 185, 129, 0.03) 1px,
+      rgba(16, 185, 129, 0.03) 2px
+    );
+  }
+}

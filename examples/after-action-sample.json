@@ -1,0 +1,76 @@
+{
+  "id": "AAR_m3k7p9_x2f4h1",
+  "generatedAt": "2026-09-05T14:30:00.000Z",
+  "decisionLogId": "DL_m3k7n8_q9w2e3",
+  "executiveSummary": "On September 5, 2026, a HIGH severity incident was detected: \"Access Control Vendor Ransomware Incident\". The incident involved SecureAccess Solutions (FICTIONAL) (Physical Access Control System Provider), affecting 4 service(s). Over 1 hour 12 minutes, the response team made 3 documented decisions (1 CONTINUE, 1 DEGRADE, 1 PAUSE). The team tracked 5 facts, 3 assumptions, and 4 unknowns. Current status: MONITORING.",
+  "incidentOverview": {
+    "title": "Access Control Vendor Ransomware Incident",
+    "duration": "1 hour 12 minutes",
+    "severity": "HIGH",
+    "impactSummary": "ACCESS_CONTROL, VISITOR_MANAGEMENT, PHYSICAL_SECURITY"
+  },
+  "decisionAnalysis": {
+    "totalDecisions": 3,
+    "postureBreakdown": {
+      "CONTINUE": 1,
+      "DEGRADE": 1,
+      "PAUSE": 1
+    },
+    "keyDecisions": [
+      {
+        "id": "DEC_m3k7p1_a1b2c3",
+        "timestamp": "2026-09-05T09:42:15.000Z",
+        "title": "Pause automated provisioning",
+        "description": "Halt all automated badge provisioning until vendor provides all-clear",
+        "posture": "PAUSE",
+        "owner": "GSOC Manager",
+        "ownerRole": "Incident Commander",
+        "rationale": "Cannot verify integrity of new credentials being created; conservative posture until vendor confirms no data tampering",
+        "factsConsidered": ["Vendor confirmed ransomware attack"],
+        "assumptionsMade": ["Vendor ransomware did not compromise credential database"],
+        "unknownsAccepted": ["Extent of vendor data compromise"],
+        "reviewTrigger": "Vendor confirms no compromise of credential database"
+      },
+      {
+        "id": "DEC_m3k7p2_d4e5f6",
+        "timestamp": "2026-09-05T09:55:30.000Z",
+        "title": "Implement manual visitor check-in",
+        "description": "Switch to paper-based visitor management at all locations",
+        "posture": "DEGRADE",
+        "owner": "GSOC Manager",
+        "ownerRole": "Incident Commander",
+        "rationale": "Visitor management integration with vendor system cannot be verified; manual process ensures security while maintaining operations",
+        "factsConsidered": ["Mobile credential app is offline"],
+        "assumptionsMade": ["Paper-based process is sufficient for current volume"],
+        "unknownsAccepted": [],
+        "reviewTrigger": "Vendor restores visitor management services"
+      }
+    ]
+  },
+  "informationQuality": {
+    "factsCount": 5,
+    "assumptionsCount": 3,
+    "unknownsResolved": 2,
+    "unknownsUnresolved": 2,
+    "assumptionsValidated": 2,
+    "assumptionsInvalidated": 0
+  },
+  "lessonsLearned": [
+    "Vendor ransomware notification came through non-emergency channel, causing 15-minute delay",
+    "Mobile credential app failure created confusion at locations relying heavily on mobile credentials",
+    "Paper visitor management procedures were outdated at 3 locations",
+    "GSOC team demonstrated strong decision documentation discipline throughout incident"
+  ],
+  "recommendations": [
+    "Establish dedicated emergency notification channel with critical vendors",
+    "Maintain backup physical credential issuance capability at all locations with significant mobile credential usage",
+    "Conduct quarterly review and drill of manual backup procedures at all locations",
+    "Add vendor ransomware response scenario to annual GSOC training curriculum",
+    "Review vendor contract SLA for incident notification requirements"
+  ],
+  "metadata": {
+    "exerciseMode": true,
+    "syntheticScenario": true,
+    "organization": "Training Organization"
+  }
+}
