@@ -455,30 +455,30 @@ The simulation tracks Key Risk Indicators to provide glanceable, traffic-light h
 
 ### Traffic Light System
 
-| Status | Meaning                    | Action Required                     |
-| ------ | -------------------------- | ----------------------------------- |
-| GREEN  | Within tolerance           | Continue monitoring                 |
-| AMBER  | Warning threshold breached | Investigate, consider intervention  |
-| RED    | Critical threshold breached| Immediate attention required        |
+| Status | Meaning                     | Action Required                    |
+| ------ | --------------------------- | ---------------------------------- |
+| GREEN  | Within tolerance            | Continue monitoring                |
+| AMBER  | Warning threshold breached  | Investigate, consider intervention |
+| RED    | Critical threshold breached | Immediate attention required       |
 
 ### Leading Indicators (Predictive)
 
-| KRI               | Definition                                                | Target    |
-| ----------------- | --------------------------------------------------------- | --------- |
-| MTTA              | Mean Time To Acknowledge — seconds from inject to action  | < 30s     |
-| Open Critical     | Unhandled IMMEDIATE priority injects                      | 0         |
-| Dispatch Contention | Resource strain across guards/analysts/responders       | < 25%     |
-| Escalation Level  | Activity (1) → Incident (2) → Investigation (3)           | Match threat |
-| Channel Signal    | Ratio of verified facts to assumptions/unknowns           | > 70%     |
+| KRI                 | Definition                                               | Target       |
+| ------------------- | -------------------------------------------------------- | ------------ |
+| MTTA                | Mean Time To Acknowledge — seconds from inject to action | < 30s        |
+| Open Critical       | Unhandled IMMEDIATE priority injects                     | 0            |
+| Dispatch Contention | Resource strain across guards/analysts/responders        | < 25%        |
+| Escalation Level    | Activity (1) → Incident (2) → Investigation (3)          | Match threat |
+| Channel Signal      | Ratio of verified facts to assumptions/unknowns          | > 70%        |
 
 ### Lagging Indicators (Outcomes)
 
-| KRI               | Definition                                                | Target    |
-| ----------------- | --------------------------------------------------------- | --------- |
-| MTTR              | Mean Time To Resolve — seconds from first inject to stability | < 300s |
-| Residual Rate     | Decisions with explicit residual risk documentation       | > 80%     |
-| Owner Briefing    | Decisions with asset owner engagement                     | > 80%     |
-| Treatment Diversity | Use of multiple treatment options                       | > 50%     |
+| KRI                 | Definition                                                    | Target |
+| ------------------- | ------------------------------------------------------------- | ------ |
+| MTTR                | Mean Time To Resolve — seconds from first inject to stability | < 300s |
+| Residual Rate       | Decisions with explicit residual risk documentation           | > 80%  |
+| Owner Briefing      | Decisions with asset owner engagement                         | > 80%  |
+| Treatment Diversity | Use of multiple treatment options                             | > 50%  |
 
 ### Pedagogical Application
 
@@ -492,17 +492,18 @@ The simulation tracks underlying business value created during incident response
 
 ### Value Categories
 
-| Category              | Definition                                           | Example Indicators                    |
-| --------------------- | ---------------------------------------------------- | ------------------------------------- |
-| Mission Continuity    | Operational state maintained during incident         | OPERATIONAL → DEGRADED → HALTED      |
-| Residual Risk         | Explicit documentation of remaining risk             | Explicitness rate %                   |
-| Owner Affirmation     | Asset owners briefed per ESRM governance             | Briefing rate %, affirmation rate %   |
-| Avoided Loss Proxies  | Estimated losses prevented by timely decisions       | Safety incidents, breaches avoided    |
-| Advisor Effectiveness | Quality of security advisory function                | Recommendation acceptance rate %      |
+| Category              | Definition                                     | Example Indicators                  |
+| --------------------- | ---------------------------------------------- | ----------------------------------- |
+| Mission Continuity    | Operational state maintained during incident   | OPERATIONAL → DEGRADED → HALTED     |
+| Residual Risk         | Explicit documentation of remaining risk       | Explicitness rate %                 |
+| Owner Affirmation     | Asset owners briefed per ESRM governance       | Briefing rate %, affirmation rate % |
+| Avoided Loss Proxies  | Estimated losses prevented by timely decisions | Safety incidents, breaches avoided  |
+| Advisor Effectiveness | Quality of security advisory function          | Recommendation acceptance rate %    |
 
 ### Composite Value Score
 
 The Composite Value Score is a weighted combination:
+
 - Mission Continuity Score (25%)
 - Residual Risk Explicitness (20%)
 - Governance Compliance (20%)
@@ -539,6 +540,7 @@ Source → Normalize → Enrich → Correlate → Triage → Case → Decision �
 ### Source Channels
 
 Reflects realistic intake patterns from enterprise security systems (generic names, no trademark cosplay):
+
 - Access Control (badge readers, doors)
 - Video Management (camera feeds, analytics)
 - Security Analytics (log aggregation, detection)

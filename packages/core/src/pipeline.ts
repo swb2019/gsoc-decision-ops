@@ -21,28 +21,21 @@ import type { DecisionLog, ScenarioInject } from './types.js';
  * Pipeline stage identifiers
  */
 export type PipelineStage =
-  | 'SOURCE'
-  | 'NORMALIZE'
-  | 'ENRICH'
-  | 'CORRELATE'
-  | 'TRIAGE'
-  | 'CASE'
-  | 'DECISION'
-  | 'AAR';
+  'SOURCE' | 'NORMALIZE' | 'ENRICH' | 'CORRELATE' | 'TRIAGE' | 'CASE' | 'DECISION' | 'AAR';
 
 /**
  * Source types for intake channels
  */
 export type SourceType =
-  | 'ACS'      // Access Control System
-  | 'VMS'      // Video Management System
-  | 'SIEM'     // Security Information & Event Management
-  | 'ALARM'    // Alarm/Intrusion Detection
-  | 'OSINT'    // Open Source Intelligence
-  | 'TIP'      // Threat Intelligence Platform
+  | 'ACS' // Access Control System
+  | 'VMS' // Video Management System
+  | 'SIEM' // Security Information & Event Management
+  | 'ALARM' // Alarm/Intrusion Detection
+  | 'OSINT' // Open Source Intelligence
+  | 'TIP' // Threat Intelligence Platform
   | 'DISPATCH' // Dispatch/CAD
-  | 'HUMINT'   // Human Intelligence
-  | 'MANUAL';  // Manual entry
+  | 'HUMINT' // Human Intelligence
+  | 'MANUAL'; // Manual entry
 
 /**
  * Health status for pipeline components
@@ -115,7 +108,10 @@ export interface PipelineAlert {
 /**
  * Pipeline stage display configuration
  */
-export const PIPELINE_STAGE_CONFIG: Record<PipelineStage, { name: string; description: string; icon: string }> = {
+export const PIPELINE_STAGE_CONFIG: Record<
+  PipelineStage,
+  { name: string; description: string; icon: string }
+> = {
   SOURCE: {
     name: 'Source Intake',
     description: 'Raw event ingestion from security systems',
@@ -226,19 +222,19 @@ function calculateStageHealth(
   const loadFactor = Math.min(2, (injectCount + 1) / 3);
   const latencyMs = Math.round(baseLatency[stage] * loadFactor);
 
-  const throughputPerMin = stage === 'DECISION' 
-    ? decisionCount 
-    : Math.round((injectCount / Math.max(1, elapsedSeconds / 60)) * 10);
+  const throughputPerMin =
+    stage === 'DECISION'
+      ? decisionCount
+      : Math.round((injectCount / Math.max(1, elapsedSeconds / 60)) * 10);
 
   const errorRate = Math.max(0, Math.min(15, (loadFactor - 1) * 10 + Math.random() * 2));
-  const queueDepth = stage === 'TRIAGE' 
-    ? revealedInjects.filter((i) => !log.decisions.some((d) => d.title === i.title)).length
-    : Math.round(loadFactor * 2);
+  const queueDepth =
+    stage === 'TRIAGE'
+      ? revealedInjects.filter((i) => !log.decisions.some((d) => d.title === i.title)).length
+      : Math.round(loadFactor * 2);
 
   const status: PipelineHealthStatus =
-    errorRate > 10 ? 'CRITICAL' :
-    errorRate > 5 ? 'DEGRADED' :
-    'HEALTHY';
+    errorRate > 10 ? 'CRITICAL' : errorRate > 5 ? 'DEGRADED' : 'HEALTHY';
 
   return {
     stage,
@@ -272,9 +268,11 @@ function calculateSourceHealth(
   const latencyMs = 50 + Math.floor(Math.random() * 150);
 
   const status: PipelineHealthStatus =
-    dropRate > 10 || enrichmentMissRate > 15 ? 'CRITICAL' :
-    dropRate > 5 || enrichmentMissRate > 10 ? 'DEGRADED' :
-    'HEALTHY';
+    dropRate > 10 || enrichmentMissRate > 15
+      ? 'CRITICAL'
+      : dropRate > 5 || enrichmentMissRate > 10
+        ? 'DEGRADED'
+        : 'HEALTHY';
 
   return {
     sourceType,
@@ -292,10 +290,7 @@ function calculateSourceHealth(
 /**
  * Generate pipeline alerts from health data
  */
-function generateAlerts(
-  stages: StageHealth[],
-  sources: SourceChannelHealth[]
-): PipelineAlert[] {
+function generateAlerts(stages: StageHealth[], sources: SourceChannelHealth[]): PipelineAlert[] {
   const alerts: PipelineAlert[] = [];
   let alertId = 1;
 
@@ -369,7 +364,16 @@ export function createPipelineHealth(
   const timestamp = new Date().toISOString();
 
   const stages: StageHealth[] = (
-    ['SOURCE', 'NORMALIZE', 'ENRICH', 'CORRELATE', 'TRIAGE', 'CASE', 'DECISION', 'AAR'] as PipelineStage[]
+    [
+      'SOURCE',
+      'NORMALIZE',
+      'ENRICH',
+      'CORRELATE',
+      'TRIAGE',
+      'CASE',
+      'DECISION',
+      'AAR',
+    ] as PipelineStage[]
   ).map((stage) => calculateStageHealth(stage, log, revealedInjects, elapsedSeconds));
 
   const sources: SourceChannelHealth[] = (
@@ -383,31 +387,34 @@ export function createPipelineHealth(
   const criticalSources = sources.filter((s) => s.status === 'CRITICAL').length;
 
   const overallStatus: PipelineHealthStatus =
-    criticalStages > 0 || criticalSources > 1 ? 'CRITICAL' :
-    degradedStages > 2 || criticalSources > 0 ? 'DEGRADED' :
-    'HEALTHY';
+    criticalStages > 0 || criticalSources > 1
+      ? 'CRITICAL'
+      : degradedStages > 2 || criticalSources > 0
+        ? 'DEGRADED'
+        : 'HEALTHY';
 
   const totalEventsProcessed = sources.reduce((sum, s) => sum + s.eventsReceived, 0);
   const totalEventsDropped = sources.reduce((sum, s) => sum + s.eventsDropped, 0);
-  const averageLatencyMs = Math.round(stages.reduce((sum, s) => sum + s.latencyMs, 0) / stages.length);
+  const averageLatencyMs = Math.round(
+    stages.reduce((sum, s) => sum + s.latencyMs, 0) / stages.length
+  );
   const peakLatencyMs = Math.max(...stages.map((s) => s.latencyMs));
 
-  const enrichmentSuccessRate = 100 - Math.round(
-    sources.reduce((sum, s) => sum + s.enrichmentMissRate, 0) / sources.length
-  );
+  const enrichmentSuccessRate =
+    100 - Math.round(sources.reduce((sum, s) => sum + s.enrichmentMissRate, 0) / sources.length);
 
   const correlationHitRate = Math.min(100, 70 + log.decisions.length * 5);
-  
+
   const unhandledInjects = revealedInjects.filter(
     (i) => !log.decisions.some((d) => d.title === i.title)
   ).length;
-  const triageEfficiency = revealedInjects.length > 0
-    ? Math.round(((revealedInjects.length - unhandledInjects) / revealedInjects.length) * 100)
-    : 100;
+  const triageEfficiency =
+    revealedInjects.length > 0
+      ? Math.round(((revealedInjects.length - unhandledInjects) / revealedInjects.length) * 100)
+      : 100;
 
-  const decisionThroughput = elapsedSeconds > 0
-    ? Math.round((log.decisions.length / (elapsedSeconds / 60)) * 10) / 10
-    : 0;
+  const decisionThroughput =
+    elapsedSeconds > 0 ? Math.round((log.decisions.length / (elapsedSeconds / 60)) * 10) / 10 : 0;
 
   return {
     timestamp,
@@ -444,45 +451,56 @@ export const PIPELINE_FLOW: { from: PipelineStage; to: PipelineStage }[] = [
 /**
  * Pipeline glossary definitions for Field Guide
  */
-export const PIPELINE_DEFINITIONS: Record<string, { name: string; definition: string; realWorldAnalog: string }> = {
+export const PIPELINE_DEFINITIONS: Record<
+  string,
+  { name: string; definition: string; realWorldAnalog: string }
+> = {
   SOURCE: {
     name: 'Source Intake',
-    definition: 'Entry point for raw events from security systems. Handles protocol translation and initial validation.',
+    definition:
+      'Entry point for raw events from security systems. Handles protocol translation and initial validation.',
     realWorldAnalog: 'Similar to SIEM log collectors, PSIM event receivers, or CAD interfaces.',
   },
   NORMALIZE: {
     name: 'Normalize',
-    definition: 'Transforms raw events into a common schema. Maps vendor-specific fields to standard taxonomy.',
+    definition:
+      'Transforms raw events into a common schema. Maps vendor-specific fields to standard taxonomy.',
     realWorldAnalog: 'Like SIEM parsing pipelines or CEF/LEEF normalization.',
   },
   ENRICH: {
     name: 'Enrich',
-    definition: 'Adds context from reference data: asset ownership, threat intel, geo location, user identity.',
+    definition:
+      'Adds context from reference data: asset ownership, threat intel, geo location, user identity.',
     realWorldAnalog: 'Similar to SOAR enrichment playbooks or CMDB lookups.',
   },
   CORRELATE: {
     name: 'Correlate',
-    definition: 'Links related events across sources and time. Identifies patterns and entity relationships.',
+    definition:
+      'Links related events across sources and time. Identifies patterns and entity relationships.',
     realWorldAnalog: 'Like SIEM correlation rules or graph-based entity resolution.',
   },
   TRIAGE: {
     name: 'Triage Queue',
-    definition: 'Priority-sorted queue for analyst attention. Routes based on severity, asset criticality, SLA.',
+    definition:
+      'Priority-sorted queue for analyst attention. Routes based on severity, asset criticality, SLA.',
     realWorldAnalog: 'Similar to SOC ticket queues or PSIM event prioritization.',
   },
   CASE: {
     name: 'Case/Activity',
-    definition: 'Bundles related events into incidents. Assigns workflow, tracks investigation state.',
+    definition:
+      'Bundles related events into incidents. Assigns workflow, tracks investigation state.',
     realWorldAnalog: 'Like case management in ITSM or PSIM incident workflows.',
   },
   DECISION: {
     name: 'COP/Decision',
-    definition: 'Common Operating Picture integration and posture decision recording. ESRM treatment selection.',
+    definition:
+      'Common Operating Picture integration and posture decision recording. ESRM treatment selection.',
     realWorldAnalog: 'Similar to situation room dashboards or command center consoles.',
   },
   AAR: {
     name: 'AAR Feedback',
-    definition: 'After-action review and metrics feedback. Lessons learned flow back to improve detection and response.',
+    definition:
+      'After-action review and metrics feedback. Lessons learned flow back to improve detection and response.',
     realWorldAnalog: 'Like post-incident review workflows or continuous improvement loops.',
   },
 };

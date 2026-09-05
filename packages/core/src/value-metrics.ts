@@ -212,15 +212,16 @@ export function calculateOwnerAffirmationValue(
     decisionsTotal > 0 ? Math.round((assetOwnersBriefed / decisionsTotal) * 100) : 0;
 
   const affirmationsReceived = Math.floor(assetOwnersBriefed * 0.8);
-  const affirmationRate = assetOwnersBriefed > 0 
-    ? Math.round((affirmationsReceived / assetOwnersBriefed) * 100) 
-    : 0;
+  const affirmationRate =
+    assetOwnersBriefed > 0 ? Math.round((affirmationsReceived / assetOwnersBriefed) * 100) : 0;
 
   const escalationsRequired = log.decisions.filter((d) => d.posture === 'PAUSE').length;
   const escalationsCompleted = Math.floor(escalationsRequired * 0.9);
 
   const governanceComplianceScore = Math.round(
-    (ownerBriefingRate * 0.4 + affirmationRate * 0.3 + (escalationsCompleted / Math.max(1, escalationsRequired)) * 100 * 0.3)
+    ownerBriefingRate * 0.4 +
+      affirmationRate * 0.3 +
+      (escalationsCompleted / Math.max(1, escalationsRequired)) * 100 * 0.3
   );
 
   return {
@@ -307,9 +308,7 @@ export function calculateAdvisorEffectivenessValue(
 ): AdvisorEffectivenessValue {
   const decisions = log.decisions;
   const recommendationsProvided = decisions.length;
-  const recommendationsAccepted = decisions.filter(
-    (d) => d.esrmFraming?.assetOwner
-  ).length;
+  const recommendationsAccepted = decisions.filter((d) => d.esrmFraming?.assetOwner).length;
 
   const acceptanceRate =
     recommendationsProvided > 0
@@ -319,8 +318,7 @@ export function calculateAdvisorEffectivenessValue(
   const firstDecisionTime =
     decisions.length > 0
       ? Math.round(
-          (new Date(decisions[0].timestamp).getTime() -
-            new Date(log.createdAt).getTime()) /
+          (new Date(decisions[0].timestamp).getTime() - new Date(log.createdAt).getTime()) /
             1000 /
             60
         )

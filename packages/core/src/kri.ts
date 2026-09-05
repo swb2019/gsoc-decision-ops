@@ -152,15 +152,12 @@ export function calculateMTTA(
  * Mean Time To Resolve (first-hour proxy)
  * In simulation: time from first inject to posture stability
  */
-export function calculateMTTR(
-  log: DecisionLog,
-  elapsedSeconds: number
-): number {
+export function calculateMTTR(log: DecisionLog, elapsedSeconds: number): number {
   if (log.decisions.length < 2) return elapsedSeconds;
 
   const lastDecision = log.decisions[log.decisions.length - 1];
   const firstDecision = log.decisions[0];
-  
+
   const firstTime = new Date(firstDecision.timestamp).getTime();
   const lastTime = new Date(lastDecision.timestamp).getTime();
 
@@ -214,13 +211,11 @@ export function calculateAssetOwnerBriefingRate(
  * Dispatch contention score
  * Higher = more resource strain
  */
-export function calculateDispatchContention(
-  resources: {
-    guards: { available: number; total: number; contentionLevel: string };
-    analysts: { available: number; total: number; contentionLevel: string };
-    responders: { available: number; total: number; contentionLevel: string };
-  }
-): number {
+export function calculateDispatchContention(resources: {
+  guards: { available: number; total: number; contentionLevel: string };
+  analysts: { available: number; total: number; contentionLevel: string };
+  responders: { available: number; total: number; contentionLevel: string };
+}): number {
   const guardRatio = resources.guards.available / resources.guards.total;
   const analystRatio = resources.analysts.available / resources.analysts.total;
   const responderRatio = resources.responders.available / resources.responders.total;
@@ -267,9 +262,7 @@ export function calculateTreatmentMix(log: DecisionLog): {
   const mitigate = log.decisions.filter(
     (d) => d.posture === 'DEGRADE' && d.esrmFraming?.treatment !== 'TRANSFER'
   ).length;
-  const transfer = log.decisions.filter(
-    (d) => d.esrmFraming?.treatment === 'TRANSFER'
-  ).length;
+  const transfer = log.decisions.filter((d) => d.esrmFraming?.treatment === 'TRANSFER').length;
   const avoid = log.decisions.filter((d) => d.posture === 'PAUSE').length;
 
   const treatments = [accept, mitigate, transfer, avoid];
@@ -359,7 +352,12 @@ export function createKRIDashboard(
       value: mttr,
       unit: 's',
       threshold: { green: 300, amber: 600, red: 900, direction: 'LOWER_BETTER' },
-      status: calculateStatus(mttr, { green: 300, amber: 600, red: 900, direction: 'LOWER_BETTER' }),
+      status: calculateStatus(mttr, {
+        green: 300,
+        amber: 600,
+        red: 900,
+        direction: 'LOWER_BETTER',
+      }),
       trend: calculateTrend(mttr, getPreviousValue('mttr'), 'LOWER_BETTER'),
       trendValue: mttr - getPreviousValue('mttr'),
       lastUpdated: timestamp,
@@ -373,7 +371,12 @@ export function createKRIDashboard(
       value: openCritical,
       unit: '',
       threshold: { green: 0, amber: 1, red: 3, direction: 'LOWER_BETTER' },
-      status: calculateStatus(openCritical, { green: 0, amber: 1, red: 3, direction: 'LOWER_BETTER' }),
+      status: calculateStatus(openCritical, {
+        green: 0,
+        amber: 1,
+        red: 3,
+        direction: 'LOWER_BETTER',
+      }),
       trend: calculateTrend(openCritical, getPreviousValue('open-critical'), 'LOWER_BETTER'),
       trendValue: openCritical - getPreviousValue('open-critical'),
       lastUpdated: timestamp,
@@ -387,7 +390,12 @@ export function createKRIDashboard(
       value: residualRate,
       unit: '%',
       threshold: { green: 80, amber: 50, red: 30, direction: 'HIGHER_BETTER' },
-      status: calculateStatus(residualRate, { green: 80, amber: 50, red: 30, direction: 'HIGHER_BETTER' }),
+      status: calculateStatus(residualRate, {
+        green: 80,
+        amber: 50,
+        red: 30,
+        direction: 'HIGHER_BETTER',
+      }),
       trend: calculateTrend(residualRate, getPreviousValue('residual-rate'), 'HIGHER_BETTER'),
       trendValue: residualRate - getPreviousValue('residual-rate'),
       lastUpdated: timestamp,
@@ -401,7 +409,12 @@ export function createKRIDashboard(
       value: ownerBriefingRate,
       unit: '%',
       threshold: { green: 80, amber: 50, red: 30, direction: 'HIGHER_BETTER' },
-      status: calculateStatus(ownerBriefingRate, { green: 80, amber: 50, red: 30, direction: 'HIGHER_BETTER' }),
+      status: calculateStatus(ownerBriefingRate, {
+        green: 80,
+        amber: 50,
+        red: 30,
+        direction: 'HIGHER_BETTER',
+      }),
       trend: calculateTrend(ownerBriefingRate, getPreviousValue('owner-briefing'), 'HIGHER_BETTER'),
       trendValue: ownerBriefingRate - getPreviousValue('owner-briefing'),
       lastUpdated: timestamp,
@@ -415,8 +428,17 @@ export function createKRIDashboard(
       value: dispatchContention,
       unit: '%',
       threshold: { green: 25, amber: 50, red: 75, direction: 'LOWER_BETTER' },
-      status: calculateStatus(dispatchContention, { green: 25, amber: 50, red: 75, direction: 'LOWER_BETTER' }),
-      trend: calculateTrend(dispatchContention, getPreviousValue('dispatch-contention'), 'LOWER_BETTER'),
+      status: calculateStatus(dispatchContention, {
+        green: 25,
+        amber: 50,
+        red: 75,
+        direction: 'LOWER_BETTER',
+      }),
+      trend: calculateTrend(
+        dispatchContention,
+        getPreviousValue('dispatch-contention'),
+        'LOWER_BETTER'
+      ),
       trendValue: dispatchContention - getPreviousValue('dispatch-contention'),
       lastUpdated: timestamp,
     },
@@ -443,7 +465,12 @@ export function createKRIDashboard(
       value: channelNoise,
       unit: '%',
       threshold: { green: 70, amber: 50, red: 30, direction: 'HIGHER_BETTER' },
-      status: calculateStatus(channelNoise, { green: 70, amber: 50, red: 30, direction: 'HIGHER_BETTER' }),
+      status: calculateStatus(channelNoise, {
+        green: 70,
+        amber: 50,
+        red: 30,
+        direction: 'HIGHER_BETTER',
+      }),
       trend: calculateTrend(channelNoise, getPreviousValue('channel-noise'), 'HIGHER_BETTER'),
       trendValue: channelNoise - getPreviousValue('channel-noise'),
       lastUpdated: timestamp,
@@ -457,8 +484,17 @@ export function createKRIDashboard(
       value: treatmentMix.diversityScore,
       unit: '%',
       threshold: { green: 50, amber: 25, red: 0, direction: 'HIGHER_BETTER' },
-      status: calculateStatus(treatmentMix.diversityScore, { green: 50, amber: 25, red: 0, direction: 'HIGHER_BETTER' }),
-      trend: calculateTrend(treatmentMix.diversityScore, getPreviousValue('treatment-diversity'), 'HIGHER_BETTER'),
+      status: calculateStatus(treatmentMix.diversityScore, {
+        green: 50,
+        amber: 25,
+        red: 0,
+        direction: 'HIGHER_BETTER',
+      }),
+      trend: calculateTrend(
+        treatmentMix.diversityScore,
+        getPreviousValue('treatment-diversity'),
+        'HIGHER_BETTER'
+      ),
       trendValue: treatmentMix.diversityScore - getPreviousValue('treatment-diversity'),
       lastUpdated: timestamp,
     },
@@ -489,58 +525,76 @@ export function createKRIDashboard(
 /**
  * KRI Field Guide definitions for glossary
  */
-export const KRI_DEFINITIONS: Record<string, { name: string; definition: string; formula: string; bestPractice: string }> = {
+export const KRI_DEFINITIONS: Record<
+  string,
+  { name: string; definition: string; formula: string; bestPractice: string }
+> = {
   mtta: {
     name: 'Mean Time To Acknowledge (MTTA)',
-    definition: 'The average time from when an inject is revealed to when the first decision action is taken. A leading indicator of response readiness.',
+    definition:
+      'The average time from when an inject is revealed to when the first decision action is taken. A leading indicator of response readiness.',
     formula: 'Sum of (decision timestamp - inject reveal timestamp) / number of handled injects',
-    bestPractice: 'Target under 30 seconds. High MTTA indicates decision paralysis or information overload.',
+    bestPractice:
+      'Target under 30 seconds. High MTTA indicates decision paralysis or information overload.',
   },
   mttr: {
     name: 'Mean Time To Resolve (MTTR)',
-    definition: 'The time from first inject to achieving posture stability. A lagging indicator of incident resolution efficiency.',
+    definition:
+      'The time from first inject to achieving posture stability. A lagging indicator of incident resolution efficiency.',
     formula: 'Last decision timestamp - first decision timestamp',
-    bestPractice: 'Target under 5 minutes for first-hour scenarios. Monitor for decision clustering.',
+    bestPractice:
+      'Target under 5 minutes for first-hour scenarios. Monitor for decision clustering.',
   },
   'open-critical': {
     name: 'Open Critical Risks',
-    definition: 'Count of IMMEDIATE priority injects that have not yet received a posture decision. A leading indicator of unaddressed high-severity threats.',
-    formula: 'Count of revealed injects with triagePriority=IMMEDIATE that have no matching decision',
+    definition:
+      'Count of IMMEDIATE priority injects that have not yet received a posture decision. A leading indicator of unaddressed high-severity threats.',
+    formula:
+      'Count of revealed injects with triagePriority=IMMEDIATE that have no matching decision',
     bestPractice: 'Target zero. Any open critical risk should trigger immediate attention.',
   },
   'residual-rate': {
     name: 'Residual Risk Explicitness Rate',
-    definition: 'Percentage of decisions that include explicit residual risk documentation per ESRM discipline.',
+    definition:
+      'Percentage of decisions that include explicit residual risk documentation per ESRM discipline.',
     formula: '(Decisions with residualRisk > 10 chars / total decisions) × 100',
     bestPractice: 'Target above 80%. Implicit residual risk is an audit and governance gap.',
   },
   'owner-briefing': {
     name: 'Asset Owner Briefing Rate',
-    definition: 'Percentage of decisions where the asset owner was briefed before or during the decision. Core ESRM governance metric.',
+    definition:
+      'Percentage of decisions where the asset owner was briefed before or during the decision. Core ESRM governance metric.',
     formula: '(Decisions with assetOwner briefing / total decisions) × 100',
     bestPractice: 'Target above 80%. ESRM requires owner engagement for accountability.',
   },
   'dispatch-contention': {
     name: 'Dispatch Contention',
-    definition: 'Measures resource strain across guards, analysts, and responders. Higher values indicate resource shortage risk.',
+    definition:
+      'Measures resource strain across guards, analysts, and responders. Higher values indicate resource shortage risk.',
     formula: '(1 - average(available/total for each resource type)) × 100',
     bestPractice: 'Target under 25%. Contention above 50% degrades response capability.',
   },
   'escalation-level': {
     name: 'Escalation Level',
-    definition: 'Current incident severity classification: Activity (1), Incident (2), or Investigation (3). Affects cascade multipliers.',
+    definition:
+      'Current incident severity classification: Activity (1), Incident (2), or Investigation (3). Affects cascade multipliers.',
     formula: 'Based on urgent inject count and decision count thresholds',
-    bestPractice: 'Match escalation to threat severity. Premature escalation wastes resources; delayed escalation increases risk.',
+    bestPractice:
+      'Match escalation to threat severity. Premature escalation wastes resources; delayed escalation increases risk.',
   },
   'channel-noise': {
     name: 'Channel Signal Quality',
-    definition: 'Ratio of verified facts to assumptions and unknowns. Indicates information quality for decision-making.',
-    formula: '(facts × 2 + assumptions) / (facts × 2 + assumptions + unknowns + assumptions × 0.5) × 100',
-    bestPractice: 'Target above 70%. Low signal quality requires more assumptions and increases decision risk.',
+    definition:
+      'Ratio of verified facts to assumptions and unknowns. Indicates information quality for decision-making.',
+    formula:
+      '(facts × 2 + assumptions) / (facts × 2 + assumptions + unknowns + assumptions × 0.5) × 100',
+    bestPractice:
+      'Target above 70%. Low signal quality requires more assumptions and increases decision risk.',
   },
   'treatment-diversity': {
     name: 'Treatment Mix Diversity',
-    definition: 'Measures use of multiple ESRM risk treatment options. Single-treatment responses may indicate assessment gaps.',
+    definition:
+      'Measures use of multiple ESRM risk treatment options. Single-treatment responses may indicate assessment gaps.',
     formula: '(Count of treatment types used / 4) × 100',
     bestPractice: 'Target above 50%. Real incidents typically require multiple treatment types.',
   },
