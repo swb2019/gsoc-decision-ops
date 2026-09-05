@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Shield,
   AlertTriangle,
@@ -428,6 +429,8 @@ export default function CommandCenter({
   esrmConfig,
   scenarioId = 'unknown',
 }: CommandCenterProps): JSX.Element {
+  const router = useRouter();
+
   // Session recovery state
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedSession, setSavedSession] = useState<SessionState | null>(null);
@@ -650,14 +653,14 @@ export default function CommandCenter({
     if (isRunning || elapsedSeconds > 0) {
       setShowExitConfirm(true);
     } else {
-      window.location.href = '/';
+      router.push('/');
     }
-  }, [isRunning, elapsedSeconds]);
+  }, [isRunning, elapsedSeconds, router]);
 
   const handleConfirmExit = useCallback(() => {
     // Session is auto-saved, just exit
-    window.location.href = '/';
-  }, []);
+    router.push('/');
+  }, [router]);
 
   // Tab change with animation
   const handleTabChange = useCallback(
@@ -1513,10 +1516,14 @@ export default function CommandCenter({
 
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="hidden sm:flex p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target items-center justify-center"
+              className="flex p-2 sm:p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[44px] min-h-[44px]"
               aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
             >
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {soundEnabled ? (
+                <Volume2 className="w-5 h-5 sm:w-5 sm:h-5" />
+              ) : (
+                <VolumeX className="w-5 h-5 sm:w-5 sm:h-5" />
+              )}
             </button>
 
             {/* Escalation Level Indicator */}
@@ -2911,16 +2918,19 @@ function DecisionConsole({
                     <div className="relative z-10">
                       <div
                         className={clsx(
-                          'text-lg font-black mb-0.5',
+                          'text-sm sm:text-base xl:text-lg font-black mb-0.5 whitespace-nowrap',
                           option.color === 'emerald' && 'text-emerald-400',
                           option.color === 'amber' && 'text-amber-400',
                           option.color === 'blue' && 'text-blue-400',
                           option.color === 'red' && 'text-red-400'
                         )}
+                        title={option.treatment}
                       >
                         {option.treatment}
                       </div>
-                      <div className="text-xs text-gray-400 mb-2">→ {option.posture}</div>
+                      <div className="text-2xs sm:text-xs text-gray-400 mb-2">
+                        → {option.posture}
+                      </div>
                       <p className="text-2xs text-gray-500">{option.desc}</p>
                       <div className="mt-2 text-2xs text-gray-600 font-mono">[{option.key}]</div>
                     </div>
