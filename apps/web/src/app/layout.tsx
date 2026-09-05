@@ -27,7 +27,13 @@ export const metadata: Metadata = {
   title: 'Hourglass Command | First-Hour Decision Training',
   description:
     'First-hour decision simulation for security operations. Practice facts vs assumptions and CONTINUE/DEGRADE/PAUSE posture calls under time pressure.',
-  keywords: ['Hourglass Command', 'security operations', 'decision making', 'incident response', 'training'],
+  keywords: [
+    'Hourglass Command',
+    'security operations',
+    'decision making',
+    'incident response',
+    'training',
+  ],
   authors: [{ name: 'Shannon Brown' }],
   openGraph: {
     title: 'Hourglass Command',
