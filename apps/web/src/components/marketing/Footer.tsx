@@ -30,7 +30,7 @@ export function Footer(): JSX.Element {
                 <Github className="w-5 h-5" />
               </a>
               <a
-                href="https://www.linkedin.com/in/shannon-brown-72baa81"
+                href="https://www.linkedin.com/in/shannon-w-brown"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-ops-dark-400 hover:text-ops-dark-200 transition-colors"
