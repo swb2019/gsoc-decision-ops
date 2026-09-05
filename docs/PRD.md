@@ -1,18 +1,18 @@
-# Hourglass Command — PRD 1.3 (Max-Depth)
+# Hourglass Command — PRD 1.4 (ESRM Textbook-Faithful)
 
 ---
 
 ## Document Control
 
-| Field              | Value                   |
-| ------------------ | ----------------------- |
-| **Document ID**    | PRD-HC-1.3              |
-| **Version**        | 1.3 (Max-Depth)         |
-| **Status**         | Locked                  |
-| **Owner**          | Shannon Brown           |
-| **Approved By**    | Chief of Staff          |
-| **Effective Date** | September 2026          |
-| **Review Cycle**   | On material change only |
+| Field              | Value                        |
+| ------------------ | ---------------------------- |
+| **Document ID**    | PRD-HC-1.4                   |
+| **Version**        | 1.4 (ESRM Textbook-Faithful) |
+| **Status**         | Locked                       |
+| **Owner**          | Shannon Brown                |
+| **Approved By**    | Chief of Staff               |
+| **Effective Date** | September 2026               |
+| **Review Cycle**   | On material change only      |
 
 ### Change History
 
@@ -22,6 +22,7 @@
 | 1.1     | Sep 2026 | Shannon Brown | Foolproof edition: 12 invariants, honesty threat model, closed defaults, RACI             |
 | 1.2     | Sep 2026 | Shannon Brown | Max-port amendment: simulation systems, fast-casual tempo, in-game help                   |
 | 1.3     | Sep 2026 | Shannon Brown | Max-depth: all simulation systems implemented, entity linking, playbook phases, Musk algo |
+| 1.4     | Sep 2026 | Shannon Brown | ESRM textbook-faithful: complete cycle playable, all 4 treatments, advisor→owner workflow |
 
 ### Distribution
 
@@ -458,7 +459,47 @@ This is an original simulation built on enterprise incident management patterns,
 
 ---
 
-## §10.2 Musk 5-Step Algorithm Application (PRD 1.3)
+## §10.2 Amendment: ESRM Textbook-Faithful Enhancement (PRD 1.4)
+
+**Effective:** September 2026  
+**Approved by:** Chief of Staff
+
+### Intent
+
+Elevate Hourglass Command to **leading ESRM textbook-faithful** status by implementing the complete ESRM cycle as playable mechanics, per ASIS guidelines and Allen & Loyear's _Enterprise Security Risk Management_ textbooks.
+
+### ESRM Cycle Practiced In-Sim (Must Be Playable)
+
+| Cycle Step                      | In-Sim Implementation                                     | Status  |
+| ------------------------------- | --------------------------------------------------------- | ------- |
+| 1. Context                      | Scenario framing, learning objective                      | ✅ Done |
+| 2. Identify & Prioritize Assets | Asset selection with criticality/owner                    | ✅ Done |
+| 3. Identify & Prioritize Risks  | T×V×I quick view, risk level calculation                  | ✅ Done |
+| 4. Treat                        | All 4 treatments playable: Accept/Mitigate/Transfer/Avoid | ✅ Done |
+| 5. Advisor → Asset Owner        | Briefing workflow, affirmation, governance reminder       | ✅ Done |
+| 6. Response & Review            | AAR with lessons learned, continuous improvement          | ✅ Done |
+
+### New Features (PRD 1.4)
+
+| Feature                      | Description                                               | UX Approach                                                                        |
+| ---------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Risk Matrix Quick View**   | T×V×I assessment visible before treatment decision        | Compact 3-panel display in Decision Console                                        |
+| **TRANSFER Treatment**       | Fourth ESRM treatment now playable (shift to third party) | Fourth button in treatment grid                                                    |
+| **Advisor → Owner Workflow** | Explicit handoff steps with affirmation tracking          | Stepped workflow with governance reminder                                          |
+| **ESRM Field Guide**         | Textbook-structured chapters covering full cycle          | 8 chapters: Overview, Cycle, Assets, Risks, Treatments, Advisor, Response, Scoring |
+| **Lessons Learned AAR**      | Continuous improvement tracking in debrief                | Sustains/improves with specific ESRM feedback                                      |
+
+### ESRM Textbook References
+
+This implementation draws from:
+
+- ASIS International ESRM Guidelines (2019)
+- Allen & Loyear, _Enterprise Security Risk Management: Concepts and Applications_
+- Loyear, _Enterprise Security Risk Management in the Real World_
+
+---
+
+## §10.3 Musk 5-Step Algorithm Application (PRD 1.3)
 
 **Effective:** September 2026  
 **Approach:** Applied Elon Musk's 5-step engineering algorithm systematically to maximize simulation depth while eliminating waste.
