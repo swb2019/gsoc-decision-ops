@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'GSOC Decision Ops | First-Hour Decision Training',
   description:
-    'Practice structured decision-making for GSOC operations. Train with synthetic vendor compromise scenarios using facts, assumptions, and CONTINUE/DEGRADE/PAUSE postures.',
+    'First-hour decision simulation for GSOC operations. Practice facts vs assumptions and CONTINUE/DEGRADE/PAUSE posture calls under time pressure.',
   keywords: ['GSOC', 'security operations', 'decision making', 'incident response', 'training'],
   authors: [{ name: 'Shannon Brown' }],
   openGraph: {
