@@ -1932,7 +1932,9 @@ function DecisionConsole({
                     >
                       {selectedAsset.owner.riskTolerance} Tolerance
                     </div>
-                    <p className="text-2xs text-gray-600 mt-1">{selectedAsset.owner.contactMethod}</p>
+                    <p className="text-2xs text-gray-600 mt-1">
+                      {selectedAsset.owner.contactMethod}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2029,7 +2031,11 @@ function DecisionConsole({
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
                   <div className="text-xs text-amber-400 font-semibold mb-1">Vulnerability</div>
                   <div className="text-lg font-bold text-amber-300">
-                    {selectedAsset.criticality === 'CRITICAL' ? 'HIGH' : selectedAsset.criticality === 'HIGH' ? 'MEDIUM' : 'LOW'}
+                    {selectedAsset.criticality === 'CRITICAL'
+                      ? 'HIGH'
+                      : selectedAsset.criticality === 'HIGH'
+                        ? 'MEDIUM'
+                        : 'LOW'}
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
@@ -2051,8 +2057,8 @@ function DecisionConsole({
                     (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' &&
                       selectedAsset.criticality === 'CRITICAL'
                       ? 'bg-red-500/20 text-red-400'
-                      : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' ||
-                          selectedAsset.criticality === 'CRITICAL'
+                      : (inject as unknown as { urgencyLevel?: string }).urgencyLevel ===
+                            'IMMEDIATE' || selectedAsset.criticality === 'CRITICAL'
                         ? 'bg-orange-500/20 text-orange-400'
                         : 'bg-amber-500/20 text-amber-400'
                   )}
@@ -2060,8 +2066,8 @@ function DecisionConsole({
                   {(inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' &&
                   selectedAsset.criticality === 'CRITICAL'
                     ? 'CRITICAL'
-                    : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' ||
-                        selectedAsset.criticality === 'CRITICAL'
+                    : (inject as unknown as { urgencyLevel?: string }).urgencyLevel ===
+                          'IMMEDIATE' || selectedAsset.criticality === 'CRITICAL'
                       ? 'HIGH'
                       : 'MEDIUM'}
                 </span>
@@ -2573,7 +2579,9 @@ GSOC Leadership • Crisis Management • Security Intelligence
         <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-violet-600/5 border border-violet-500/30">
           <div className="flex items-center gap-2 mb-3">
             <BookOpen className="w-5 h-5 text-violet-400" />
-            <h4 className="text-violet-400 font-semibold">Lessons Learned — Continuous Improvement</h4>
+            <h4 className="text-violet-400 font-semibold">
+              Lessons Learned — Continuous Improvement
+            </h4>
           </div>
           <div className="space-y-2 text-sm">
             {esrmRate >= 80 ? (
@@ -2592,7 +2600,8 @@ GSOC Leadership • Crisis Management • Security Intelligence
                 <div>
                   <span className="text-amber-400 font-medium">Improve Owner Engagement</span>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Brief asset owners before treatment decisions. Security advises; owner owns risk.
+                    Brief asset owners before treatment decisions. Security advises; owner owns
+                    risk.
                   </p>
                 </div>
               </div>
@@ -2603,7 +2612,8 @@ GSOC Leadership • Crisis Management • Security Intelligence
                 <div>
                   <span className="text-emerald-400 font-medium">Accurate Risk Assessment</span>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Treatment decisions aligned with expected postures. Good threat × impact analysis.
+                    Treatment decisions aligned with expected postures. Good threat × impact
+                    analysis.
                   </p>
                 </div>
               </div>
@@ -2642,7 +2652,8 @@ GSOC Leadership • Crisis Management • Security Intelligence
           </div>
           <div className="mt-3 p-2 rounded-lg bg-gray-800/50 text-center">
             <p className="text-xs text-gray-500 italic">
-              &ldquo;The ESRM cycle is continuous—lessons from each response improve future decisions.&rdquo;
+              &ldquo;The ESRM cycle is continuous—lessons from each response improve future
+              decisions.&rdquo;
             </p>
           </div>
         </div>
@@ -2721,14 +2732,7 @@ function StatCard({
 
 function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   const [activeSection, setActiveSection] = useState<
-    | 'overview'
-    | 'cycle'
-    | 'assets'
-    | 'risks'
-    | 'treatments'
-    | 'advisor'
-    | 'response'
-    | 'scoring'
+    'overview' | 'cycle' | 'assets' | 'risks' | 'treatments' | 'advisor' | 'response' | 'scoring'
   >('overview');
 
   const sections = [
@@ -2797,7 +2801,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <div className="p-4 rounded-xl bg-gradient-to-br from-gray-800/60 to-gray-900/40 border border-gray-700/50">
                 <p className="text-gray-300 text-sm leading-relaxed">
                   This simulation trains first-hour decision-making using{' '}
-                  <strong className="text-emerald-400">Enterprise Security Risk Management (ESRM)</strong>{' '}
+                  <strong className="text-emerald-400">
+                    Enterprise Security Risk Management (ESRM)
+                  </strong>{' '}
                   principles from ASIS International guidelines and industry best practices.
                 </p>
               </div>
@@ -2810,9 +2816,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                 <p className="text-sm text-gray-300 italic">
                   &ldquo;Security serves as trusted advisor to asset owners who own the risk.&rdquo;
                 </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  — ASIS ESRM Guidelines; Allen & Loyear
-                </p>
+                <p className="text-xs text-gray-500 mt-2">— ASIS ESRM Guidelines; Allen & Loyear</p>
               </div>
 
               <div className="space-y-2">
@@ -2839,8 +2843,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <p className="text-sm text-amber-200">
-                  <strong>Fast-Casual Tempo:</strong> Intel arrives every 15-45 seconds. Make decisions
-                  under pressure—ESRM discipline keeps you grounded.
+                  <strong>Fast-Casual Tempo:</strong> Intel arrives every 15-45 seconds. Make
+                  decisions under pressure—ESRM discipline keeps you grounded.
                 </p>
               </div>
             </div>
@@ -2868,7 +2872,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     {
                       num: 2,
                       title: 'Identify & Prioritize Assets',
-                      desc: 'What\'s at risk? Who owns it? What\'s the criticality?',
+                      desc: "What's at risk? Who owns it? What's the criticality?",
                       color: 'cyan',
                       detail: 'Select the affected asset before making treatment decisions',
                     },
@@ -2935,10 +2939,12 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
           {activeSection === 'assets' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Asset Identification & Prioritization</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">
+                Asset Identification & Prioritization
+              </h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Before treating risk, identify <strong>what&apos;s at risk</strong>. Assets have owners,
-                criticality levels, and current exposure status.
+                Before treating risk, identify <strong>what&apos;s at risk</strong>. Assets have
+                owners, criticality levels, and current exposure status.
               </p>
 
               <div className="space-y-3">
@@ -2988,13 +2994,20 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
                 <h4 className="text-amber-400 font-semibold mb-2">Asset Owner Model</h4>
                 <p className="text-sm text-gray-300 mb-2">
-                  Each asset has a designated <strong>owner</strong> who bears ultimate accountability
-                  for risk decisions affecting that asset.
+                  Each asset has a designated <strong>owner</strong> who bears ultimate
+                  accountability for risk decisions affecting that asset.
                 </p>
                 <div className="text-xs text-gray-400 space-y-1">
-                  <p>• <strong>Owner&apos;s Role:</strong> Accept or reject recommended treatment</p>
-                  <p>• <strong>Security&apos;s Role:</strong> Advise on risk, recommend treatment, document</p>
-                  <p>• <strong>Risk Tolerance:</strong> Owner&apos;s threshold for acceptable risk</p>
+                  <p>
+                    • <strong>Owner&apos;s Role:</strong> Accept or reject recommended treatment
+                  </p>
+                  <p>
+                    • <strong>Security&apos;s Role:</strong> Advise on risk, recommend treatment,
+                    document
+                  </p>
+                  <p>
+                    • <strong>Risk Tolerance:</strong> Owner&apos;s threshold for acceptable risk
+                  </p>
                 </div>
               </div>
 
@@ -3011,8 +3024,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">Risk Assessment</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                ESRM uses a structured approach: <strong>Threat × Vulnerability × Impact</strong> determines
-                risk level and informs treatment selection.
+                ESRM uses a structured approach: <strong>Threat × Vulnerability × Impact</strong>{' '}
+                determines risk level and informs treatment selection.
               </p>
 
               <div className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50">
@@ -3021,7 +3034,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   <div className="grid grid-cols-6 gap-1 text-center min-w-[320px]">
                     <div className="text-2xs text-gray-500 p-1"></div>
                     {['Insignif.', 'Minor', 'Moderate', 'Major', 'Catastrophic'].map((h) => (
-                      <div key={h} className="text-2xs text-gray-500 p-1 font-medium">{h}</div>
+                      <div key={h} className="text-2xs text-gray-500 p-1 font-medium">
+                        {h}
+                      </div>
                     ))}
 
                     {[
@@ -3032,7 +3047,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                       { label: 'Rare', cells: ['L', 'L', 'L', 'M', 'M'] },
                     ].map((row) => (
                       <>
-                        <div key={row.label} className="text-2xs text-gray-400 p-1 text-right">{row.label}</div>
+                        <div key={row.label} className="text-2xs text-gray-400 p-1 text-right">
+                          {row.label}
+                        </div>
                         {row.cells.map((cell, i) => (
                           <div
                             key={`${row.label}-${i}`}
@@ -3044,7 +3061,13 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                               cell === 'L' && 'bg-emerald-500/30 text-emerald-400'
                             )}
                           >
-                            {cell === 'C' ? 'CRIT' : cell === 'H' ? 'HIGH' : cell === 'M' ? 'MED' : 'LOW'}
+                            {cell === 'C'
+                              ? 'CRIT'
+                              : cell === 'H'
+                                ? 'HIGH'
+                                : cell === 'M'
+                                  ? 'MED'
+                                  : 'LOW'}
                           </div>
                         ))}
                       </>
@@ -3059,21 +3082,15 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
                   <h5 className="text-cyan-400 font-semibold text-xs mb-1">Threat</h5>
-                  <p className="text-2xs text-gray-400">
-                    Actor capability and intent to exploit
-                  </p>
+                  <p className="text-2xs text-gray-400">Actor capability and intent to exploit</p>
                 </div>
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                   <h5 className="text-amber-400 font-semibold text-xs mb-1">Vulnerability</h5>
-                  <p className="text-2xs text-gray-400">
-                    Weakness that can be exploited
-                  </p>
+                  <p className="text-2xs text-gray-400">Weakness that can be exploited</p>
                 </div>
                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30">
                   <h5 className="text-red-400 font-semibold text-xs mb-1">Impact</h5>
-                  <p className="text-2xs text-gray-400">
-                    Consequence if risk materializes
-                  </p>
+                  <p className="text-2xs text-gray-400">Consequence if risk materializes</p>
                 </div>
               </div>
 
@@ -3090,8 +3107,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">Risk Treatment Options</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                ESRM provides four treatment options. Each maps to an operational posture.
-                All four are first-class choices—select based on risk level and context.
+                ESRM provides four treatment options. Each maps to an operational posture. All four
+                are first-class choices—select based on risk level and context.
               </p>
 
               <div className="space-y-3">
@@ -3108,7 +3125,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     Risk is within tolerance. Proceed with awareness and monitoring.
                   </p>
                   <div className="text-xs text-gray-500">
-                    <strong>When:</strong> Low risk, cost of treatment exceeds impact, business opportunity outweighs concern
+                    <strong>When:</strong> Low risk, cost of treatment exceeds impact, business
+                    opportunity outweighs concern
                   </div>
                 </div>
 
@@ -3125,7 +3143,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     Apply compensating controls to reduce likelihood and/or impact.
                   </p>
                   <div className="text-xs text-gray-500">
-                    <strong>When:</strong> Risk exceeds tolerance but elimination not feasible; controls exist that reduce exposure
+                    <strong>When:</strong> Risk exceeds tolerance but elimination not feasible;
+                    controls exist that reduce exposure
                   </div>
                 </div>
 
@@ -3142,7 +3161,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     Shift risk to third party via insurance, contracts, or outsourcing.
                   </p>
                   <div className="text-xs text-gray-500">
-                    <strong>When:</strong> Insurance coverage exists; vendor can better manage risk; contractual shift appropriate
+                    <strong>When:</strong> Insurance coverage exists; vendor can better manage risk;
+                    contractual shift appropriate
                   </div>
                 </div>
 
@@ -3159,7 +3179,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     Eliminate the risk source entirely. Most protective but highest business impact.
                   </p>
                   <div className="text-xs text-gray-500">
-                    <strong>When:</strong> CRITICAL risk; life safety at stake; no adequate mitigation exists
+                    <strong>When:</strong> CRITICAL risk; life safety at stake; no adequate
+                    mitigation exists
                   </div>
                 </div>
               </div>
@@ -3167,8 +3188,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 mt-4">
                 <h4 className="text-gray-300 font-semibold text-sm mb-2">Residual Risk</h4>
                 <p className="text-xs text-gray-400">
-                  No treatment eliminates all risk. Document what remains after your decision.
-                  This is critical for owner acknowledgment and audit trail.
+                  No treatment eliminates all risk. Document what remains after your decision. This
+                  is critical for owner acknowledgment and audit trail.
                 </p>
               </div>
             </div>
@@ -3178,8 +3199,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">The Advisor → Owner Model</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                ESRM&apos;s core governance principle: Security advises, asset owners decide.
-                This model ensures accountability and prevents security overreach.
+                ESRM&apos;s core governance principle: Security advises, asset owners decide. This
+                model ensures accountability and prevents security overreach.
               </p>
 
               <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/15 to-violet-600/5 border border-violet-500/40">
@@ -3228,7 +3249,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                  <h5 className="text-emerald-400 font-semibold text-sm mb-1">Security&apos;s Authority</h5>
+                  <h5 className="text-emerald-400 font-semibold text-sm mb-1">
+                    Security&apos;s Authority
+                  </h5>
                   <ul className="text-xs text-gray-400 space-y-1">
                     <li>• Risk assessment</li>
                     <li>• Treatment recommendations</li>
@@ -3237,7 +3260,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   </ul>
                 </div>
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <h5 className="text-amber-400 font-semibold text-sm mb-1">Owner&apos;s Authority</h5>
+                  <h5 className="text-amber-400 font-semibold text-sm mb-1">
+                    Owner&apos;s Authority
+                  </h5>
                   <ul className="text-xs text-gray-400 space-y-1">
                     <li>• Accept/reject treatment</li>
                     <li>• Own residual risk</li>
@@ -3258,20 +3283,47 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
           {activeSection === 'response' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Response & Post-Incident Review</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">
+                Response & Post-Incident Review
+              </h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                ESRM includes structured incident response and After-Action Review (AAR)
-                to close the cycle and feed continuous improvement.
+                ESRM includes structured incident response and After-Action Review (AAR) to close
+                the cycle and feed continuous improvement.
               </p>
 
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-gray-300">60-Minute Playbook Phases</h4>
                 {[
-                  { name: 'Assessment', time: '0-10m', desc: 'Establish scope, initial posture', color: 'emerald' },
-                  { name: 'Bridge', time: '10-20m', desc: 'Stakeholder coordination', color: 'cyan' },
-                  { name: 'Continuity', time: '20-35m', desc: 'Compensating controls', color: 'amber' },
-                  { name: 'Information', time: '35-50m', desc: 'Data exposure assessment', color: 'violet' },
-                  { name: 'Checkpoint', time: '50-60m', desc: 'Review, validate, plan', color: 'blue' },
+                  {
+                    name: 'Assessment',
+                    time: '0-10m',
+                    desc: 'Establish scope, initial posture',
+                    color: 'emerald',
+                  },
+                  {
+                    name: 'Bridge',
+                    time: '10-20m',
+                    desc: 'Stakeholder coordination',
+                    color: 'cyan',
+                  },
+                  {
+                    name: 'Continuity',
+                    time: '20-35m',
+                    desc: 'Compensating controls',
+                    color: 'amber',
+                  },
+                  {
+                    name: 'Information',
+                    time: '35-50m',
+                    desc: 'Data exposure assessment',
+                    color: 'violet',
+                  },
+                  {
+                    name: 'Checkpoint',
+                    time: '50-60m',
+                    desc: 'Review, validate, plan',
+                    color: 'blue',
+                  },
                 ].map((phase) => (
                   <div
                     key={phase.name}
@@ -3281,7 +3333,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <span className={`text-${phase.color}-400 font-semibold text-sm`}>{phase.name}</span>
+                      <span className={`text-${phase.color}-400 font-semibold text-sm`}>
+                        {phase.name}
+                      </span>
                       <span className="text-xs text-gray-500">{phase.desc}</span>
                     </div>
                     <span className="text-2xs text-gray-500 font-mono">{phase.time}</span>
@@ -3295,10 +3349,18 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   After-Action Review (AAR)
                 </h4>
                 <div className="text-xs text-gray-400 space-y-1.5">
-                  <p>• <strong>What was supposed to happen?</strong> — Learning objective</p>
-                  <p>• <strong>What actually happened?</strong> — Decisions made, outcomes</p>
-                  <p>• <strong>What went well?</strong> — Sustains to continue</p>
-                  <p>• <strong>What can improve?</strong> — Lessons learned</p>
+                  <p>
+                    • <strong>What was supposed to happen?</strong> — Learning objective
+                  </p>
+                  <p>
+                    • <strong>What actually happened?</strong> — Decisions made, outcomes
+                  </p>
+                  <p>
+                    • <strong>What went well?</strong> — Sustains to continue
+                  </p>
+                  <p>
+                    • <strong>What can improve?</strong> — Lessons learned
+                  </p>
                 </div>
               </div>
 
@@ -3308,8 +3370,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   <strong>Continuous Improvement</strong>
                 </div>
                 <p className="text-xs text-gray-300">
-                  AAR findings feed back into the ESRM cycle—improving asset identification,
-                  risk assessment, and treatment selection for future incidents.
+                  AAR findings feed back into the ESRM cycle—improving asset identification, risk
+                  assessment, and treatment selection for future incidents.
                 </p>
               </div>
             </div>
@@ -3319,8 +3381,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">How Scoring Works</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Your score reflects ESRM discipline: decision quality, stakeholder engagement,
-                and risk documentation—not just speed.
+                Your score reflects ESRM discipline: decision quality, stakeholder engagement, and
+                risk documentation—not just speed.
               </p>
 
               <div className="space-y-2">
@@ -3340,7 +3402,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                     className="p-2.5 rounded-lg bg-gray-800/50 flex items-center justify-between"
                   >
                     <span className="text-gray-300 text-sm">{item.label}</span>
-                    <span className={`text-${item.color}-400 font-mono font-bold`}>{item.value}</span>
+                    <span className={`text-${item.color}-400 font-mono font-bold`}>
+                      {item.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -3383,9 +3447,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-800/60 flex items-center justify-between">
-          <p className="text-xs text-gray-600">
-            Based on ASIS ESRM Guidelines • Allen & Loyear
-          </p>
+          <p className="text-xs text-gray-600">Based on ASIS ESRM Guidelines • Allen & Loyear</p>
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 font-semibold hover:bg-emerald-500/25 transition-all"

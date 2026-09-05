@@ -216,8 +216,7 @@ export const TREATMENT_DESCRIPTIONS: Record<
       'Engaging third-party IR firm under retainer',
       'Shifting liability to contractor via indemnification clause',
     ],
-    residualRiskNote:
-      'Transferred party may fail to perform; counterparty risk remains',
+    residualRiskNote: 'Transferred party may fail to perform; counterparty risk remains',
   },
   AVOID: {
     name: 'Avoid Risk',
