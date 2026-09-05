@@ -31,6 +31,21 @@ export const metadata: Metadata = {
     title: 'GSOC Decision Ops',
     description: 'First-hour decision training for security operations leaders',
     type: 'website',
+    url: 'https://swb2019.github.io/gsoc-decision-ops/',
+    images: [
+      {
+        url: 'https://swb2019.github.io/gsoc-decision-ops/og.png',
+        width: 1280,
+        height: 720,
+        alt: 'GSOC Decision Ops — First-Hour Decision Training',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GSOC Decision Ops',
+    description: 'First-hour decision training for security operations leaders',
+    images: ['https://swb2019.github.io/gsoc-decision-ops/og.png'],
   },
 };
 
