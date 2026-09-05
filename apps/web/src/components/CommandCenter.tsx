@@ -71,6 +71,9 @@ import {
   Settings,
   GraduationCap,
   Sparkles,
+  Calculator,
+  DollarSign,
+  Percent,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -965,6 +968,9 @@ import {
   getAvailableActions,
   TACTICAL_ACTIONS,
   TACTICAL_CATEGORY_CONFIG,
+  calculateDecisionValue,
+  postureToTreatmentCalc,
+  VALUE_ASSUMPTIONS,
   type ProtectedAsset,
   type ScenarioESRMConfig,
   type LinkedEntity,
@@ -982,6 +988,10 @@ import {
   type TacticalState,
   type TacticalAction,
   type DeploymentFeedback,
+  type CalcTrail,
+  type AssetCriticality,
+  type RiskLikelihood,
+  type RiskImpact,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -1321,6 +1331,7 @@ export default function CommandCenter({
   const [showPipelinePanel, setShowPipelinePanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [valueMetrics, setValueMetrics] = useState<ESRMValueCreated | null>(null);
+  const [calcTrails, setCalcTrails] = useState<CalcTrail[]>([]);
   const [kriDashboard, setKRIDashboard] = useState<KRIDashboard | null>(null);
   const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
   const [teamRoster, setTeamRoster] = useState<TeamRosterState | null>(null);
@@ -2294,6 +2305,36 @@ export default function CommandCenter({
           },
         })
       );
+
+      // Calculate ESRM value for this decision
+      const treatmentForCalc = postureToTreatmentCalc(
+        posture,
+        selectedTreatmentCategory as 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | undefined
+      );
+      const decisionTimeUsed = Math.max(
+        1,
+        difficultyConfig.timerMultiplier * DECISION_TIMER_CONFIG.BASE_TIMER - decisionTimer
+      );
+      const criticality = selectedAsset.criticality as AssetCriticality;
+      const likelihood: RiskLikelihood =
+        posture === 'PAUSE' ? 'LIKELY' : posture === 'DEGRADE' ? 'POSSIBLE' : 'UNLIKELY';
+      const impact: RiskImpact =
+        selectedAsset.criticality === 'CRITICAL'
+          ? 'MAJOR'
+          : selectedAsset.criticality === 'HIGH'
+            ? 'MODERATE'
+            : 'MINOR';
+
+      const calcTrail = calculateDecisionValue({
+        assetCriticality: criticality,
+        threatLikelihood: likelihood,
+        impactSeverity: impact,
+        treatment: treatmentForCalc,
+        decisionTimeSeconds: decisionTimeUsed,
+        esrmDocumented: assetOwnerBriefed && !!residualRiskNote,
+      });
+
+      setCalcTrails((prev) => [...prev, calcTrail]);
 
       setGameState((prev) => ({
         ...prev,
@@ -3791,6 +3832,7 @@ export default function CommandCenter({
             setActiveMicroTask(null);
             setCompletedMicroTasks([]);
             setSkippedMicroTasks([]);
+            setCalcTrails([]);
             sessionStorage.removeItem(SESSION_STORAGE_KEY);
           }}
         />
@@ -3830,7 +3872,11 @@ export default function CommandCenter({
 
       {/* Value Metrics Panel */}
       {showValuePanel && valueMetrics && (
-        <ValueMetricsPanel metrics={valueMetrics} onClose={() => setShowValuePanel(false)} />
+        <ValueMetricsPanel
+          metrics={valueMetrics}
+          calcTrails={calcTrails}
+          onClose={() => setShowValuePanel(false)}
+        />
       )}
 
       {/* KRI Dashboard Panel */}
@@ -5586,11 +5632,16 @@ function StatCard({
 
 function ValueMetricsPanel({
   metrics,
+  calcTrails,
   onClose,
 }: {
   metrics: ESRMValueCreated;
+  calcTrails: CalcTrail[];
   onClose: () => void;
 }): JSX.Element {
+  const [activeTab, setActiveTab] = useState<'metrics' | 'formulas' | 'assumptions'>('metrics');
+  const [expandedTrail, setExpandedTrail] = useState<string | null>(null);
+
   const getScoreColor = (score: number) => {
     if (score >= 0.8) return 'text-emerald-400';
     if (score >= 0.6) return 'text-cyan-400';
@@ -5598,9 +5649,23 @@ function ValueMetricsPanel({
     return 'text-red-400';
   };
 
+  const sessionTotals = useMemo(() => {
+    if (calcTrails.length === 0) return null;
+    return {
+      totalInherentRisk: calcTrails.reduce((sum, t) => sum + t.finalResult.inherentRisk, 0),
+      totalResidualRisk: calcTrails.reduce((sum, t) => sum + t.finalResult.residualRisk, 0),
+      totalAvoidedLoss: calcTrails.reduce((sum, t) => sum + t.finalResult.avoidedLoss, 0),
+      totalTreatmentCost: calcTrails.reduce((sum, t) => sum + t.finalResult.treatmentCost, 0),
+      totalNetValue: calcTrails.reduce((sum, t) => sum + t.finalResult.netValue, 0),
+      averageROI: Math.round(
+        calcTrails.reduce((sum, t) => sum + t.finalResult.roi, 0) / calcTrails.length
+      ),
+    };
+  }, [calcTrails]);
+
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
         <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
@@ -5608,7 +5673,9 @@ function ValueMetricsPanel({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">ESRM Value Created</h2>
-              <p className="text-xs text-gray-500">Security&apos;s Business Impact</p>
+              <p className="text-xs text-gray-500">
+                Security&apos;s Business Impact • Reproducible Calculations
+              </p>
             </div>
           </div>
           <button
@@ -5619,146 +5686,465 @@ function ValueMetricsPanel({
           </button>
         </div>
 
-        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
-          {/* Composite Score */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-300">Composite Value Score</span>
-              <span className={`text-2xl font-bold ${getScoreColor(metrics.compositeValueScore)}`}>
-                {Math.round(metrics.compositeValueScore * 100)}%
-              </span>
-            </div>
-            <p className="text-xs text-gray-500">{metrics.valueNarrative}</p>
-          </div>
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-800/60">
+          {(['metrics', 'formulas', 'assumptions'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={clsx(
+                'flex-1 py-3 text-sm font-medium transition-colors relative',
+                activeTab === tab ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'
+              )}
+            >
+              {tab === 'metrics' && 'Metrics'}
+              {tab === 'formulas' && 'Formulas & Trail'}
+              {tab === 'assumptions' && 'Assumptions'}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400" />
+              )}
+            </button>
+          ))}
+        </div>
 
-          {/* Mission Continuity */}
-          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-semibold text-gray-200">Mission Continuity</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span
-                className={`px-2 py-1 rounded text-xs font-medium ${
-                  metrics.missionContinuity.state === 'OPERATIONAL'
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : metrics.missionContinuity.state === 'DEGRADED'
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : metrics.missionContinuity.state === 'DISRUPTED'
-                        ? 'bg-orange-500/20 text-orange-400'
-                        : 'bg-red-500/20 text-red-400'
-                }`}
-              >
-                {metrics.missionContinuity.state}
-              </span>
-              <span className="text-xs text-gray-500">
-                {metrics.missionContinuity.avoidedDowntimeMinutes}m avoided downtime
-              </span>
-            </div>
-          </div>
-
-          {/* Residual Risk */}
-          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-semibold text-gray-200">Residual Risk Management</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-gray-500">Documented</span>
-                <p className="text-lg font-semibold text-white">
-                  {metrics.residualRisk.risksWithExplicitResidual}
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-500">Explicit Rate</span>
-                <p
-                  className={`text-lg font-semibold ${getScoreColor(metrics.residualRisk.residualRiskExplicitnessRate)}`}
-                >
-                  {Math.round(metrics.residualRisk.residualRiskExplicitnessRate * 100)}%
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Owner Affirmation */}
-          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-4 h-4 text-violet-400" />
-              <span className="text-sm font-semibold text-gray-200">Owner Affirmation</span>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-xs">
-              <div>
-                <span className="text-gray-500">Briefed</span>
-                <p className="text-lg font-semibold text-white">
-                  {metrics.ownerAffirmation.decisionsWithOwnerBriefing}
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-500">Affirmed</span>
-                <p className="text-lg font-semibold text-emerald-400">
-                  {metrics.ownerAffirmation.affirmationsReceived}
-                </p>
-              </div>
-              <div>
-                <span className="text-gray-500">Pending</span>
-                <p className="text-lg font-semibold text-amber-400">
-                  {metrics.ownerAffirmation.decisionsTotal -
-                    metrics.ownerAffirmation.affirmationsReceived}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Avoided Loss */}
-          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-gray-200">Avoided Loss Proxies</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {metrics.avoidedLoss.proxies.length > 0 ? (
-                metrics.avoidedLoss.proxies.map((proxy, idx) => (
+        <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* METRICS TAB */}
+          {activeTab === 'metrics' && (
+            <>
+              {/* Composite Score */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-300">Composite Value Score</span>
                   <span
-                    key={idx}
-                    className={`px-2 py-1 rounded text-xs ${
-                      proxy.estimatedAvoidance === 'HIGH'
+                    className={`text-2xl font-bold ${getScoreColor(metrics.compositeValueScore)}`}
+                  >
+                    {Math.round(metrics.compositeValueScore * 100)}%
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">{metrics.valueNarrative}</p>
+              </div>
+
+              {/* Session Value Summary */}
+              {sessionTotals && (
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-violet-500/10 border border-blue-500/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calculator className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-semibold text-gray-200">
+                      Session Value (Calc Trail)
+                    </span>
+                    <span className="ml-auto text-xs text-gray-500">
+                      {calcTrails.length} decisions
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-500">Avoided Loss</span>
+                      <p className="text-lg font-semibold text-emerald-400 font-mono">
+                        ${sessionTotals.totalAvoidedLoss.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Net Value</span>
+                      <p
+                        className={clsx(
+                          'text-lg font-semibold font-mono',
+                          sessionTotals.totalNetValue >= 0 ? 'text-emerald-400' : 'text-red-400'
+                        )}
+                      >
+                        ${sessionTotals.totalNetValue.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Avg ROI</span>
+                      <p
+                        className={clsx(
+                          'text-lg font-semibold font-mono',
+                          sessionTotals.averageROI >= 100
+                            ? 'text-emerald-400'
+                            : sessionTotals.averageROI >= 0
+                              ? 'text-amber-400'
+                              : 'text-red-400'
+                        )}
+                      >
+                        {sessionTotals.averageROI}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mission Continuity */}
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm font-semibold text-gray-200">Mission Continuity</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      metrics.missionContinuity.state === 'OPERATIONAL'
                         ? 'bg-emerald-500/20 text-emerald-400'
-                        : proxy.estimatedAvoidance === 'MEDIUM'
+                        : metrics.missionContinuity.state === 'DEGRADED'
                           ? 'bg-amber-500/20 text-amber-400'
-                          : 'bg-gray-500/20 text-gray-400'
+                          : metrics.missionContinuity.state === 'DISRUPTED'
+                            ? 'bg-orange-500/20 text-orange-400'
+                            : 'bg-red-500/20 text-red-400'
                     }`}
                   >
-                    {proxy.category} ({proxy.estimatedAvoidance})
+                    {metrics.missionContinuity.state}
                   </span>
-                ))
-              ) : (
-                <span className="text-xs text-gray-500">No avoided losses tracked yet</span>
-              )}
-            </div>
-          </div>
+                  <span className="text-xs text-gray-500">
+                    {metrics.missionContinuity.avoidedDowntimeMinutes}m avoided downtime
+                  </span>
+                </div>
+              </div>
 
-          {/* Advisor Effectiveness */}
-          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-semibold text-gray-200">Advisor Effectiveness</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-gray-500">Recommendations</span>
-                <p className="text-lg font-semibold text-white">
-                  {metrics.advisorEffectiveness.recommendationsProvided}
-                </p>
+              {/* Residual Risk */}
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-gray-200">
+                    Residual Risk Management
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-gray-500">Documented</span>
+                    <p className="text-lg font-semibold text-white">
+                      {metrics.residualRisk.risksWithExplicitResidual}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Explicit Rate</span>
+                    <p
+                      className={`text-lg font-semibold ${getScoreColor(metrics.residualRisk.residualRiskExplicitnessRate)}`}
+                    >
+                      {Math.round(metrics.residualRisk.residualRiskExplicitnessRate * 100)}%
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-500">Accepted</span>
-                <p className="text-lg font-semibold text-emerald-400">
-                  {metrics.advisorEffectiveness.recommendationsAccepted}
-                </p>
+            </>
+          )}
+
+          {/* FORMULAS TAB */}
+          {activeTab === 'formulas' && (
+            <>
+              {/* Core Formulas */}
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-semibold text-gray-200">ESRM Value Formulas</span>
+                </div>
+                <div className="space-y-3 text-xs font-mono">
+                  <div className="p-2 rounded bg-gray-900/50">
+                    <span className="text-gray-500 block mb-1"># Risk Score (T×V×I)</span>
+                    <span className="text-cyan-400">
+                      Risk = Threat × Vulnerability × Impact × 100
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-gray-900/50">
+                    <span className="text-gray-500 block mb-1"># Annualized Loss Expectancy</span>
+                    <span className="text-cyan-400">ALE = ARO × SLE</span>
+                    <span className="text-gray-500 block text-2xs mt-1">
+                      where SLE = baseALE × impactMultiplier
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-gray-900/50">
+                    <span className="text-gray-500 block mb-1"># Avoided Loss</span>
+                    <span className="text-emerald-400">
+                      AvoidedLoss = InherentALE - ResidualALE
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-gray-900/50">
+                    <span className="text-gray-500 block mb-1"># Net Value & ROI</span>
+                    <span className="text-emerald-400">NetValue = AvoidedLoss - TreatmentCost</span>
+                    <span className="text-gray-500 block text-2xs mt-1">
+                      ROI = (NetValue / TreatmentCost) × 100
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+
+              {/* Decision Calc Trails */}
+              {calcTrails.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <Calculator className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-semibold text-gray-200">
+                      Decision Calc Trails
+                    </span>
+                    <span className="text-xs text-gray-500">({calcTrails.length} decisions)</span>
+                  </div>
+                  {calcTrails.map((trail, idx) => (
+                    <div
+                      key={trail.calculationId}
+                      className="rounded-xl bg-gray-800/30 border border-gray-700/40 overflow-hidden"
+                    >
+                      <button
+                        onClick={() =>
+                          setExpandedTrail(
+                            expandedTrail === trail.calculationId ? null : trail.calculationId
+                          )
+                        }
+                        className="w-full p-3 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <div className="text-left">
+                            <span className="text-sm text-gray-200 block">
+                              {trail.inputSummary.assetCriticality} Asset •{' '}
+                              {trail.inputSummary.treatment}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Net:{' '}
+                              <span
+                                className={
+                                  trail.finalResult.netValue >= 0
+                                    ? 'text-emerald-400'
+                                    : 'text-red-400'
+                                }
+                              >
+                                ${trail.finalResult.netValue.toLocaleString()}
+                              </span>
+                              {' • '}ROI: {trail.finalResult.roi}%
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight
+                          className={clsx(
+                            'w-4 h-4 text-gray-500 transition-transform',
+                            expandedTrail === trail.calculationId && 'rotate-90'
+                          )}
+                        />
+                      </button>
+
+                      {expandedTrail === trail.calculationId && (
+                        <div className="p-3 pt-0 space-y-2 border-t border-gray-700/40">
+                          {/* Input Summary */}
+                          <div className="grid grid-cols-3 gap-2 text-xs p-2 rounded bg-gray-900/50">
+                            <div>
+                              <span className="text-gray-500">Criticality</span>
+                              <p className="text-white font-medium">
+                                {trail.inputSummary.assetCriticality}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Likelihood</span>
+                              <p className="text-white font-medium">
+                                {trail.inputSummary.threatLikelihood}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Impact</span>
+                              <p className="text-white font-medium">
+                                {trail.inputSummary.impactSeverity}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Key Steps */}
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {trail.steps
+                              .filter(
+                                (_, i) =>
+                                  i % 3 === 0 || trail.steps[i].operation.includes('Calculate')
+                              )
+                              .slice(0, 6)
+                              .map((step) => (
+                                <div
+                                  key={step.stepNumber}
+                                  className="text-2xs p-1.5 rounded bg-gray-900/30 flex items-start gap-2"
+                                >
+                                  <span className="text-gray-600 w-4">{step.stepNumber}.</span>
+                                  <div className="flex-1">
+                                    <span className="text-gray-400">{step.operation}</span>
+                                    <span className="text-cyan-400 font-mono ml-2">
+                                      ={' '}
+                                      {typeof step.result === 'number' && step.unit.includes('$')
+                                        ? `$${step.result.toLocaleString()}`
+                                        : step.result}
+                                      {step.unit && !step.unit.includes('$') ? ` ${step.unit}` : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+
+                          {/* Final Results */}
+                          <div className="grid grid-cols-3 gap-2 text-xs p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                            <div>
+                              <span className="text-gray-500">Inherent</span>
+                              <p className="text-white font-mono">
+                                ${trail.finalResult.inherentRisk.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Residual</span>
+                              <p className="text-amber-400 font-mono">
+                                ${trail.finalResult.residualRisk.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Avoided</span>
+                              <p className="text-emerald-400 font-mono">
+                                ${trail.finalResult.avoidedLoss.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  <Calculator className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No decisions yet.</p>
+                  <p className="text-xs mt-1">Make decisions to see value calculations.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ASSUMPTIONS TAB */}
+          {activeTab === 'assumptions' && (
+            <>
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-400/80">
+                <strong>Training-Synthetic:</strong> All values are illustrative benchmarks. Method
+                matches how real ESRM programs argue value to leadership.
+              </div>
+
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-gray-200">
+                    Annual Loss Expectancy (ALE)
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {Object.entries(VALUE_ASSUMPTIONS.ANNUAL_LOSS_EXPECTANCY).map(
+                    ([level, value]) => (
+                      <div
+                        key={level}
+                        className="flex items-center justify-between p-2 rounded bg-gray-900/50"
+                      >
+                        <span
+                          className={clsx(
+                            'px-2 py-0.5 rounded text-2xs font-bold',
+                            level === 'CRITICAL'
+                              ? 'bg-red-500/20 text-red-400'
+                              : level === 'HIGH'
+                                ? 'bg-orange-500/20 text-orange-400'
+                                : level === 'MEDIUM'
+                                  ? 'bg-amber-500/20 text-amber-400'
+                                  : 'bg-gray-500/20 text-gray-400'
+                          )}
+                        >
+                          {level}
+                        </span>
+                        <span className="text-emerald-400 font-mono">
+                          ${value.toLocaleString()}/yr
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-semibold text-gray-200">Hourly Impact Cost</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {Object.entries(VALUE_ASSUMPTIONS.HOURLY_IMPACT).map(([level, value]) => (
+                    <div
+                      key={level}
+                      className="flex items-center justify-between p-2 rounded bg-gray-900/50"
+                    >
+                      <span className="text-gray-400">{level}</span>
+                      <span className="text-blue-400 font-mono">${value.toLocaleString()}/hr</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wrench className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-semibold text-gray-200">
+                    Treatment Costs & Reduction
+                  </span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {Object.entries(VALUE_ASSUMPTIONS.TREATMENT_COSTS).map(([treatment, costs]) => (
+                    <div key={treatment} className="p-2 rounded bg-gray-900/50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-300">{treatment}</span>
+                        <span className="text-cyan-400 font-mono">
+                          {Math.round(
+                            VALUE_ASSUMPTIONS.RESIDUAL_REDUCTION[
+                              treatment as keyof typeof VALUE_ASSUMPTIONS.RESIDUAL_REDUCTION
+                            ] * 100
+                          )}
+                          % reduction
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-2xs text-gray-500">
+                        <span>Implementation: ${costs.implementation.toLocaleString()}</span>
+                        <span>Ongoing: ${costs.ongoing.toLocaleString()}/yr</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <Percent className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm font-semibold text-gray-200">
+                    Likelihood → Probability
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1 text-2xs text-center">
+                  {Object.entries(VALUE_ASSUMPTIONS.LIKELIHOOD_PROBABILITY).map(([level, prob]) => (
+                    <div key={level} className="p-1.5 rounded bg-gray-900/50">
+                      <span className="text-gray-500 block truncate">
+                        {level.replace('_', ' ')}
+                      </span>
+                      <span className="text-cyan-400 font-mono">{Math.round(prob * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-gray-200">Multipliers</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded bg-gray-900/50">
+                    <span className="text-gray-500 block">First-Hour Premium</span>
+                    <span className="text-amber-400 font-mono">
+                      ×{VALUE_ASSUMPTIONS.FIRST_HOUR_PREMIUM}
+                    </span>
+                    <span className="text-2xs text-gray-600 block">Decisions within 60min</span>
+                  </div>
+                  <div className="p-2 rounded bg-gray-900/50">
+                    <span className="text-gray-500 block">Governance Multiplier</span>
+                    <span className="text-emerald-400 font-mono">
+                      ×{VALUE_ASSUMPTIONS.GOVERNANCE_MULTIPLIER}
+                    </span>
+                    <span className="text-2xs text-gray-600 block">Documented ESRM decisions</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="p-4 border-t border-gray-800/60">
