@@ -27,12 +27,10 @@ export default function HomePage(): JSX.Element {
       <main className="max-w-5xl mx-auto px-6 py-12">
         {/* Value Proposition - 30 seconds */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-ops-dark-50 mb-4">
-            First-Hour Decision Training
-          </h1>
+          <h1 className="text-4xl font-bold text-ops-dark-50 mb-4">First-Hour Decision Training</h1>
           <p className="text-xl text-ops-dark-400 max-w-2xl mx-auto">
-            Practice structured decision-making under incomplete information. 
-            Separate facts from assumptions. Make defensible choices.
+            Practice structured decision-making under incomplete information. Separate facts from
+            assumptions. Make defensible choices.
           </p>
         </div>
 
@@ -78,21 +76,31 @@ export default function HomePage(): JSX.Element {
                 href={`/scenarios/${scenario.id}`}
                 className="flex items-center gap-4 p-4 rounded-xl bg-ops-dark-900 border border-ops-dark-800 hover:border-ops-accent-green/50 transition-all group"
               >
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  scenario.severity === 'CRITICAL' ? 'bg-ops-accent-red/20' : 'bg-ops-accent-amber/20'
-                }`}>
-                  <Shield className={`w-6 h-6 ${
-                    scenario.severity === 'CRITICAL' ? 'text-ops-accent-red' : 'text-ops-accent-amber'
-                  }`} />
+                <div
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    scenario.severity === 'CRITICAL'
+                      ? 'bg-ops-accent-red/20'
+                      : 'bg-ops-accent-amber/20'
+                  }`}
+                >
+                  <Shield
+                    className={`w-6 h-6 ${
+                      scenario.severity === 'CRITICAL'
+                        ? 'text-ops-accent-red'
+                        : 'text-ops-accent-amber'
+                    }`}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-medium text-ops-dark-100">{scenario.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      scenario.severity === 'CRITICAL' 
-                        ? 'bg-ops-accent-red/20 text-ops-accent-red' 
-                        : 'bg-ops-accent-amber/20 text-ops-accent-amber'
-                    }`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        scenario.severity === 'CRITICAL'
+                          ? 'bg-ops-accent-red/20 text-ops-accent-red'
+                          : 'bg-ops-accent-amber/20 text-ops-accent-amber'
+                      }`}
+                    >
                       {scenario.severity}
                     </span>
                   </div>
@@ -110,15 +118,21 @@ export default function HomePage(): JSX.Element {
           <div className="grid md:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg bg-ops-accent-green/10 border border-ops-accent-green/20">
               <div className="font-semibold text-ops-accent-green mb-1">CONTINUE</div>
-              <div className="text-sm text-ops-dark-400">Proceed with normal operations. No immediate impact identified.</div>
+              <div className="text-sm text-ops-dark-400">
+                Proceed with normal operations. No immediate impact identified.
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-ops-accent-amber/10 border border-ops-accent-amber/20">
               <div className="font-semibold text-ops-accent-amber mb-1">DEGRADE</div>
-              <div className="text-sm text-ops-dark-400">Operate with reduced capability. Compensating controls in place.</div>
+              <div className="text-sm text-ops-dark-400">
+                Operate with reduced capability. Compensating controls in place.
+              </div>
             </div>
             <div className="p-4 rounded-lg bg-ops-accent-red/10 border border-ops-accent-red/20">
               <div className="font-semibold text-ops-accent-red mb-1">PAUSE</div>
-              <div className="text-sm text-ops-dark-400">Halt affected operations. Critical impact, unacceptable risk.</div>
+              <div className="text-sm text-ops-dark-400">
+                Halt affected operations. Critical impact, unacceptable risk.
+              </div>
             </div>
           </div>
         </div>
@@ -126,12 +140,10 @@ export default function HomePage(): JSX.Element {
         {/* Portfolio Notice */}
         <div className="text-center text-sm text-ops-dark-500">
           <p className="mb-2">
-            <strong className="text-ops-dark-400">Portfolio Demonstration</strong> — All scenarios are synthetic. 
-            Built to demonstrate structured operational decision-making methodology.
+            <strong className="text-ops-dark-400">Portfolio Demonstration</strong> — All scenarios
+            are synthetic. Built to demonstrate structured operational decision-making methodology.
           </p>
-          <p>
-            Created by Shannon Brown • GSOC Manager • Harvard ALM/ALB • CompTIA CySA+
-          </p>
+          <p>Created by Shannon Brown • GSOC Manager • Harvard ALM/ALB • CompTIA CySA+</p>
         </div>
       </main>
     </div>

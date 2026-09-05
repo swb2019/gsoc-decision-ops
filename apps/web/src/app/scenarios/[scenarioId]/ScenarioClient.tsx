@@ -197,9 +197,7 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-ops-dark-50">{log.incident.title}</h1>
-                  <p className="text-xs text-ops-dark-400 font-mono">
-                    Training Scenario
-                  </p>
+                  <p className="text-xs text-ops-dark-400 font-mono">Training Scenario</p>
                 </div>
               </div>
             </div>

@@ -36,6 +36,7 @@ This project was rebuilt from first principles using Elon Musk's 5-step engineer
 **Answer:** Prove Shannon can design and ship a sharp GSOC first-hour decision system — not a fake Salesforce clone.
 
 **Deleted requirements that were dumb:**
+
 - Multi-tenant SaaS architecture (no employer cares about fake org switching)
 - Pricing tiers and billing stubs (vanity theater)
 - Sign-in/sign-up flows (gates that slow the demo)
@@ -46,6 +47,7 @@ This project was rebuilt from first principles using Elon Musk's 5-step engineer
 ### 2. Delete the Part or Process
 
 **Deleted 13 pages/components:**
+
 - `/pricing` — fake pricing page
 - `/signin`, `/signup` — auth theater
 - `/app/team` — fake team management
@@ -64,12 +66,14 @@ This project was rebuilt from first principles using Elon Musk's 5-step engineer
 ### 3. Simplify / Optimize
 
 **After deletion, simplified to:**
+
 - **1 landing page** → lists scenarios directly
 - **1 scenario page** → decision log, playbook, export in tabs
 - **Zero auth gates** — instant demo access
 - **Zero navigation complexity** — back arrow goes home
 
 **Information architecture:**
+
 ```
 / (home)
 └── /scenarios/[id]
@@ -92,6 +96,7 @@ This project was rebuilt from first principles using Elon Musk's 5-step engineer
 ### 5. Automate (Last)
 
 Only after steps 1-4 were complete:
+
 - Tests remain (109 passing)
 - CI remains (typecheck + lint + test)
 - GitHub Pages deploy remains
@@ -111,12 +116,12 @@ npm run dev
 
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build all packages |
-| `npm test` | Run test suite (109 tests) |
-| `npm run typecheck` | TypeScript type checking |
+| Command             | Description                |
+| ------------------- | -------------------------- |
+| `npm run dev`       | Start development server   |
+| `npm run build`     | Build all packages         |
+| `npm test`          | Run test suite (109 tests) |
+| `npm run typecheck` | TypeScript type checking   |
 
 ---
 
@@ -124,11 +129,11 @@ npm run dev
 
 ### Decision Postures
 
-| Posture | When to Use |
-|---------|-------------|
+| Posture      | When to Use                                       |
+| ------------ | ------------------------------------------------- |
 | **CONTINUE** | No immediate impact identified. Proceed normally. |
-| **DEGRADE** | Partial impact. Compensating controls in place. |
-| **PAUSE** | Critical impact. Halt affected operations. |
+| **DEGRADE**  | Partial impact. Compensating controls in place.   |
+| **PAUSE**    | Critical impact. Halt affected operations.        |
 
 ### Facts vs. Assumptions
 
@@ -138,13 +143,13 @@ npm run dev
 
 ### 60-Minute Playbook
 
-| Phase | Duration | Focus |
-|-------|----------|-------|
-| Initial Assessment | 10 min | Scope, initial posture |
-| Stakeholder Notification | 10 min | Communication, bridge setup |
-| Operational Continuity | 15 min | Backup procedures |
-| Information Management | 15 min | Data assessment, credentials |
-| First Hour Checkpoint | 10 min | Decision review, next steps |
+| Phase                    | Duration | Focus                        |
+| ------------------------ | -------- | ---------------------------- |
+| Initial Assessment       | 10 min   | Scope, initial posture       |
+| Stakeholder Notification | 10 min   | Communication, bridge setup  |
+| Operational Continuity   | 15 min   | Backup procedures            |
+| Information Management   | 15 min   | Data assessment, credentials |
+| First Hour Checkpoint    | 10 min   | Decision review, next steps  |
 
 ---
 
