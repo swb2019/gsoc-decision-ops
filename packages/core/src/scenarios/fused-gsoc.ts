@@ -246,7 +246,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'URGENT',
       resourcesRequired: { analysts: 1 },
       intake: createIntakeMetadata('OSINT', {
-        sourceSystem: 'Flashpoint',
+        sourceSystem: 'Threat Intel Platform',
         sourceId: 'OSINT-DW-2847',
         confidence: 'MEDIUM',
         completeness: 'PARTIAL',
@@ -270,7 +270,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       content:
         'Analytics: Vehicle motion detected visitor lot B, camera VIS-LOT-B-02. ' +
         'Normal business hours. No anomalies. Logged for reference.',
-      source: 'Milestone XProtect',
+      source: 'Enterprise VMS',
       decisionPressure: 'Routine motion event—prioritize or acknowledge?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -283,7 +283,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('VMS', {
-        sourceSystem: 'Milestone XProtect',
+        sourceSystem: 'Enterprise VMS',
         sourceId: 'CAM-VIS-LOT-B-02',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -315,7 +315,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { analysts: 2 },
       intake: createIntakeMetadata('SIEM', {
-        sourceSystem: 'Microsoft Sentinel',
+        sourceSystem: 'Enterprise SIEM',
         sourceId: 'INC-SEC-8847',
         confidence: 'HIGH',
         completeness: 'PARTIAL',
@@ -335,7 +335,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       content:
         'Door held alarm: DOCK-3A, duration 2m15s. Delivery in progress per manifest. ' +
         'Officer verified, delivery personnel present with valid visitor badge.',
-      source: 'Lenel OnGuard',
+      source: 'Enterprise ACS',
       decisionPressure: 'Acknowledged delivery—clear or log?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -348,7 +348,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('ACS', {
-        sourceSystem: 'Lenel OnGuard',
+        sourceSystem: 'Enterprise ACS',
         sourceId: 'DOOR-DOCK-3A',
         confidence: 'VERIFIED',
         completeness: 'COMPLETE',
@@ -377,7 +377,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { guards: 2, analysts: 1 },
       intake: createIntakeMetadata('ACS', {
-        sourceSystem: 'Lenel OnGuard',
+        sourceSystem: 'Enterprise ACS',
         sourceId: 'RDR-EXEC-FL12-01',
         confidence: 'MEDIUM',
         completeness: 'PARTIAL',
@@ -451,7 +451,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { guards: 1 },
       intake: createIntakeMetadata('ACS', {
-        sourceSystem: 'Lenel OnGuard',
+        sourceSystem: 'Enterprise ACS',
         sourceId: 'RDR-EXEC-FL12-MULTI',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -516,7 +516,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       content:
         'Scheduled preventive maintenance: Elevators 3-4 Tower A offline 30 mins. ' +
         'Contractor on-site with valid credentials. Service desk notified.',
-      source: 'Johnson Controls Metasys',
+      source: 'Building Management',
       decisionPressure: 'Scheduled event—acknowledge only.',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -529,7 +529,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('FACILITIES', {
-        sourceSystem: 'Johnson Controls Metasys',
+        sourceSystem: 'Building Management',
         sourceId: 'ELEV-TWR-A-3-4',
         confidence: 'VERIFIED',
         completeness: 'COMPLETE',
@@ -558,7 +558,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'URGENT',
       resourcesRequired: { analysts: 1 },
       intake: createIntakeMetadata('LE', {
-        sourceSystem: 'FBI Liaison / InfraGard',
+        sourceSystem: 'LE Liaison / ISAC',
         sourceId: 'FBI-TLP-AMBER-2847',
         confidence: 'HIGH',
         completeness: 'PARTIAL',
@@ -595,7 +595,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('TIP', {
-        sourceSystem: 'EthicsPoint Hotline',
+        sourceSystem: 'Security Hotline',
         sourceId: 'TIP-ANON-44821',
         confidence: 'LOW',
         completeness: 'MINIMAL',
@@ -699,7 +699,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { analysts: 2, responders: 1 },
       intake: createIntakeMetadata('SIEM', {
-        sourceSystem: 'CrowdStrike Falcon',
+        sourceSystem: 'EDR Platform',
         sourceId: 'INC-MAL-9984',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -726,7 +726,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       content:
         'Fire panel supervisory: Zone 4B trouble, Building 2 warehouse. Facilities dispatched. ' +
         'Likely sensor issue per maintenance log. Not life safety impacting.',
-      source: 'Honeywell Fire Panel',
+      source: 'Fire Panel',
       decisionPressure: 'Maintenance issue—monitor or escalate?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -739,7 +739,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('ALARM', {
-        sourceSystem: 'Honeywell Fire Panel',
+        sourceSystem: 'Fire Panel',
         sourceId: 'FP-BLDG2-Z4B',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1019,7 +1019,7 @@ export function createSupplyChainScenario(): DecisionLog {
       content:
         'Camera PK-DECK3-04 offline. Maintenance ticket open since yesterday for cabling. ' +
         'Scheduled repair this afternoon. Adjacent cameras providing coverage.',
-      source: 'Milestone XProtect',
+      source: 'Enterprise VMS',
       decisionPressure: 'Known maintenance—acknowledge or escalate given current situation?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -1032,7 +1032,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('VMS', {
-        sourceSystem: 'Milestone XProtect',
+        sourceSystem: 'Enterprise VMS',
         sourceId: 'CAM-PK-DECK3-04',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1061,7 +1061,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'URGENT',
       resourcesRequired: { analysts: 1 },
       intake: createIntakeMetadata('OSINT', {
-        sourceSystem: 'FS-ISAC Portal',
+        sourceSystem: 'Sector ISAC',
         sourceId: 'ISAC-TLP-AMB-4421',
         confidence: 'HIGH',
         completeness: 'PARTIAL',
@@ -1096,7 +1096,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { guards: 2, analysts: 1 },
       intake: createIntakeMetadata('SIEM', {
-        sourceSystem: 'Splunk',
+        sourceSystem: 'Enterprise SIEM',
         sourceId: 'COR-ACS-ANOMALY-882',
         confidence: 'MEDIUM',
         completeness: 'PARTIAL',
@@ -1164,7 +1164,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { responders: 2, analysts: 1 },
       intake: createIntakeMetadata('FACILITIES', {
-        sourceSystem: 'Johnson Controls Metasys',
+        sourceSystem: 'Building Management',
         sourceId: 'BMS-DC-HVAC-CRIT',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1200,7 +1200,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'URGENT',
       resourcesRequired: { responders: 1 },
       intake: createIntakeMetadata('ALARM', {
-        sourceSystem: 'Honeywell Fire Panel',
+        sourceSystem: 'Fire Panel',
         sourceId: 'FP-DC-BLDG4-COMM',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1327,7 +1327,7 @@ export function createSupplyChainScenario(): DecisionLog {
       content:
         'Badge access: IT on-call engineer entered server room. Valid credential, ' +
         'matches scheduled rotation. No anomalies detected.',
-      source: 'Lenel OnGuard',
+      source: 'Enterprise ACS',
       decisionPressure: 'Valid access during active incident—verify or acknowledge?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -1340,7 +1340,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('ACS', {
-        sourceSystem: 'Lenel OnGuard',
+        sourceSystem: 'Enterprise ACS',
         sourceId: 'RDR-SERVER-RM-01',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1369,7 +1369,7 @@ export function createSupplyChainScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { analysts: 1, guards: 1 },
       intake: createIntakeMetadata('OSINT', {
-        sourceSystem: 'Recorded Future',
+        sourceSystem: 'Threat Intel Platform',
         sourceId: 'OSINT-PASTE-8821',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1655,7 +1655,7 @@ export function createInsiderThreatScenario(): DecisionLog {
       content:
         'Routine: 47 badge reads at cafeteria entrance 7:45-8:15 AM. Normal morning traffic. ' +
         'No anomalies detected.',
-      source: 'Lenel OnGuard',
+      source: 'Enterprise ACS',
       decisionPressure: 'Routine report—acknowledge during active investigation?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
@@ -1668,7 +1668,7 @@ export function createInsiderThreatScenario(): DecisionLog {
       triagePriority: 'ROUTINE',
       resourcesRequired: {},
       intake: createIntakeMetadata('ACS', {
-        sourceSystem: 'Lenel OnGuard',
+        sourceSystem: 'Enterprise ACS',
         sourceId: 'RDR-CAF-MAIN-01',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1697,7 +1697,7 @@ export function createInsiderThreatScenario(): DecisionLog {
       triagePriority: 'URGENT',
       resourcesRequired: { analysts: 1 },
       intake: createIntakeMetadata('VMS', {
-        sourceSystem: 'Milestone XProtect',
+        sourceSystem: 'Enterprise VMS',
         sourceId: 'CAM-DC-RACK-A-12',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1739,7 +1739,7 @@ export function createInsiderThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { analysts: 2 },
       intake: createIntakeMetadata('SIEM', {
-        sourceSystem: 'Microsoft Purview DLP',
+        sourceSystem: 'Enterprise DLP',
         sourceId: 'DLP-EXFIL-HIGH-991',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1874,7 +1874,7 @@ export function createInsiderThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { guards: 1 },
       intake: createIntakeMetadata('ACS', {
-        sourceSystem: 'Lenel OnGuard',
+        sourceSystem: 'Enterprise ACS',
         sourceId: 'RDR-LOBBY-MAIN',
         confidence: 'HIGH',
         completeness: 'COMPLETE',
@@ -1934,7 +1934,7 @@ export function createInsiderThreatScenario(): DecisionLog {
       triagePriority: 'IMMEDIATE',
       resourcesRequired: { analysts: 1, responders: 1 },
       intake: createIntakeMetadata('SIEM', {
-        sourceSystem: 'Splunk',
+        sourceSystem: 'Enterprise SIEM',
         sourceId: 'COR-AUTH-ANOMALY-772',
         confidence: 'HIGH',
         completeness: 'COMPLETE',

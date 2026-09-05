@@ -232,7 +232,7 @@ export interface InjectAttachment {
  */
 export interface IntakeMetadata {
   channel: IntakeChannel;
-  sourceSystem?: string; // e.g., "Lenel OnGuard", "Milestone XProtect", "Splunk"
+  sourceSystem?: string; // e.g., "Enterprise ACS", "Enterprise VMS", "Enterprise SIEM"
   sourceId?: string; // e.g., "ACS-HQ-001", "CAM-LOBBY-12"
   rawTimestamp?: string; // Original system timestamp
   receivedTimestamp?: string; // When GSOC received

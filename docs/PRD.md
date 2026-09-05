@@ -443,7 +443,7 @@ Port **maximum enterprise incident management system functionality** as original
 
 **Inject metadata includes:**
 
-- **Channel badge** with source system feel (e.g., "Lenel OnGuard [RDR-EXEC-FL12]")
+- **Channel badge** with source system feel (e.g., "Enterprise ACS [RDR-EXEC-FL12]")
 - **Confidence level**: VERIFIED → HIGH → MEDIUM → LOW → UNVERIFIED → CONFLICTING
 - **Completeness**: COMPLETE → PARTIAL → MINIMAL → FRAGMENT
 - **Attachments**: Simulated stills, video clips, map pins, documents, log excerpts
