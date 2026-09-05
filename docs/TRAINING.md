@@ -335,7 +335,41 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ---
 
-## §4 References
+## §5 Glossary of Acronyms
+
+Quick reference for security operations terminology used throughout Hourglass Command.
+
+| Acronym | Full Term | Definition |
+|---------|-----------|------------|
+| **AAR** | After-Action Review | Structured debrief to capture lessons learned after an incident or exercise |
+| **ACS** | Access Control System | Electronic system that manages physical entry to secured areas |
+| **ASIS** | ASIS International | Global organization for security professionals, publisher of ESRM guidelines |
+| **BCP** | Business Continuity Plan | Strategy for maintaining operations during disruptions |
+| **BMS** | Building Management System | Centralized system controlling HVAC, lighting, and other building functions |
+| **CISA** | Cybersecurity and Infrastructure Security Agency | US federal agency for cyber and physical security |
+| **COP** | Common Operating Picture | Shared situational awareness display showing facts, assumptions, and unknowns |
+| **DR** | Disaster Recovery | Process for restoring systems after major incidents |
+| **ESRM** | Enterprise Security Risk Management | Holistic approach where security advises asset owners who own risk decisions |
+| **ETA** | Estimated Time of Arrival | Projected time for resource or personnel arrival |
+| **GSOC** | Global Security Operations Center | Centralized facility for monitoring and coordinating security operations |
+| **ICS** | Incident Command System | Standardized management structure for emergency response |
+| **IOC** | Indicator of Compromise | Artifact indicating potential security breach |
+| **IR** | Incident Response | Coordinated approach to managing security incidents |
+| **MFA** | Multi-Factor Authentication | Security requiring multiple verification methods for access |
+| **NIST** | National Institute of Standards and Technology | US agency developing security frameworks and standards |
+| **OSINT** | Open-Source Intelligence | Information gathered from publicly available sources |
+| **RPD** | Recognition-Primed Decision | Decision model where experts recognize patterns and mentally simulate outcomes |
+| **SIEM** | Security Information and Event Management | Platform aggregating and analyzing security logs |
+| **SLA** | Service Level Agreement | Contractual commitment defining expected service standards |
+| **SOC** | Security Operations Center | Facility for monitoring and responding to security threats |
+| **SOP** | Standard Operating Procedure | Documented step-by-step instructions for routine operations |
+| **TTPs** | Tactics, Techniques, and Procedures | Patterns describing adversary behavior |
+| **T×V×I** | Threat × Vulnerability × Impact | Risk calculation formula: likelihood of threat exploiting vulnerability times potential impact |
+| **VMS** | Video Management System | Software platform for managing surveillance camera feeds and recordings |
+
+---
+
+## §6 References
 
 ### ESRM Primary Sources
 

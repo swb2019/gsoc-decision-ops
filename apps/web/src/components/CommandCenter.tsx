@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
-  ArrowLeft,
   Download,
   X,
   DoorOpen,
@@ -46,7 +45,187 @@ import {
   EyeOff,
   Signal,
   CircleDot,
+  Home,
+  RotateCcw,
+  ListChecks,
+  Shuffle,
+  ClipboardList,
+  Radar,
+  ShieldAlert,
+  FileQuestion,
 } from 'lucide-react';
+
+// Session storage key for persistence
+const SESSION_STORAGE_KEY = 'hourglass-command-session';
+
+// Sound effect URLs (Web Audio API compatible)
+const SOUND_EFFECTS = {
+  injectArrive: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQYAiuHqkGYXD3C03O+FPgkWf8/u9IpHBA6P4fF/QwAJi+Duh0EACI3f7odAAAmL3+6HQAAL',
+  decisionConfirm: 'data:audio/wav;base64,UklGRl4FAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YToFAACAf35+gICBgoKCgoGAf359fHt7e3x9fn+AgYKDg4SDg4KBgH9+fXx7e3t8fH1+f4CAgYGBgYGAgH9+fn19fX1+fn9/gICAgYGBgICAf39+fn5+fn5+f3+AgICAgICAgA==',
+  escalation: 'data:audio/wav;base64,UklGRpIGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YW4GAACAgIB/fn18e3p5eHd2dXRzcnFwcG9vb29wcHFycnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wA==',
+  error: 'data:audio/wav;base64,UklGRjIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ4FAACA',
+  tick: 'data:audio/wav;base64,UklGRiQCAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQACAACAf4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/',
+  microTaskComplete: 'data:audio/wav;base64,UklGRlIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YS4FAACAgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==',
+};
+
+// ESRM Prep Micro-tasks for keeping players engaged during wait gaps
+const ESRM_MICRO_TASKS = [
+  {
+    id: 'asset-priority',
+    title: 'Asset Prioritization Drill',
+    description: 'Rank these 3 assets by business criticality',
+    icon: 'Target',
+    duration: 20,
+    category: 'ESRM',
+    points: 25,
+  },
+  {
+    id: 'risk-rank',
+    title: 'Quick Risk Ranking',
+    description: 'Order threats by likelihood × impact',
+    icon: 'AlertTriangle',
+    duration: 15,
+    category: 'ESRM',
+    points: 20,
+  },
+  {
+    id: 'residual-draft',
+    title: 'Residual Risk Draft',
+    description: 'Write a 1-sentence residual risk statement',
+    icon: 'FileQuestion',
+    duration: 25,
+    category: 'ESRM',
+    points: 30,
+  },
+  {
+    id: 'owner-brief-prep',
+    title: 'Owner Brief Prep',
+    description: 'Identify key talking points for asset owner',
+    icon: 'MessageSquare',
+    duration: 20,
+    category: 'COMMUNICATION',
+    points: 25,
+  },
+  {
+    id: 'channel-triage',
+    title: 'Channel Triage Drill',
+    description: 'Assign incoming intel to correct domain',
+    icon: 'Shuffle',
+    duration: 15,
+    category: 'TRIAGE',
+    points: 20,
+  },
+  {
+    id: 'cop-review',
+    title: 'COP Quick Review',
+    description: 'Verify facts vs assumptions accuracy',
+    icon: 'Eye',
+    duration: 15,
+    category: 'AWARENESS',
+    points: 15,
+  },
+  {
+    id: 'stakeholder-map',
+    title: 'Stakeholder Mapping',
+    description: 'Identify who needs notification next',
+    icon: 'Users',
+    duration: 20,
+    category: 'COMMUNICATION',
+    points: 25,
+  },
+  {
+    id: 'treatment-review',
+    title: 'Treatment Options Review',
+    description: 'List pros/cons for each treatment path',
+    icon: 'ClipboardList',
+    duration: 25,
+    category: 'ESRM',
+    points: 30,
+  },
+  {
+    id: 'threat-scan',
+    title: 'Threat Landscape Scan',
+    description: 'Identify potential secondary threats',
+    icon: 'Radar',
+    duration: 20,
+    category: 'INTELLIGENCE',
+    points: 25,
+  },
+  {
+    id: 'control-check',
+    title: 'Control Effectiveness Check',
+    description: 'Assess current mitigations in place',
+    icon: 'ShieldAlert',
+    duration: 20,
+    category: 'ESRM',
+    points: 25,
+  },
+];
+
+// Decision prompt variations to reduce repetition
+const DECISION_PROMPT_VARIATIONS = [
+  { header: 'Decision Required', subtext: 'Assess and commit to a posture' },
+  { header: 'Posture Call Needed', subtext: 'What\'s your recommendation?' },
+  { header: 'Treatment Decision', subtext: 'Select risk response strategy' },
+  { header: 'Action Required', subtext: 'Time-sensitive posture decision' },
+  { header: 'Commander Decision', subtext: 'Your call—what\'s the posture?' },
+  { header: 'Risk Treatment', subtext: 'Recommend action to asset owner' },
+];
+
+// Custom hook for sound effects
+function useSoundEffects(enabled: boolean, reducedMotion: boolean): { playSound: (soundType: keyof typeof SOUND_EFFECTS) => void } {
+  const audioContextRef = useRef<AudioContext | null>(null);
+  
+  const playSound = useCallback((soundType: keyof typeof SOUND_EFFECTS): void => {
+    if (!enabled || reducedMotion) return;
+    
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      }
+      
+      const audio = new Audio(SOUND_EFFECTS[soundType]);
+      audio.volume = 0.3;
+      audio.play().catch(() => {});
+    } catch {
+      // Silently fail if audio not supported
+    }
+  }, [enabled, reducedMotion]);
+  
+  return { playSound };
+}
+
+// Custom hook for haptic feedback
+function useHaptics(reducedMotion: boolean): { tapFeedback: () => void; confirmFeedback: () => void; errorFeedback: () => void; urgentFeedback: () => void } {
+  const vibrate = useCallback((pattern: number | number[]): void => {
+    if (reducedMotion) return;
+    
+    try {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(pattern);
+      }
+    } catch {
+      // Silently fail if vibration not supported
+    }
+  }, [reducedMotion]);
+  
+  const tapFeedback = useCallback((): void => vibrate(10), [vibrate]);
+  const confirmFeedback = useCallback((): void => vibrate([15, 50, 15]), [vibrate]);
+  const errorFeedback = useCallback((): void => vibrate([30, 100, 30, 100, 30]), [vibrate]);
+  const urgentFeedback = useCallback((): void => vibrate([50, 100, 50]), [vibrate]);
+  
+  return { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback };
+}
+
+// Session state interface for persistence
+interface SessionState {
+  log: DecisionLog;
+  elapsedSeconds: number;
+  gameState: GameState;
+  scenarioId: string;
+  savedAt: number;
+  isComplete: boolean;
+}
 import {
   recordDecision,
   calculateStats,
@@ -72,6 +251,17 @@ type MobileTab = 'intel' | 'decision' | 'cop';
 interface CommandCenterProps {
   initialLog: DecisionLog;
   esrmConfig?: ScenarioESRMConfig;
+  scenarioId?: string;
+}
+
+interface MicroTask {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  duration: number;
+  category: string;
+  points: number;
 }
 
 interface GameState {
@@ -212,7 +402,13 @@ const POSTURE_CONFIG: Record<
   },
 };
 
-export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterProps): JSX.Element {
+export default function CommandCenter({ initialLog, esrmConfig, scenarioId = 'unknown' }: CommandCenterProps): JSX.Element {
+  // Session recovery state
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+  const [savedSession, setSavedSession] = useState<SessionState | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  
+  // Core game state
   const [log, setLog] = useState<DecisionLog>(initialLog);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
@@ -250,6 +446,20 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>(
     'ACTIVITY'
   );
+  
+  // Micro-task state for filling wait gaps
+  const [activeMicroTask, setActiveMicroTask] = useState<MicroTask | null>(null);
+  const [microTaskTimer, setMicroTaskTimer] = useState(0);
+  const [completedMicroTasks, setCompletedMicroTasks] = useState<string[]>([]);
+  const [lastActivityTime, setLastActivityTime] = useState(0);
+  const [microTaskAnimating, setMicroTaskAnimating] = useState(false);
+  
+  // Animation tracking
+  const [tabAnimating, setTabAnimating] = useState(false);
+  
+  // Decision variety tracking
+  const [decisionPromptIndex, setDecisionPromptIndex] = useState(0);
+  
   const [dispatchResources, setDispatchResources] = useState<{
     guards: {
       available: number;
@@ -291,8 +501,15 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const microTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
   const processedInjectsRef = useRef<Set<string>>(new Set());
+  const sessionSaveRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Sound and haptic hooks
+  const { playSound } = useSoundEffects(soundEnabled, reducedMotion);
+  const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
+
+  // Check for reduced motion preference
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(mediaQuery.matches);
@@ -300,6 +517,133 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
+
+  // Check for saved session on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const session: SessionState = JSON.parse(saved);
+        // Only offer resume if session is for same scenario and not complete
+        if (session.scenarioId === scenarioId && !session.isComplete) {
+          const ageMinutes = (Date.now() - session.savedAt) / 1000 / 60;
+          // Only offer resume if session is less than 2 hours old
+          if (ageMinutes < 120) {
+            setSavedSession(session);
+            setShowResumePrompt(true);
+          } else {
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+          }
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [scenarioId]);
+
+  // Auto-save session periodically when running
+  useEffect(() => {
+    if (!isRunning) return;
+    
+    const saveSession = (): void => {
+      try {
+        const session: SessionState = {
+          log,
+          elapsedSeconds,
+          gameState,
+          scenarioId,
+          savedAt: Date.now(),
+          isComplete: showDebrief,
+        };
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      } catch {
+        // Ignore localStorage errors
+      }
+    };
+    
+    // Save immediately and then every 10 seconds
+    saveSession();
+    sessionSaveRef.current = setInterval(saveSession, 10000);
+    
+    return () => {
+      if (sessionSaveRef.current) {
+        clearInterval(sessionSaveRef.current);
+      }
+    };
+  }, [isRunning, log, elapsedSeconds, gameState, scenarioId, showDebrief]);
+
+  // Clear session on completion
+  useEffect(() => {
+    if (showDebrief) {
+      try {
+        const session: SessionState = {
+          log,
+          elapsedSeconds,
+          gameState,
+          scenarioId,
+          savedAt: Date.now(),
+          isComplete: true,
+        };
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      } catch {
+        // Ignore
+      }
+    }
+  }, [showDebrief, log, elapsedSeconds, gameState, scenarioId]);
+
+  // Resume session handler
+  const handleResumeSession = useCallback(() => {
+    if (savedSession) {
+      setLog(savedSession.log);
+      setElapsedSeconds(savedSession.elapsedSeconds);
+      setGameState(savedSession.gameState);
+      // Rebuild processed injects set
+      savedSession.log.decisions.forEach(d => {
+        const inject = savedSession.log.injects.find(i => i.title === d.title);
+        if (inject) {
+          processedInjectsRef.current.add(inject.id);
+        }
+      });
+      setShowResumePrompt(false);
+      setSavedSession(null);
+    }
+  }, [savedSession]);
+
+  // Start fresh handler
+  const handleStartFresh = useCallback(() => {
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+    setShowResumePrompt(false);
+    setSavedSession(null);
+  }, []);
+
+  // Exit confirmation handler
+  const handleExitClick = useCallback(() => {
+    if (isRunning || elapsedSeconds > 0) {
+      setShowExitConfirm(true);
+    } else {
+      window.location.href = '/';
+    }
+  }, [isRunning, elapsedSeconds]);
+
+  const handleConfirmExit = useCallback(() => {
+    // Session is auto-saved, just exit
+    window.location.href = '/';
+  }, []);
+
+  // Tab change with animation
+  const handleTabChange = useCallback((newTab: MobileTab) => {
+    if (newTab === mobileTab || tabAnimating) return;
+    tapFeedback();
+    setTabAnimating(true);
+    setTimeout(() => {
+      setMobileTab(newTab);
+      setTabAnimating(false);
+    }, 150);
+  }, [mobileTab, tabAnimating, tapFeedback]);
 
   // Main game timer
   useEffect(() => {
@@ -386,10 +730,87 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       );
       if (unhandled.length > 0) {
         setUrgentPulse(true);
+        urgentFeedback();
         setTimeout(() => setUrgentPulse(false), 1000);
       }
     }
-  }, [elapsedSeconds, isRunning, lastInjectTime, log, pendingDecision]);
+  }, [elapsedSeconds, isRunning, lastInjectTime, log, pendingDecision, urgentFeedback]);
+
+  // Micro-task system for filling wait gaps (no dead air > 20s)
+  useEffect(() => {
+    if (!isRunning || pendingDecision || activeMicroTask) return;
+    
+    const timeSinceActivity = elapsedSeconds - lastActivityTime;
+    
+    // If more than 20 seconds of inactivity, spawn a micro-task
+    if (timeSinceActivity > 20) {
+      const availableTasks = ESRM_MICRO_TASKS.filter(t => !completedMicroTasks.includes(t.id));
+      if (availableTasks.length > 0) {
+        const randomTask = availableTasks[Math.floor(Math.random() * availableTasks.length)];
+        setActiveMicroTask(randomTask);
+        setMicroTaskTimer(randomTask.duration);
+        setMicroTaskAnimating(true);
+        setTimeout(() => setMicroTaskAnimating(false), 500);
+        playSound('tick');
+      }
+    }
+  }, [elapsedSeconds, isRunning, pendingDecision, activeMicroTask, lastActivityTime, completedMicroTasks, playSound]);
+
+  // Micro-task timer countdown
+  useEffect(() => {
+    if (!activeMicroTask || !isRunning) return;
+    
+    microTaskTimerRef.current = setInterval(() => {
+      setMicroTaskTimer(t => {
+        if (t <= 1) {
+          // Time expired, task failed
+          setActiveMicroTask(null);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    
+    return () => {
+      if (microTaskTimerRef.current) {
+        clearInterval(microTaskTimerRef.current);
+      }
+    };
+  }, [activeMicroTask, isRunning]);
+
+  // Complete micro-task handler
+  const completeMicroTask = useCallback(() => {
+    if (!activeMicroTask) return;
+    
+    const points = activeMicroTask.points;
+    setGameState(prev => ({
+      ...prev,
+      score: prev.score + points,
+      esrmBonus: prev.esrmBonus + points,
+    }));
+    
+    setCompletedMicroTasks(prev => [...prev, activeMicroTask.id]);
+    setShowScorePopup({ points, message: 'ESRM Prep Complete!' });
+    setTimeout(() => setShowScorePopup(null), 2000);
+    
+    playSound('microTaskComplete');
+    confirmFeedback();
+    setActiveMicroTask(null);
+    setLastActivityTime(elapsedSeconds);
+  }, [activeMicroTask, elapsedSeconds, playSound, confirmFeedback]);
+
+  // Skip micro-task handler
+  const skipMicroTask = useCallback(() => {
+    setActiveMicroTask(null);
+    setLastActivityTime(elapsedSeconds);
+  }, [elapsedSeconds]);
+
+  // Update lastActivityTime on user actions
+  useEffect(() => {
+    if (pendingDecision || log.decisions.length > 0) {
+      setLastActivityTime(elapsedSeconds);
+    }
+  }, [pendingDecision, log.decisions.length, elapsedSeconds]);
 
   // Escalation level based on game state - with cascade multiplier effects
   useEffect(() => {
@@ -579,17 +1000,30 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     }
   }, [log.decisions.length]);
 
-  const triggerInjectAlert = (inject: ScenarioInject): void => {
+  const triggerInjectAlert = useCallback((inject: ScenarioInject): void => {
     const urgency = (inject as unknown as { urgencyLevel?: string }).urgencyLevel;
     if (urgency === 'IMMEDIATE') {
       setScreenFlash('red');
+      playSound('escalation');
+      urgentFeedback();
     } else if (urgency === 'URGENT') {
       setScreenFlash('amber');
+      playSound('injectArrive');
+      tapFeedback();
+    } else {
+      playSound('injectArrive');
+      tapFeedback();
     }
     setTimeout(() => setScreenFlash(null), 300);
-  };
+    setLastActivityTime(elapsedSeconds);
+    
+    // Dismiss any active micro-task when real inject arrives
+    if (activeMicroTask) {
+      setActiveMicroTask(null);
+    }
+  }, [playSound, urgentFeedback, tapFeedback, elapsedSeconds, activeMicroTask]);
 
-  const handleTimeoutDecision = (): void => {
+  const handleTimeoutDecision = useCallback((): void => {
     if (!pendingDecision) return;
 
     setGameState((prev) => ({
@@ -599,13 +1033,16 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       comboMultiplier: 1,
     }));
 
+    playSound('error');
+    errorFeedback();
+    
     setShowScorePopup({ points: -50, message: 'Decision timeout!' });
     setTimeout(() => setShowScorePopup(null), 2000);
 
     setPendingDecision(null);
     setSelectedAsset(null);
     setAssetOwnerBriefed(false);
-  };
+  }, [pendingDecision, playSound, errorFeedback]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -740,9 +1177,20 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         comboMultiplier: streakMultiplier,
       }));
 
-      // Visual feedback
+      // Visual and audio feedback
       setScreenFlash(isCorrect ? 'green' : 'amber');
       setTimeout(() => setScreenFlash(null), 200);
+      
+      // Play sound and haptic
+      playSound('decisionConfirm');
+      if (isCorrect) {
+        confirmFeedback();
+      } else {
+        tapFeedback();
+      }
+
+      // Rotate decision prompt variation for next decision
+      setDecisionPromptIndex(prev => (prev + 1) % DECISION_PROMPT_VARIATIONS.length);
 
       setShowScorePopup({
         points: totalPoints,
@@ -753,6 +1201,9 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
           : 'Documented',
       });
       setTimeout(() => setShowScorePopup(null), 2000);
+      
+      // Update activity time
+      setLastActivityTime(elapsedSeconds);
 
       // Reset decision state
       setPendingDecision(null);
@@ -835,38 +1286,38 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         />
       </div>
 
-      {/* Top Command Bar - Mobile-first responsive */}
-      <header className="relative z-40 flex-none border-b border-gray-800/60 bg-[#08080e]/90 backdrop-blur-2xl safe-area-top">
-        <div className="flex items-center justify-between px-3 py-2 lg:px-6 lg:py-3">
-          {/* Left: Back & Logo */}
-          <div className="flex items-center gap-2 lg:gap-4">
-            <Link
-              href="/"
-              className="p-2.5 rounded-xl hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target flex items-center justify-center"
+      {/* Top Command Bar - Mobile-first responsive with overflow fix */}
+      <header className="relative z-40 flex-none border-b border-gray-800/60 bg-[#08080e]/90 backdrop-blur-2xl safe-area-top header-safe">
+        <div className="flex items-center justify-between px-2 py-2 sm:px-3 lg:px-6 lg:py-3 gap-2 overflow-hidden">
+          {/* Left: Back & Logo - Compact on mobile */}
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 flex-shrink-0 min-w-0">
+            <button
+              onClick={handleExitClick}
+              className="p-2 sm:p-2.5 rounded-xl hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target flex items-center justify-center animate-press flex-shrink-0"
               aria-label="Exit mission"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-500" />
-            </Link>
+              <Home className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+            </button>
 
-            <div className="hidden sm:flex items-center gap-3">
-              <div className="relative">
+            <div className="hidden sm:flex items-center gap-2 lg:gap-3 min-w-0">
+              <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-xl animate-pulse-slow" />
-                <div className="relative w-10 h-10 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                  <Shield className="w-5 h-5 text-white" />
+                <div className="relative w-9 h-9 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <Shield className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
                 </div>
               </div>
-              <div className="hidden lg:block">
-                <div className="text-base font-bold text-gray-100 tracking-tight">
-                  Aegis Command
+              <div className="hidden lg:block min-w-0">
+                <div className="text-sm lg:text-base font-bold text-gray-100 tracking-tight truncate">
+                  Hourglass Command
                 </div>
                 <div className="text-xs text-gray-500 flex items-center gap-1.5">
                   <span
                     className={clsx(
-                      'w-2 h-2 rounded-full',
+                      'w-2 h-2 rounded-full flex-shrink-0',
                       isRunning ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'
                     )}
                   />
-                  <span className={clsx(isRunning ? 'text-emerald-400' : 'text-gray-500')}>
+                  <span className={clsx('truncate', isRunning ? 'text-emerald-400' : 'text-gray-500')}>
                     {isRunning ? 'ACTIVE' : 'STANDBY'}
                   </span>
                 </div>
@@ -875,33 +1326,36 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
           </div>
 
           {/* Center: Timer - Always visible, compact on mobile */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-shrink min-w-0">
             {/* Mobile compact timer */}
             <div
               className={clsx(
-                'flex lg:hidden items-center gap-2 px-3 py-2 rounded-xl border transition-all',
+                'flex lg:hidden items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border transition-all',
                 isCritical
-                  ? 'bg-red-500/10 border-red-500/40'
+                  ? 'bg-red-500/10 border-red-500/40 animate-escalation-pulse'
                   : isUrgent
                     ? 'bg-amber-500/10 border-amber-500/30'
                     : 'bg-gray-800/40 border-gray-700/50'
               )}
             >
               <button
-                onClick={() => setIsRunning(!isRunning)}
+                onClick={() => {
+                  setIsRunning(!isRunning);
+                  tapFeedback();
+                }}
                 className={clsx(
-                  'p-2 rounded-lg transition-all touch-target flex items-center justify-center',
+                  'p-1.5 sm:p-2 rounded-lg transition-all touch-target flex items-center justify-center animate-press',
                   isRunning
                     ? 'bg-amber-500/20 text-amber-400 active:bg-amber-500/30'
                     : 'bg-emerald-500/20 text-emerald-400 active:bg-emerald-500/30'
                 )}
                 aria-label={isRunning ? 'Pause' : 'Start'}
               >
-                {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                {isRunning ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
               <div
                 className={clsx(
-                  'font-mono text-xl font-black tracking-tighter',
+                  'font-mono text-lg sm:text-xl font-black tracking-tighter tabular-nums',
                   isCritical ? 'text-red-400' : isUrgent ? 'text-amber-400' : 'text-white'
                 )}
               >
@@ -909,7 +1363,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
               </div>
               <Timer
                 className={clsx(
-                  'w-5 h-5',
+                  'w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0',
                   isCritical
                     ? 'text-red-400 animate-bounce'
                     : isUrgent
@@ -977,12 +1431,12 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
             </div>
           </div>
 
-          {/* Right: Score & Actions */}
-          <div className="flex items-center gap-1 lg:gap-3">
+          {/* Right: Score & Actions - Overflow safe */}
+          <div className="flex items-center gap-1 lg:gap-3 flex-shrink-0">
             {/* Mobile score badge */}
-            <div className="flex lg:hidden items-center gap-1 px-2 py-1 rounded-lg bg-gray-800/40">
-              <Zap className="w-4 h-4 text-emerald-400" />
-              <span className="font-mono text-sm font-bold text-emerald-400">
+            <div className="flex lg:hidden items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg bg-gray-800/40">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+              <span className="font-mono text-xs sm:text-sm font-bold text-emerald-400 tabular-nums">
                 {gameState.score >= 1000
                   ? `${(gameState.score / 1000).toFixed(1)}k`
                   : gameState.score}
@@ -1087,21 +1541,24 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation - Animated tabs */}
       <nav className="mobile-nav lg:hidden" aria-label="Mobile navigation">
         <div className="flex items-center">
           <button
-            onClick={() => setMobileTab('intel')}
+            onClick={() => handleTabChange('intel')}
             className={clsx(
-              'mobile-nav-item',
-              mobileTab === 'intel' ? 'mobile-nav-item-active' : 'text-gray-500'
+              'mobile-nav-item transition-all duration-200 animate-press',
+              mobileTab === 'intel' ? 'mobile-nav-item-active scale-105' : 'text-gray-500'
             )}
             aria-current={mobileTab === 'intel' ? 'page' : undefined}
           >
             <div className="relative">
-              <Radio className="w-6 h-6" />
+              <Radio className={clsx('w-6 h-6 transition-transform', mobileTab === 'intel' && !reducedMotion && 'animate-pulse-slow')} />
               {revealedInjects.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-2xs font-bold text-black flex items-center justify-center">
+                <span className={clsx(
+                  'absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-2xs font-bold text-black flex items-center justify-center',
+                  !reducedMotion && 'animate-badge-pop'
+                )}>
                   {revealedInjects.length}
                 </span>
               )}
@@ -1109,21 +1566,24 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
             <span className="mobile-nav-label">Intel</span>
           </button>
           <button
-            onClick={() => setMobileTab('decision')}
+            onClick={() => handleTabChange('decision')}
             className={clsx(
-              'mobile-nav-item',
-              mobileTab === 'decision' ? 'mobile-nav-item-active' : 'text-gray-500'
+              'mobile-nav-item transition-all duration-200 animate-press',
+              mobileTab === 'decision' ? 'mobile-nav-item-active scale-105' : 'text-gray-500'
             )}
             aria-current={mobileTab === 'decision' ? 'page' : undefined}
           >
             <Briefcase className="w-6 h-6" />
             <span className="mobile-nav-label">Decision</span>
+            {pendingDecision && mobileTab !== 'decision' && (
+              <span className="absolute top-1 right-1/4 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            )}
           </button>
           <button
-            onClick={() => setMobileTab('cop')}
+            onClick={() => handleTabChange('cop')}
             className={clsx(
-              'mobile-nav-item',
-              mobileTab === 'cop' ? 'mobile-nav-item-active' : 'text-gray-500'
+              'mobile-nav-item transition-all duration-200 animate-press',
+              mobileTab === 'cop' ? 'mobile-nav-item-active scale-105' : 'text-gray-500'
             )}
             aria-current={mobileTab === 'cop' ? 'page' : undefined}
           >
@@ -1198,6 +1658,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
             {pendingDecision ? (
               <DecisionConsole
                 inject={pendingDecision}
+                decisionPromptVariation={DECISION_PROMPT_VARIATIONS[decisionPromptIndex]}
                 assets={assets}
                 selectedAsset={selectedAsset}
                 onSelectAsset={setSelectedAsset}
@@ -1360,7 +1821,10 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         <div className="flex lg:hidden flex-1 flex-col overflow-hidden">
           {/* Mobile Intel Tab */}
           {mobileTab === 'intel' && (
-            <div className="flex-1 flex flex-col overflow-hidden animate-fade-in">
+            <div className={clsx(
+              'flex-1 flex flex-col overflow-hidden',
+              !reducedMotion && 'animate-tab-enter'
+            )}>
               <div className="p-4 border-b border-gray-800/50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Radio
@@ -1417,10 +1881,14 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
 
           {/* Mobile Decision Tab */}
           {mobileTab === 'decision' && (
-            <div className="flex-1 flex flex-col overflow-hidden animate-fade-in">
+            <div className={clsx(
+              'flex-1 flex flex-col overflow-hidden',
+              !reducedMotion && 'animate-tab-enter'
+            )}>
               {pendingDecision ? (
                 <DecisionConsole
                   inject={pendingDecision}
+                  decisionPromptVariation={DECISION_PROMPT_VARIATIONS[decisionPromptIndex]}
                   assets={assets}
                   selectedAsset={selectedAsset}
                   onSelectAsset={setSelectedAsset}
@@ -1450,7 +1918,10 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
 
           {/* Mobile COP Tab */}
           {mobileTab === 'cop' && (
-            <div className="flex-1 overflow-y-auto animate-fade-in">
+            <div className={clsx(
+              'flex-1 overflow-y-auto',
+              !reducedMotion && 'animate-tab-enter'
+            )}>
               {/* Stats */}
               <div className="p-4 border-b border-gray-800/50">
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Situation Board</h3>
@@ -1607,6 +2078,98 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       {esrmCascadeActive && (
         <div className="fixed inset-0 pointer-events-none z-30 bg-gradient-to-b from-red-500/5 to-transparent animate-pulse" />
       )}
+
+      {/* Resume Session Prompt */}
+      {showResumePrompt && savedSession && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-modal-backdrop">
+          <div className={clsx(
+            'bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl max-w-md w-full p-6 shadow-2xl',
+            !reducedMotion && 'animate-modal-enter'
+          )}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                <RotateCcw className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Session Found</h2>
+                <p className="text-xs text-gray-500">
+                  {Math.floor(savedSession.elapsedSeconds / 60)}m elapsed • {savedSession.gameState.decisionsTotal} decisions
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-400 mb-6">
+              You have an in-progress session for this scenario. Would you like to resume where you left off?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={handleResumeSession}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all animate-press"
+              >
+                Resume Session
+              </button>
+              <button
+                onClick={handleStartFresh}
+                className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 font-semibold border border-gray-700 hover:bg-gray-700 transition-all animate-press"
+              >
+                Start Fresh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[60] flex items-center justify-center p-4 animate-modal-backdrop">
+          <div className={clsx(
+            'bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl max-w-md w-full p-6 shadow-2xl',
+            !reducedMotion && 'animate-modal-enter'
+          )}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Leave Mission?</h2>
+                <p className="text-xs text-gray-500">Your progress will be saved</p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-400 mb-6">
+              Your session ({Math.floor(elapsedSeconds / 60)}m, {gameState.decisionsTotal} decisions, {gameState.score} pts) will be saved. You can resume when you return.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 font-semibold border border-gray-700 hover:bg-gray-700 transition-all animate-press"
+              >
+                Continue Mission
+              </button>
+              <button
+                onClick={handleConfirmExit}
+                className="flex-1 py-3 rounded-xl bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/40 hover:bg-amber-500/30 transition-all animate-press"
+              >
+                Exit & Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ESRM Micro-Task Overlay - Fills wait gaps */}
+      {activeMicroTask && !pendingDecision && (
+        <MicroTaskCard
+          task={activeMicroTask}
+          timer={microTaskTimer}
+          onComplete={completeMicroTask}
+          onSkip={skipMicroTask}
+          reducedMotion={reducedMotion}
+          animating={microTaskAnimating}
+        />
+      )}
     </div>
   );
 }
@@ -1710,8 +2273,8 @@ function InjectCard({
       onClick={onSelect}
       disabled={isHandled}
       className={clsx(
-        'w-full text-left p-4 rounded-xl border transition-all duration-200',
-        !reducedMotion && index === 0 && 'animate-slide-in',
+        'w-full text-left p-4 rounded-xl border transition-all duration-200 animate-press',
+        !reducedMotion && index === 0 && 'animate-inject-arrive',
         hasHighlightedEntity && 'ring-2 ring-cyan-500/50',
         isNoise && !isHandled && 'opacity-70',
         isHandled
@@ -1896,6 +2459,7 @@ function DecisionConsole({
   decisionTimer,
   onCommit,
   reducedMotion,
+  decisionPromptVariation,
 }: {
   inject: ScenarioInject;
   assets: ProtectedAsset[];
@@ -1908,11 +2472,13 @@ function DecisionConsole({
   decisionTimer: number;
   onCommit: (posture: DecisionPosture) => void;
   reducedMotion: boolean;
+  decisionPromptVariation?: { header: string; subtext: string };
 }): JSX.Element {
   const extendedInject = inject as unknown as { domain?: SecurityDomain };
   const domain = extendedInject.domain;
   const config = domain ? DOMAIN_CONFIG[domain] : null;
   const isTimeCritical = decisionTimer <= 15;
+  const promptVariation = decisionPromptVariation || DECISION_PROMPT_VARIATIONS[0];
 
   return (
     <div
@@ -1986,12 +2552,16 @@ function DecisionConsole({
               </div>
 
               {inject.decisionPressure && (
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <div className={clsx(
+                  'p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4',
+                  !reducedMotion && 'animate-slide-in-up'
+                )}>
                   <div className="flex items-center gap-2 text-amber-400 text-sm font-semibold mb-1">
                     <AlertTriangle className="w-4 h-4" />
-                    Decision Required
+                    {promptVariation.header}
                   </div>
-                  <p className="text-amber-200/80">{inject.decisionPressure}</p>
+                  <p className="text-amber-200/80 text-sm">{promptVariation.subtext}</p>
+                  <p className="text-amber-200/60 text-xs mt-2">{inject.decisionPressure}</p>
                 </div>
               )}
             </div>
@@ -2885,6 +3455,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     | 'advisor'
     | 'response'
     | 'scoring'
+    | 'glossary'
   >('overview');
 
   const sections = [
@@ -2897,6 +3468,35 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     { id: 'advisor' as const, label: 'Advisor Model', icon: <Users className="w-4 h-4" /> },
     { id: 'response' as const, label: 'Response & Review', icon: <FileText className="w-4 h-4" /> },
     { id: 'scoring' as const, label: 'Scoring', icon: <Zap className="w-4 h-4" /> },
+    { id: 'glossary' as const, label: 'Glossary', icon: <HelpCircle className="w-4 h-4" /> },
+  ];
+
+  const glossaryTerms = [
+    { term: 'AAR', definition: 'After-Action Review — Structured debrief to capture lessons learned after an incident or exercise' },
+    { term: 'ACS', definition: 'Access Control System — Electronic system that manages physical entry to secured areas' },
+    { term: 'BMS', definition: 'Building Management System — Centralized system controlling HVAC, lighting, and other building functions' },
+    { term: 'COP', definition: 'Common Operating Picture — Shared situational awareness display showing facts, assumptions, and unknowns' },
+    { term: 'ESRM', definition: 'Enterprise Security Risk Management — Holistic approach where security advises asset owners who own risk decisions' },
+    { term: 'ETA', definition: 'Estimated Time of Arrival — Projected time for resource or personnel arrival' },
+    { term: 'GSOC', definition: 'Global Security Operations Center — Centralized facility for monitoring and coordinating security operations' },
+    { term: 'IR', definition: 'Incident Response — Coordinated approach to managing security incidents' },
+    { term: 'MFA', definition: 'Multi-Factor Authentication — Security requiring multiple verification methods for access' },
+    { term: 'OSINT', definition: 'Open-Source Intelligence — Information gathered from publicly available sources' },
+    { term: 'SIEM', definition: 'Security Information and Event Management — Platform aggregating and analyzing security logs' },
+    { term: 'SLA', definition: 'Service Level Agreement — Contractual commitment defining expected service standards' },
+    { term: 'SOP', definition: 'Standard Operating Procedure — Documented step-by-step instructions for routine operations' },
+    { term: 'T×V×I', definition: 'Threat × Vulnerability × Impact — Risk calculation formula: likelihood of threat exploiting vulnerability times potential impact' },
+    { term: 'VMS', definition: 'Video Management System — Software platform for managing surveillance camera feeds and recordings' },
+    { term: 'RPD', definition: 'Recognition-Primed Decision — Decision model where experts recognize patterns and mentally simulate outcomes' },
+    { term: 'ICS', definition: 'Incident Command System — Standardized management structure for emergency response' },
+    { term: 'CISA', definition: 'Cybersecurity and Infrastructure Security Agency — US federal agency for cyber and physical security' },
+    { term: 'NIST', definition: 'National Institute of Standards and Technology — US agency developing security frameworks and standards' },
+    { term: 'ASIS', definition: 'ASIS International — Global organization for security professionals, publisher of ESRM guidelines' },
+    { term: 'SOC', definition: 'Security Operations Center — Facility for monitoring and responding to security threats' },
+    { term: 'IOC', definition: 'Indicator of Compromise — Artifact indicating potential security breach' },
+    { term: 'TTPs', definition: 'Tactics, Techniques, and Procedures — Patterns describing adversary behavior' },
+    { term: 'BCP', definition: 'Business Continuity Plan — Strategy for maintaining operations during disruptions' },
+    { term: 'DR', definition: 'Disaster Recovery — Process for restoring systems after major incidents' },
   ];
 
   return (
@@ -3766,6 +4366,38 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               </div>
             </div>
           )}
+
+          {activeSection === 'glossary' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Acronym Glossary</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Quick reference for security operations terminology used throughout the simulation.
+              </p>
+
+              <div className="space-y-2 max-h-[45vh] overflow-y-auto scrollbar-thin pr-2">
+                {glossaryTerms.map((item) => (
+                  <div
+                    key={item.term}
+                    className="p-3 rounded-xl bg-gray-800/40 border border-gray-700/40 hover:border-gray-600/60 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-emerald-400 font-mono font-bold text-sm bg-emerald-500/10 px-2 py-0.5 rounded flex-shrink-0">
+                        {item.term}
+                      </span>
+                      <p className="text-sm text-gray-300 leading-relaxed">{item.definition}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 mt-4">
+                <p className="text-sm text-violet-200">
+                  <strong>Tip:</strong> Tap any underlined term in the simulation to see its definition.
+                  ESRM-specific concepts are explained in context throughout gameplay.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -4043,6 +4675,129 @@ function ResourceContentionWarning({ message }: { message: string }): JSX.Elemen
             <p className="text-xs text-red-300/80">{message}</p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MicroTaskCard({
+  task,
+  timer,
+  onComplete,
+  onSkip,
+  reducedMotion,
+  animating,
+}: {
+  task: MicroTask;
+  timer: number;
+  onComplete: () => void;
+  onSkip: () => void;
+  reducedMotion: boolean;
+  animating: boolean;
+}): JSX.Element {
+  const getIcon = (): JSX.Element => {
+    switch (task.icon) {
+      case 'Target': return <Target className="w-5 h-5" />;
+      case 'AlertTriangle': return <AlertTriangle className="w-5 h-5" />;
+      case 'FileQuestion': return <FileQuestion className="w-5 h-5" />;
+      case 'MessageSquare': return <MessageSquare className="w-5 h-5" />;
+      case 'Shuffle': return <Shuffle className="w-5 h-5" />;
+      case 'Eye': return <Eye className="w-5 h-5" />;
+      case 'Users': return <Users className="w-5 h-5" />;
+      case 'ClipboardList': return <ClipboardList className="w-5 h-5" />;
+      case 'Radar': return <Radar className="w-5 h-5" />;
+      case 'ShieldAlert': return <ShieldAlert className="w-5 h-5" />;
+      default: return <ListChecks className="w-5 h-5" />;
+    }
+  };
+
+  const categoryColors: Record<string, string> = {
+    ESRM: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+    COMMUNICATION: 'bg-violet-500/20 text-violet-400 border-violet-500/40',
+    TRIAGE: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    AWARENESS: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40',
+    INTELLIGENCE: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+  };
+
+  const isUrgent = timer <= 5;
+
+  return (
+    <div className={clsx(
+      'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-96 z-40',
+      !reducedMotion && animating && 'animate-microtask-enter'
+    )}>
+      <div className={clsx(
+        'p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all',
+        isUrgent 
+          ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/50'
+          : 'bg-gradient-to-br from-gray-800/90 to-gray-900/80 border-gray-700/60'
+      )}>
+        {/* Header with category */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <div className={clsx(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              categoryColors[task.category] || 'bg-gray-700 text-gray-400'
+            )}>
+              {getIcon()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={clsx(
+                  'text-2xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider',
+                  categoryColors[task.category] || 'bg-gray-700 text-gray-400'
+                )}>
+                  {task.category}
+                </span>
+                <span className="text-2xs text-emerald-400 font-semibold">+{task.points} pts</span>
+              </div>
+              <h4 className="text-sm font-semibold text-white mt-0.5">{task.title}</h4>
+            </div>
+          </div>
+          
+          {/* Timer */}
+          <div className={clsx(
+            'text-lg font-mono font-bold tabular-nums',
+            isUrgent ? 'text-amber-400 animate-pulse' : 'text-gray-400'
+          )}>
+            {timer}s
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-400 mb-4">{task.description}</p>
+
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-800 rounded-full mb-4 overflow-hidden">
+          <div 
+            className={clsx(
+              'h-full transition-all duration-1000 rounded-full',
+              isUrgent ? 'bg-amber-500' : 'bg-emerald-500'
+            )}
+            style={{ width: `${(timer / task.duration) * 100}%` }}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={onComplete}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold text-sm border border-emerald-500/40 hover:bg-emerald-500/30 transition-all animate-press flex items-center justify-center gap-2"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Complete
+          </button>
+          <button
+            onClick={onSkip}
+            className="px-4 py-2.5 rounded-xl bg-gray-800/60 text-gray-400 font-medium text-sm border border-gray-700/50 hover:bg-gray-800 transition-all animate-press"
+          >
+            Skip
+          </button>
+        </div>
+
+        {/* Label */}
+        <p className="text-2xs text-gray-600 text-center mt-3">
+          ESRM Prep • Stay sharp while waiting for intel
+        </p>
       </div>
     </div>
   );
