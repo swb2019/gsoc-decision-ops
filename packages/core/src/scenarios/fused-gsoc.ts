@@ -91,15 +91,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 1,
-      revealAtMinute: 2,
-      title: 'OSINT Alert: Executive Mentioned on Dark Web',
+      revealAtMinute: 0.25,
+      title: 'FLASH: CEO Dark Web Mention',
       content:
-        'Threat intel platform flags CEO name on a dark web forum. Post discusses ' +
-        '"upcoming opportunity" related to Singapore trip next week. Source reliability: MEDIUM. ' +
-        'No specific threat articulated but timing correlates with public earnings call announcement.',
+        'Threat intel flags CEO name on dark web forum. Post mentions "upcoming opportunity" ' +
+        're: Singapore trip next week. Source: MEDIUM reliability. Correlates with earnings call.',
       source: 'Threat Intelligence Platform',
-      decisionPressure:
-        'Is this credible enough to brief the executive? What additional validation needed?',
+      decisionPressure: 'Credible enough to brief executive? What validation needed?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -111,14 +109,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 2,
-      revealAtMinute: 5,
-      title: 'SOC Ticket: Spear-Phishing Campaign Targeting EA',
+      revealAtMinute: 0.75,
+      title: 'CYBER: Spear-Phishing EAs',
       content:
-        'SOC escalates ticket #4521: Three executive assistants received sophisticated ' +
-        'phishing emails mimicking travel booking confirmations for Singapore. One clicked through ' +
-        'but MFA blocked credential harvest. Attacker infrastructure traced to known APT cluster.',
-      source: 'SOC Tier 2 Analyst',
-      decisionPressure: 'Coordinate with SOC on containment. Does this validate the OSINT threat?',
+        'SOC escalates: 3 executive assistants hit with phishing mimicking Singapore travel ' +
+        'bookings. One clicked, MFA blocked harvest. APT infrastructure confirmed.',
+      source: 'SOC Tier 2',
+      decisionPressure: 'Coordinate SOC containment. Does this validate OSINT threat?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'CYBER',
@@ -130,15 +127,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 3,
-      revealAtMinute: 9,
-      title: 'Badge System Anomaly at Executive Floor',
+      revealAtMinute: 1.5,
+      title: 'PHYSICAL: Badge Anomaly C-Suite',
       content:
-        'PSIM alerts: 3 failed badge attempts at C-suite floor from credential ID not in directory. ' +
-        'Credential format valid but identity lookup returns null. Vendor API showing intermittent ' +
-        '503 errors. Could be system issue or credential cloning attempt.',
+        'PSIM: 3 failed badge attempts at exec floor—credential not in directory. ' +
+        'Format valid, identity null. Vendor API showing 503s. System issue or cloning?',
       source: 'PSIM Platform',
-      decisionPressure:
-        'Is this related to the threat or a vendor system issue? How do you secure the floor?',
+      decisionPressure: 'Related to threat or vendor issue? How to secure floor?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -150,15 +145,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 4,
-      revealAtMinute: 14,
-      title: 'Vendor Confirms API Compromise Investigation',
+      revealAtMinute: 2.5,
+      title: 'VENDOR: API Compromise Investigation',
       content:
-        'GlobalSecure CISO calls: They are investigating potential API credential compromise ' +
-        'affecting multiple customers. Cannot confirm your tenant affected but recommending ' +
-        'credential rotation and monitoring. Full assessment expected in 6-8 hours.',
-      source: 'Vendor Emergency Notification',
-      decisionPressure:
-        'Do you rotate credentials now (breaking badge sync) or wait for assessment?',
+        'GlobalSecure CISO: Investigating API credential compromise across customers. ' +
+        'Your tenant status unknown. Recommending credential rotation. ETA 6-8 hours.',
+      source: 'Vendor Emergency',
+      decisionPressure: 'Rotate now (break badge sync) or wait for assessment?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'CYBER',
@@ -170,14 +163,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 5,
-      revealAtMinute: 20,
-      title: 'Executive Protection Reports Surveillance',
+      revealAtMinute: 3.5,
+      title: 'EP: Surveillance in Singapore',
       content:
-        'EP team in Singapore reports possible surveillance of advance team at hotel. ' +
-        'Two individuals photographing team vehicles over 30-minute period. Local liaison ' +
-        'unable to identify. Hotel security reviewing CCTV. CEO arrival in 18 hours.',
+        'EP team reports possible surveillance of advance team at hotel. Two individuals ' +
+        "photographing vehicles 30+ mins. Local liaison can't ID. CEO arrival in 18 hours.",
       source: 'Executive Protection Lead',
-      decisionPressure: 'Does this connect to the dark web post? Recommend trip modification?',
+      decisionPressure: 'Connect to dark web post? Recommend trip modification?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -189,15 +181,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 6,
-      revealAtMinute: 28,
-      title: 'Law Enforcement Advisory Received',
+      revealAtMinute: 5,
+      title: 'FBI: APT Advisory TLP:AMBER',
       content:
-        'FBI Cyber Division shares TLP:AMBER advisory on APT group matching your SOC indicators. ' +
-        'Group known for corporate espionage with occasional physical operations support. ' +
-        'Advisory recommends enhanced monitoring but no specific threat to your organization named.',
-      source: 'FBI Cyber Division Liaison',
-      decisionPressure:
-        'How does this affect your threat assessment? What stakeholders need briefing?',
+        'FBI shares advisory on APT matching your SOC indicators. Known for corporate espionage ' +
+        'with occasional physical ops support. Enhanced monitoring recommended.',
+      source: 'FBI Cyber Division',
+      decisionPressure: 'Impact on threat assessment? Who needs briefing?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -209,15 +199,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 7,
-      revealAtMinute: 35,
-      title: 'Site Security: Unfamiliar Vehicle in Exec Parking',
+      revealAtMinute: 6.5,
+      title: 'SITE: Suspicious Vehicle Exec Lot',
       content:
-        'Security officer reports unfamiliar vehicle in executive parking structure for 3+ hours. ' +
-        'Vehicle registered to rental company. Occupant not visible. Camera angle shows ' +
-        'possible equipment setup inside vehicle. Local PD can respond in 15 minutes if requested.',
+        'Security: Unfamiliar vehicle in exec parking 3+ hours. Rental registration. ' +
+        'Occupant not visible. Camera shows possible equipment inside. PD can respond in 15.',
       source: 'Site Security Supervisor',
-      decisionPressure:
-        'Escalate to law enforcement? How does this fit the overall threat picture?',
+      decisionPressure: 'Escalate to law enforcement? Fits threat picture?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -229,15 +217,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 8,
-      revealAtMinute: 42,
-      title: 'SOC Update: C2 Beacon Detected on EA Workstation',
+      revealAtMinute: 8,
+      title: 'SOC: C2 Beacon on EA Machine',
       content:
-        'SOC confirms command-and-control beacon on one executive assistant workstation. ' +
-        'Beacon dormant but matches APT infrastructure from phishing campaign. Workstation ' +
-        'has calendar access for CEO and CFO. Attacker may have visibility into travel plans.',
+        'SOC confirms C2 beacon on EA workstation. Matches APT infra from phishing. ' +
+        'Dormant but has CEO/CFO calendar access. Travel plans may be exposed.',
       source: 'SOC Incident Commander',
-      decisionPressure:
-        'Travel plans potentially compromised. Immediate posture change for Singapore trip?',
+      decisionPressure: 'Travel compromised. Immediate posture change for Singapore?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'CYBER',
@@ -249,14 +235,13 @@ export function createExecutiveThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 9,
-      revealAtMinute: 50,
-      title: 'Executive Decision Required: Trip Status',
+      revealAtMinute: 10,
+      title: 'EXEC: Trip Decision Required',
       content:
-        'Chief of Staff calls: Board meeting in 20 minutes will discuss Singapore trip. ' +
-        'CEO wants GSOC recommendation on proceed/modify/cancel. CFO is pushing to proceed ' +
-        'citing deal importance. CLO wants documented risk assessment before any decision.',
+        'Chief of Staff: Board meeting in 20 mins on Singapore trip. CEO wants GSOC ' +
+        'recommendation. CFO pushing to proceed (deal importance). CLO wants risk doc.',
       source: 'Chief of Staff',
-      decisionPressure: 'Frame your recommendation. What residual risk does each option carry?',
+      decisionPressure: 'Frame recommendation. What residual risk per option?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -346,15 +331,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 1,
-      revealAtMinute: 3,
-      title: 'Vendor Emergency Notification',
+      revealAtMinute: 0.25,
+      title: 'VENDOR: Active Intrusion Detected',
       content:
-        'Nexus Industrial Controls issues emergency advisory: "Active intrusion detected ' +
-        'in customer management network. Scope under investigation. Recommending customers ' +
-        'review access logs for anomalies. Do NOT disconnect without coordinating—may affect ' +
-        'life-safety system handoffs."',
+        'Nexus Industrial Controls: "Active intrusion in customer network. Do NOT ' +
+        'disconnect without coordinating—may affect life-safety handoffs."',
       source: 'Vendor Security Team',
-      decisionPressure: 'What systems need immediate review? Who coordinates with Facilities?',
+      decisionPressure: 'What systems need review? Who coordinates with Facilities?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'CYBER',
@@ -366,15 +349,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 2,
-      revealAtMinute: 7,
-      title: 'ISAC Alert: Industry-Wide Campaign',
+      revealAtMinute: 0.75,
+      title: 'ISAC: Industry-Wide APT Campaign',
       content:
-        'FS-ISAC shares TLP:AMBER report: APT group "Industrial Spider" targeting ' +
-        'building automation vendors across financial services. Known TTPs include ' +
-        'long dwell times, data exfiltration, and potential for physical system manipulation. ' +
-        'Three other institutions confirmed affected.',
+        'FS-ISAC TLP:AMBER: APT "Industrial Spider" targeting building automation vendors. ' +
+        'Known TTPs: long dwell, exfil, physical system manipulation. 3 others confirmed hit.',
       source: 'FS-ISAC',
-      decisionPressure: 'Your vendor is likely part of coordinated campaign. Escalation path?',
+      decisionPressure: 'Your vendor likely in coordinated campaign. Escalation path?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -386,15 +367,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 3,
-      revealAtMinute: 11,
-      title: 'Access Control Anomaly Detected',
+      revealAtMinute: 1.5,
+      title: 'SIEM: Credential Replay at DC',
       content:
-        'SIEM correlates unusual pattern: 47 badge reads at data center perimeter in last hour—' +
-        'normally 5-8 during this shift. All reads from valid credentials but timing suggests ' +
-        'automated replay. Physical guard confirms no unusual foot traffic observed.',
-      source: 'SIEM Correlation Engine',
-      decisionPressure:
-        'Evidence of credential replay? What is the physical security posture at DC?',
+        '47 badge reads at DC perimeter in 1 hour (normally 5-8). Valid credentials, ' +
+        'timing suggests automated replay. Guard confirms no unusual foot traffic.',
+      source: 'SIEM Correlation',
+      decisionPressure: 'Evidence of replay attack? Physical posture at DC?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'CYBER',
@@ -406,14 +385,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 4,
-      revealAtMinute: 16,
-      title: 'Data Center Cooling Alert',
+      revealAtMinute: 2.5,
+      title: 'CRITICAL: DC Cooling Hijacked',
       content:
-        'Facilities reports: Data center cooling setpoints changed remotely to 85°F. ' +
-        'Attempting manual override but BMS console shows "remote session active." ' +
-        'Server room temps rising. Estimated 45 minutes to thermal shutdown threshold if unchecked.',
-      source: 'Facilities Operations Center',
-      decisionPressure: 'Life-safety/business-critical decision. Who authorizes network isolation?',
+        'Facilities: DC cooling setpoints changed to 85°F remotely. BMS shows "remote ' +
+        'session active." Temps rising. 45 min to thermal shutdown if unchecked.',
+      source: 'Facilities Ops',
+      decisionPressure: 'Life-safety decision. Who authorizes network isolation?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -425,15 +403,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 5,
-      revealAtMinute: 22,
-      title: 'Fire Panel Communication Loss',
+      revealAtMinute: 3.5,
+      title: 'FIRE: Panel Comm Fault',
       content:
-        'Main campus fire panel reports "communication fault" with building automation. ' +
-        'Fire suppression remains functional in standalone mode but central monitoring lost. ' +
-        'Fire marshal notification may be required if not restored within 4 hours per code.',
+        'Fire panel lost communication with BMS. Suppression functional in standalone. ' +
+        'Fire marshal notification may be required within 4 hours per code.',
       source: 'Fire Safety Systems',
-      decisionPressure:
-        'Life-safety system degradation. Document for compliance. Notify fire marshal?',
+      decisionPressure: 'Life-safety degradation. Document for compliance. Notify marshal?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -445,14 +421,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 6,
-      revealAtMinute: 28,
-      title: 'Vendor Confirms Your Tenant Accessed',
+      revealAtMinute: 5,
+      title: 'VENDOR: Your Tenant Breached',
       content:
-        'Nexus CISO calls directly: "We have confirmed unauthorized access to your tenant ' +
-        'configuration data. Attacker had read access to BMS credentials, floor plans, and ' +
-        'access control topology. Cannot confirm write access yet. Forensics ongoing."',
+        'Nexus CISO: "Confirmed unauthorized access to your tenant. Attacker had read ' +
+        'access to BMS creds, floor plans, access control topology. Write access TBD."',
       source: 'Vendor CISO',
-      decisionPressure: 'Threat actor has your blueprints. Physical security implications?',
+      decisionPressure: 'Threat actor has your blueprints. Physical security impact?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'CYBER',
@@ -464,14 +439,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 7,
-      revealAtMinute: 34,
-      title: 'Site Security: Unusual Contractor Activity',
+      revealAtMinute: 6.5,
+      title: 'SITE: Fake Contractors',
       content:
-        'Guard reports: Two individuals in Nexus-branded uniforms arrived claiming emergency ' +
-        'maintenance call. Nexus dispatch has no record of the call. Individuals departed ' +
-        'when asked to wait for verification. Vehicle plate captured.',
+        'Guard: Two in Nexus uniforms claimed emergency maintenance. Nexus has no record. ' +
+        'Departed when asked to verify. Plate captured.',
       source: 'Site Security Officer',
-      decisionPressure: 'Physical reconnaissance using vendor cover? Law enforcement notification?',
+      decisionPressure: 'Physical recon using vendor cover? Notify law enforcement?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -483,14 +457,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 8,
-      revealAtMinute: 40,
-      title: 'OSINT: Leaked Documents on Paste Site',
+      revealAtMinute: 8,
+      title: 'OSINT: Floor Plans Leaked',
       content:
-        "Threat intel detects your organization's data center floor plans posted to paste site. " +
-        'Metadata shows Nexus origin. Includes rack locations, camera positions, and mantrap ' +
-        'specifications. Post is 2 hours old with 340 views.',
-      source: 'Threat Intelligence Platform',
-      decisionPressure: 'Physical security posture compromised. What compensating controls?',
+        'Threat intel: Your DC floor plans posted to paste site. Nexus metadata. ' +
+        'Includes rack locations, camera positions, mantrap specs. 340 views.',
+      source: 'Threat Intel Platform',
+      decisionPressure: 'Physical security compromised. What compensating controls?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -502,15 +475,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 9,
-      revealAtMinute: 48,
-      title: 'FBI Cyber: Request for Preserved Evidence',
+      revealAtMinute: 9.5,
+      title: 'FBI: Evidence Preservation Request',
       content:
-        'FBI Cyber Division contacts: "We are investigating Industrial Spider across multiple ' +
-        'victims. Request you preserve all logs and avoid system changes that might affect ' +
-        'forensic evidence. Can we schedule evidence collection within 24 hours?"',
+        'FBI Cyber: Investigating Industrial Spider multi-victim. Request log preservation, ' +
+        'avoid system changes. Can we collect evidence within 24 hours?',
       source: 'FBI Cyber Division',
-      decisionPressure:
-        'Evidence preservation vs. operational recovery. Legal coordination needed.',
+      decisionPressure: 'Evidence vs. recovery tradeoff. Legal coordination needed.',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -522,15 +493,13 @@ export function createSupplyChainScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 10,
-      revealAtMinute: 55,
-      title: 'CEO Requests Status Briefing',
+      revealAtMinute: 11,
+      title: 'EXEC: CEO Wants BLUF',
       content:
-        'CEO scheduling emergency call in 10 minutes. Wants to understand: (1) Are our people ' +
-        'safe? (2) Is our data safe? (3) When are systems back? (4) Who is accountable? ' +
-        'Prepare concise BLUF for each question.',
+        'CEO call in 10 mins. Needs: (1) People safe? (2) Data safe? (3) Systems ETA? ' +
+        '(4) Accountability? Prepare BLUF for each.',
       source: 'Executive Office',
-      decisionPressure:
-        'Frame cross-domain incident for executive audience. What is your recommendation?',
+      decisionPressure: 'Frame cross-domain incident for exec. Your recommendation?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -616,14 +585,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 1,
-      revealAtMinute: 2,
-      title: 'UEBA High-Risk Alert: Privileged User',
+      revealAtMinute: 0.25,
+      title: 'UEBA: High-Risk User Alert',
       content:
-        'SecureView flags HIGH risk score for user JSmith (Sr. Network Engineer). Anomalies: ' +
-        '(1) 3AM VPN access from new geolocation, (2) Large file downloads from restricted shares, ' +
-        '(3) Badge access to data center outside normal pattern. Risk score: 94/100.',
+        'SecureView: JSmith (Sr. Network Engineer) risk score 94/100. Anomalies: 3AM VPN ' +
+        'from new geo, large restricted downloads, unusual DC badge access.',
       source: 'UEBA Platform',
-      decisionPressure: 'Who needs to know? How do you investigate without alerting the subject?',
+      decisionPressure: 'Who needs to know? How to investigate without alerting subject?',
       expectedPostureImpact: 'CONTINUE',
       revealed: false,
       domain: 'CYBER',
@@ -635,15 +603,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 2,
-      revealAtMinute: 6,
-      title: 'Physical Access Pattern Analysis',
+      revealAtMinute: 0.75,
+      title: 'PHYSICAL: DC Recon Evidence',
       content:
-        'GSOC analyst correlates badge data: JSmith accessed data center at 2:47 AM—unusual ' +
-        'for role. Camera review shows subject photographing server rack labels with personal phone. ' +
-        'Subject spent 34 minutes in DC vs. typical 5-10 minute visits.',
+        'GSOC: JSmith accessed DC at 2:47 AM. Camera shows subject photographing server rack ' +
+        'labels with personal phone. 34-min visit vs. typical 5-10 min.',
       source: 'GSOC Analyst',
-      decisionPressure:
-        'Physical evidence of reconnaissance. Escalate to HR/Legal? Preserve footage.',
+      decisionPressure: 'Physical recon evidence. Escalate HR/Legal? Preserve footage.',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -655,14 +621,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 3,
-      revealAtMinute: 11,
-      title: 'DLP Alert: Sensitive Data Transfer',
+      revealAtMinute: 1.5,
+      title: 'DLP: 2.3GB Exfiltrated',
       content:
-        'DLP detects 2.3GB transfer to personal cloud storage from JSmith workstation. ' +
-        'Content includes network diagrams, firewall configs, and customer contract data. ' +
-        'Transfer completed before DLP could block (policy was monitor-only for this category).',
+        'DLP: 2.3GB to personal cloud from JSmith workstation. Network diagrams, firewall ' +
+        'configs, customer contracts. Transfer completed—policy was monitor-only.',
       source: 'DLP Platform',
-      decisionPressure: 'Data exfiltration confirmed. Block account now or continue monitoring?',
+      decisionPressure: 'Exfil confirmed. Block account now or continue monitoring?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'CYBER',
@@ -674,14 +639,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 4,
-      revealAtMinute: 16,
-      title: 'HR Reports: Performance Concerns',
+      revealAtMinute: 2.5,
+      title: 'HR: Subject on PIP',
       content:
-        'HR Business Partner (responding to discreet inquiry): JSmith on PIP for past 6 weeks. ' +
-        'Manager reports attitude change after being passed over for promotion. Mentioned ' +
-        '"having options" in recent 1:1. HR had no prior security concerns flagged.',
+        'HR BP: JSmith on PIP 6 weeks. Attitude change after missed promotion. Mentioned ' +
+        '"having options" in recent 1:1. No prior security concerns.',
       source: 'HR Business Partner',
-      decisionPressure: 'Motivation context. Does this change your assessment? Legal involvement?',
+      decisionPressure: 'Motivation context. Changes assessment? Legal involvement?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -693,14 +657,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 5,
-      revealAtMinute: 22,
-      title: 'OSINT: Competitor Job Posting Match',
+      revealAtMinute: 3.5,
+      title: 'OSINT: Competitor Connection',
       content:
-        'Threat intel identifies JSmith LinkedIn profile updated 3 weeks ago. Profile viewed by ' +
-        'multiple accounts linked to direct competitor. JSmith accepted connection from recruiter ' +
-        "at competitor's strategic initiatives group.",
+        'Threat intel: JSmith LinkedIn updated 3 weeks ago. Profile viewed by competitor ' +
+        'accounts. Accepted recruiter connection from competitor strategic initiatives.',
       source: 'Threat Intelligence',
-      decisionPressure: 'Possible competitor coordination. Trade secret theft concern?',
+      decisionPressure: 'Competitor coordination? Trade secret theft concern?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -712,12 +675,12 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 6,
-      revealAtMinute: 28,
-      title: 'Subject Badged into Building',
+      revealAtMinute: 5,
+      title: 'REAL-TIME: Subject On-Site',
       content:
-        'Real-time alert: JSmith just badged into main lobby. Subject heading toward ' +
-        'IT operations area. Current time is within normal work hours. Manager is offsite today.',
-      source: 'Access Control System',
+        'JSmith just badged into main lobby, heading to IT ops area. Normal work hours. ' +
+        'Manager offsite today.',
+      source: 'Access Control',
       decisionPressure: 'Subject on-site. Confront now or continue covert observation?',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
@@ -730,15 +693,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 7,
-      revealAtMinute: 34,
-      title: 'Network: Attempted Access to Backup Systems',
+      revealAtMinute: 6.5,
+      title: 'SOC: Backup System Access',
       content:
-        'SOC detects JSmith attempting to access backup infrastructure—not part of current role. ' +
-        'Three failed authentication attempts followed by successful access using old credentials ' +
-        'that should have been revoked. Backup systems contain full customer database copies.',
+        'JSmith attempting backup infrastructure access—not in current role. 3 failed auths, ' +
+        'then success with stale creds that should be revoked. Contains customer DB copies.',
       source: 'SOC Analyst',
-      decisionPressure:
-        'Active threat. Disable access now? This may alert subject to investigation.',
+      decisionPressure: 'Active threat. Disable access? May alert subject to investigation.',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'CYBER',
@@ -750,15 +711,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 8,
-      revealAtMinute: 40,
-      title: 'Legal Counsel Guidance',
+      revealAtMinute: 8,
+      title: 'LEGAL: Guidance Required',
       content:
-        'General Counsel (on emergency call): "Based on what you\'ve described, we need to ' +
-        'preserve all evidence and consider law enforcement notification. However, confronting ' +
-        'the employee without HR present creates liability. What is the immediate threat level?"',
+        'General Counsel: "Preserve evidence, consider LE notification. But confronting ' +
+        'without HR present creates liability. What is immediate threat level?"',
       source: 'General Counsel',
-      decisionPressure:
-        'Balance legal requirements with immediate security needs. Frame your recommendation.',
+      decisionPressure: 'Balance legal vs. security needs. Frame your recommendation.',
       expectedPostureImpact: 'DEGRADE',
       revealed: false,
       domain: 'INTELLIGENCE',
@@ -770,14 +729,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 9,
-      revealAtMinute: 48,
-      title: 'Subject Attempting Data Center Access',
+      revealAtMinute: 9.5,
+      title: 'REAL-TIME: DC Mantrap',
       content:
-        'Real-time: JSmith at data center mantrap. Has valid badge for perimeter but should be ' +
-        'denied inner door based on your earlier recommendation. Guard in mantrap area. ' +
-        'Subject appears to be on phone call while waiting.',
-      source: 'Data Center Security',
-      decisionPressure: 'Moment of truth. Deny access and confront? Or allow and monitor?',
+        'JSmith at DC mantrap now. Valid perimeter badge but should be denied inner door per ' +
+        'your recommendation. Guard in mantrap. Subject on phone while waiting.',
+      source: 'DC Security',
+      decisionPressure: 'Moment of truth. Deny access and confront, or allow and monitor?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'PHYSICAL',
@@ -789,15 +747,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     {
       id: generateId('INJ'),
       sequenceNumber: 10,
-      revealAtMinute: 54,
-      title: 'FBI Cyber: Ongoing Investigation Notice',
+      revealAtMinute: 11,
+      title: 'FBI: Already Investigating',
       content:
-        'FBI agent contacts your threat intel team: "We have an active investigation into economic ' +
-        'espionage targeting your industry sector. A name from your organization has appeared in ' +
-        'our investigation. Can we schedule a meeting within 24 hours?"',
+        'FBI agent: "Active economic espionage investigation in your sector. A name from ' +
+        'your org has appeared. Can we meet within 24 hours?"',
       source: 'FBI Cyber Division',
-      decisionPressure:
-        'FBI already investigating. Coordinate with law enforcement? What can you share?',
+      decisionPressure: 'FBI already on it. Coordinate? What can you share?',
       expectedPostureImpact: 'PAUSE',
       revealed: false,
       domain: 'INTELLIGENCE',
