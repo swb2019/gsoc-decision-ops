@@ -17,6 +17,11 @@ import {
   ChevronUp,
   Lock,
   Home,
+  Loader2,
+  X,
+  Target,
+  HelpCircle,
+  Zap,
 } from 'lucide-react';
 import {
   createScenarioById,
@@ -47,14 +52,19 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
   const [expandedPhase, setExpandedPhase] = useState<string | null>('PHASE_1_ASSESSMENT');
   const [completedChecklist, setCompletedChecklist] = useState<Set<string>>(new Set());
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const playbook = getVendorCompromisePlaybook();
 
   useEffect(() => {
-    const decisionLog = createScenarioById(scenarioId);
-    if (decisionLog) {
-      setLog(decisionLog);
-    }
+    const timer = setTimeout(() => {
+      const decisionLog = createScenarioById(scenarioId);
+      if (decisionLog) {
+        setLog(decisionLog);
+      }
+      setIsLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [scenarioId]);
 
   useEffect(() => {
@@ -159,13 +169,26 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
     [log]
   );
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-ops-dark-950 flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <Loader2 className="w-10 h-10 text-ops-accent-green-500 mx-auto mb-4 animate-spin" />
+          <p className="text-ops-dark-400 text-sm">Loading scenario...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!log) {
     return (
       <div className="min-h-screen bg-ops-dark-950 flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-ops-accent-amber mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-ops-dark-100 mb-2">Scenario Not Found</h2>
-          <p className="text-ops-dark-400 mb-4">The requested scenario could not be loaded.</p>
+        <div className="text-center glass-card p-10 max-w-md mx-4 animate-scale-in">
+          <div className="w-16 h-16 rounded-2xl bg-ops-accent-amber-500/15 flex items-center justify-center mx-auto mb-5">
+            <AlertTriangle className="w-8 h-8 text-ops-accent-amber-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-ops-dark-50 mb-2">Scenario Not Found</h2>
+          <p className="text-ops-dark-400 mb-6">The requested scenario could not be loaded.</p>
           <Link href="/" className="btn btn-primary">
             <Home className="w-4 h-4" />
             Back to Home
@@ -176,35 +199,42 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
   }
 
   const stats = calculateStats(log);
+  const tabs = [
+    { id: 'overview' as const, label: 'Overview', icon: Target },
+    { id: 'decisions' as const, label: 'Decisions', icon: Zap },
+    { id: 'playbook' as const, label: 'Playbook', icon: FileText },
+    { id: 'export' as const, label: 'Export', icon: Download },
+  ];
 
   return (
-    <div className="min-h-screen bg-ops-dark-950">
-      {/* Header */}
-      <header className="border-b border-ops-dark-800 bg-ops-dark-900/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+    <div className="min-h-screen bg-ops-dark-950 relative">
+      <div className="noise-overlay" aria-hidden="true" />
+      
+      <header className="border-b border-ops-dark-800/60 bg-ops-dark-900/60 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <Link
                 href="/"
-                className="p-2 rounded-lg hover:bg-ops-dark-800 transition-colors"
-                title="Back to scenarios"
+                className="p-2.5 rounded-xl hover:bg-ops-dark-800/60 transition-all duration-200 flex-shrink-0 focus-visible:ring-2 focus-visible:ring-ops-accent-green-500/50"
+                aria-label="Back to scenarios"
               >
-                <ArrowLeft className="w-5 h-5 text-ops-dark-400" />
+                <ArrowLeft className="w-5 h-5 text-ops-dark-400 hover:text-ops-dark-200 transition-colors" />
               </Link>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-ops-accent-green/20 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-ops-accent-green" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-ops-accent-green-500/25 to-ops-accent-green-600/15 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 text-ops-accent-green-400" />
                 </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-ops-dark-50">{log.incident.title}</h1>
-                  <p className="text-xs text-ops-dark-400 font-mono">Training Scenario</p>
+                <div className="min-w-0">
+                  <h1 className="text-base sm:text-lg font-semibold text-ops-dark-50 truncate">{log.incident.title}</h1>
+                  <p className="text-xs text-ops-dark-500 font-medium">Training Scenario</p>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-sm text-ops-dark-400">Elapsed</div>
-                <div className="font-mono text-ops-accent-green">{elapsedMinutes}m</div>
+            <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+              <div className="hidden sm:block text-right">
+                <div className="text-xs text-ops-dark-500 uppercase tracking-wider">Elapsed</div>
+                <div className="font-mono text-ops-accent-green-400 font-semibold">{elapsedMinutes}m</div>
               </div>
               <span
                 className={`status-badge ${
@@ -214,75 +244,74 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                 {log.incident.severity}
               </span>
               <span className="status-badge status-active">
-                <span className="w-1.5 h-1.5 rounded-full bg-ops-accent-green animate-pulse" />
-                {log.incident.status}
+                <span className="w-1.5 h-1.5 rounded-full bg-ops-accent-green-400 animate-pulse" />
+                <span className="hidden sm:inline">{log.incident.status}</span>
               </span>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1">
-            {(['overview', 'decisions', 'playbook', 'export'] as const).map((tab) => (
+          <nav className="flex gap-1 -mb-px overflow-x-auto scrollbar-thin" role="tablist">
+            {tabs.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                  activeTab === tab
-                    ? 'bg-ops-dark-800 text-ops-dark-50 border-t border-l border-r border-ops-dark-700'
-                    : 'text-ops-dark-400 hover:text-ops-dark-200'
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={`tab-button flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === tab.id ? 'tab-button-active' : 'tab-button-inactive'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.label}</span>
               </button>
             ))}
-          </div>
+          </nav>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        {/* Governance Banner */}
-        <div className="governance-banner mb-6 flex items-center gap-3">
-          <Lock className="w-5 h-5 flex-shrink-0" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="governance-banner mb-6 flex items-start sm:items-center gap-3 animate-fade-in">
+          <Lock className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0" />
           <p className="text-sm">
-            <strong>Training Mode:</strong> This is a synthetic scenario. All decisions are for
+            <strong className="font-semibold">Training Mode:</strong> This is a synthetic scenario. All decisions are for
             practice only. Human judgment remains essential in actual incidents.
           </p>
         </div>
 
-        {activeTab === 'overview' && (
-          <OverviewTab
-            log={log}
-            stats={stats}
-            onAddFact={handleAddFact}
-            onAddAssumption={handleAddAssumption}
-            onAddUnknown={handleAddUnknown}
-            onAddAction={handleAddAction}
-            onToggleActionComplete={handleToggleActionComplete}
-          />
-        )}
+        <div className="animate-fade-in">
+          {activeTab === 'overview' && (
+            <OverviewTab
+              log={log}
+              stats={stats}
+              onAddFact={handleAddFact}
+              onAddAssumption={handleAddAssumption}
+              onAddUnknown={handleAddUnknown}
+              onAddAction={handleAddAction}
+              onToggleActionComplete={handleToggleActionComplete}
+            />
+          )}
 
-        {activeTab === 'decisions' && (
-          <DecisionsTab log={log} stats={stats} onRecordDecision={handleRecordDecision} />
-        )}
+          {activeTab === 'decisions' && (
+            <DecisionsTab log={log} stats={stats} onRecordDecision={handleRecordDecision} />
+          )}
 
-        {activeTab === 'playbook' && (
-          <PlaybookTab
-            playbook={playbook}
-            expandedPhase={expandedPhase}
-            completedChecklist={completedChecklist}
-            onPhaseToggle={setExpandedPhase}
-            onChecklistToggle={handleChecklistToggle}
-          />
-        )}
+          {activeTab === 'playbook' && (
+            <PlaybookTab
+              playbook={playbook}
+              expandedPhase={expandedPhase}
+              completedChecklist={completedChecklist}
+              onPhaseToggle={setExpandedPhase}
+              onChecklistToggle={handleChecklistToggle}
+            />
+          )}
 
-        {activeTab === 'export' && <ExportTab log={log} onExport={handleExport} />}
+          {activeTab === 'export' && <ExportTab log={log} onExport={handleExport} />}
+        </div>
       </main>
     </div>
   );
 }
 
-// Overview Tab Component
 interface OverviewTabProps {
   log: DecisionLog;
   stats: ReturnType<typeof calculateStats>;
@@ -313,21 +342,19 @@ function OverviewTab({
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
-      {/* Left Column - Incident Info & Metrics */}
       <div className="space-y-6">
-        {/* Incident Summary */}
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-dark-100">Incident Summary</h3>
+            <h3 className="font-semibold text-ops-dark-50">Incident Summary</h3>
           </div>
           <div className="card-body space-y-4">
-            <p className="text-sm text-ops-dark-300">{log.incident.description}</p>
+            <p className="text-sm text-ops-dark-300 leading-relaxed">{log.incident.description}</p>
             {log.vendorContext && (
-              <div className="bg-ops-dark-800/50 rounded-lg p-3 space-y-2">
-                <div className="text-xs text-ops-dark-500 uppercase tracking-wider">
+              <div className="bg-ops-dark-800/40 rounded-xl p-4 space-y-2.5 border border-ops-dark-700/30">
+                <div className="text-2xs text-ops-dark-500 uppercase tracking-wider font-semibold">
                   Vendor Context
                 </div>
-                <div className="text-sm text-ops-dark-200">{log.vendorContext.vendorName}</div>
+                <div className="text-sm text-ops-dark-100 font-medium">{log.vendorContext.vendorName}</div>
                 <div className="text-xs text-ops-dark-400">
                   Type: {log.vendorContext.vendorType}
                 </div>
@@ -339,36 +366,34 @@ function OverviewTab({
           </div>
         </div>
 
-        {/* Metrics */}
         <div className="grid grid-cols-2 gap-3">
           <div className="metric-card">
-            <div className="metric-value text-ops-accent-green">{stats.totalFacts}</div>
+            <div className="metric-value text-ops-accent-green-400">{stats.totalFacts}</div>
             <div className="metric-label">Facts</div>
           </div>
           <div className="metric-card">
-            <div className="metric-value text-ops-accent-amber">{stats.totalAssumptions}</div>
+            <div className="metric-value text-ops-accent-amber-400">{stats.totalAssumptions}</div>
             <div className="metric-label">Assumptions</div>
           </div>
           <div className="metric-card">
-            <div className="metric-value text-ops-accent-red">{stats.totalUnknowns}</div>
+            <div className="metric-value text-ops-accent-red-400">{stats.totalUnknowns}</div>
             <div className="metric-label">Unknowns</div>
           </div>
           <div className="metric-card">
-            <div className="metric-value text-ops-accent-blue">{stats.totalDecisions}</div>
+            <div className="metric-value text-ops-accent-blue-400">{stats.totalDecisions}</div>
             <div className="metric-label">Decisions</div>
           </div>
         </div>
       </div>
 
-      {/* Middle Column - Facts, Assumptions, Unknowns */}
       <div className="space-y-6">
-        {/* Facts */}
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-accent-green">Facts</h3>
+            <h3 className="font-semibold text-ops-accent-green-400">Facts</h3>
             <button
               onClick={() => setShowAddFact(!showAddFact)}
-              className="p-1 rounded hover:bg-ops-dark-700 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-ops-dark-700/60 transition-colors"
+              aria-label="Add fact"
             >
               <Plus className="w-4 h-4 text-ops-dark-400" />
             </button>
@@ -384,13 +409,13 @@ function OverviewTab({
               />
             )}
             {log.facts.length === 0 ? (
-              <p className="text-sm text-ops-dark-500">No facts recorded yet.</p>
+              <EmptyState message="No facts recorded yet." />
             ) : (
               log.facts.map((fact) => (
-                <div key={fact.id} className="bg-ops-dark-800/50 rounded-lg p-3">
-                  <p className="text-sm text-ops-dark-200">{fact.description}</p>
-                  <div className="flex items-center gap-2 mt-2 text-xs text-ops-dark-500">
-                    <span className="uppercase">[{fact.confidence}]</span>
+                <div key={fact.id} className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                  <p className="text-sm text-ops-dark-200 leading-relaxed">{fact.description}</p>
+                  <div className="flex items-center gap-2 mt-3 text-xs text-ops-dark-500">
+                    <span className="uppercase font-semibold px-1.5 py-0.5 rounded bg-ops-dark-700/50">{fact.confidence}</span>
                     <span>Source: {fact.source}</span>
                   </div>
                 </div>
@@ -399,13 +424,13 @@ function OverviewTab({
           </div>
         </div>
 
-        {/* Assumptions */}
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-accent-amber">Assumptions</h3>
+            <h3 className="font-semibold text-ops-accent-amber-400">Assumptions</h3>
             <button
               onClick={() => setShowAddAssumption(!showAddAssumption)}
-              className="p-1 rounded hover:bg-ops-dark-700 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-ops-dark-700/60 transition-colors"
+              aria-label="Add assumption"
             >
               <Plus className="w-4 h-4 text-ops-dark-400" />
             </button>
@@ -421,14 +446,14 @@ function OverviewTab({
               />
             )}
             {log.assumptions.length === 0 ? (
-              <p className="text-sm text-ops-dark-500">No assumptions recorded yet.</p>
+              <EmptyState message="No assumptions recorded yet." />
             ) : (
               log.assumptions.map((assumption) => (
-                <div key={assumption.id} className="bg-ops-dark-800/50 rounded-lg p-3">
-                  <p className="text-sm text-ops-dark-200">{assumption.description}</p>
-                  <div className="mt-2 text-xs text-ops-dark-500">
+                <div key={assumption.id} className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                  <p className="text-sm text-ops-dark-200 leading-relaxed">{assumption.description}</p>
+                  <div className="mt-3 text-xs text-ops-dark-500 space-y-1">
                     <div>Basis: {assumption.basis}</div>
-                    <div className="text-ops-accent-red/80">
+                    <div className="text-ops-accent-red-400/80 font-medium">
                       Risk if wrong: {assumption.riskIfWrong}
                     </div>
                   </div>
@@ -438,13 +463,13 @@ function OverviewTab({
           </div>
         </div>
 
-        {/* Unknowns */}
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-accent-red">Unknowns</h3>
+            <h3 className="font-semibold text-ops-accent-red-400">Unknowns</h3>
             <button
               onClick={() => setShowAddUnknown(!showAddUnknown)}
-              className="p-1 rounded hover:bg-ops-dark-700 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-ops-dark-700/60 transition-colors"
+              aria-label="Add unknown"
             >
               <Plus className="w-4 h-4 text-ops-dark-400" />
             </button>
@@ -460,13 +485,13 @@ function OverviewTab({
               />
             )}
             {log.unknowns.length === 0 ? (
-              <p className="text-sm text-ops-dark-500">No unknowns recorded yet.</p>
+              <EmptyState message="No unknowns recorded yet." />
             ) : (
               log.unknowns.map((unknown) => (
-                <div key={unknown.id} className="bg-ops-dark-800/50 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
+                <div key={unknown.id} className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                  <div className="flex items-start gap-2 mb-2">
                     <span
-                      className={`status-badge text-xs ${
+                      className={`status-badge text-2xs ${
                         unknown.priority === 'CRITICAL'
                           ? 'severity-critical'
                           : unknown.priority === 'HIGH'
@@ -477,7 +502,7 @@ function OverviewTab({
                       {unknown.priority}
                     </span>
                   </div>
-                  <p className="text-sm text-ops-dark-200 mt-2">{unknown.question}</p>
+                  <p className="text-sm text-ops-dark-200 leading-relaxed">{unknown.question}</p>
                   {unknown.assignedTo && (
                     <div className="text-xs text-ops-dark-500 mt-2">
                       Assigned: {unknown.assignedTo}
@@ -490,14 +515,14 @@ function OverviewTab({
         </div>
       </div>
 
-      {/* Right Column - Actions */}
       <div className="space-y-6">
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-dark-100">Action Items</h3>
+            <h3 className="font-semibold text-ops-dark-50">Action Items</h3>
             <button
               onClick={() => setShowAddAction(!showAddAction)}
-              className="p-1 rounded hover:bg-ops-dark-700 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-ops-dark-700/60 transition-colors"
+              aria-label="Add action"
             >
               <Plus className="w-4 h-4 text-ops-dark-400" />
             </button>
@@ -513,13 +538,22 @@ function OverviewTab({
               />
             )}
             {log.actionItems.length === 0 ? (
-              <p className="text-sm text-ops-dark-500">No action items yet.</p>
+              <EmptyState message="No action items yet." />
             ) : (
               log.actionItems.map((action) => (
                 <div
                   key={action.id}
-                  className="checklist-item"
+                  className="checklist-item group"
                   onClick={() => onToggleActionComplete(action.id, action.status)}
+                  role="checkbox"
+                  aria-checked={action.status === 'COMPLETED'}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onToggleActionComplete(action.id, action.status);
+                    }
+                  }}
                 >
                   <div
                     className={`checklist-checkbox ${
@@ -527,12 +561,12 @@ function OverviewTab({
                     }`}
                   >
                     {action.status === 'COMPLETED' && (
-                      <CheckCircle2 className="w-4 h-4 text-ops-dark-950" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`text-sm ${
+                      className={`text-sm leading-relaxed ${
                         action.status === 'COMPLETED'
                           ? 'text-ops-dark-500 line-through'
                           : 'text-ops-dark-200'
@@ -540,12 +574,12 @@ function OverviewTab({
                     >
                       {action.description}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1.5">
                       <span className="text-xs text-ops-dark-500">{action.owner}</span>
                       <span
-                        className={`text-xs px-1.5 py-0.5 rounded ${
+                        className={`text-2xs px-1.5 py-0.5 rounded font-semibold ${
                           action.priority === 'CRITICAL'
-                            ? 'bg-ops-accent-red/20 text-ops-accent-red'
+                            ? 'bg-ops-accent-red-500/20 text-ops-accent-red-400'
                             : action.priority === 'HIGH'
                               ? 'bg-orange-500/20 text-orange-400'
                               : 'bg-ops-dark-700 text-ops-dark-400'
@@ -561,34 +595,37 @@ function OverviewTab({
           </div>
         </div>
 
-        {/* Timeline */}
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-dark-100">Timeline</h3>
-            <Clock className="w-4 h-4 text-ops-dark-400" />
+            <h3 className="font-semibold text-ops-dark-50">Timeline</h3>
+            <Clock className="w-4 h-4 text-ops-dark-500" />
           </div>
           <div className="card-body">
             <div className="space-y-4">
-              {log.timeline
-                .slice(-5)
-                .reverse()
-                .map((event) => (
-                  <div key={event.id} className="relative pl-6">
-                    <div
-                      className={`timeline-dot ${
-                        event.type === 'DECISION'
-                          ? 'bg-ops-accent-blue'
-                          : event.type === 'DETECTION'
-                            ? 'bg-ops-accent-red'
-                            : 'bg-ops-dark-600'
-                      }`}
-                    />
-                    <div className="text-xs text-ops-dark-500 mb-0.5">
-                      {new Date(event.timestamp).toLocaleTimeString()}
+              {log.timeline.length === 0 ? (
+                <EmptyState message="No timeline events yet." />
+              ) : (
+                log.timeline
+                  .slice(-5)
+                  .reverse()
+                  .map((event) => (
+                    <div key={event.id} className="relative pl-6">
+                      <div
+                        className={`timeline-dot ${
+                          event.type === 'DECISION'
+                            ? 'bg-ops-accent-blue-500'
+                            : event.type === 'DETECTION'
+                              ? 'bg-ops-accent-red-500'
+                              : 'bg-ops-dark-600'
+                        }`}
+                      />
+                      <div className="text-xs text-ops-dark-500 mb-0.5 font-medium">
+                        {new Date(event.timestamp).toLocaleTimeString()}
+                      </div>
+                      <div className="text-sm text-ops-dark-200">{event.title}</div>
                     </div>
-                    <div className="text-sm text-ops-dark-200">{event.title}</div>
-                  </div>
-                ))}
+                  ))
+              )}
             </div>
           </div>
         </div>
@@ -597,7 +634,6 @@ function OverviewTab({
   );
 }
 
-// Decisions Tab Component
 interface DecisionsTabProps {
   log: DecisionLog;
   stats: ReturnType<typeof calculateStats>;
@@ -614,29 +650,27 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
 
   return (
     <div className="space-y-6">
-      {/* Posture Summary */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-3 gap-4">
         <div className="card posture-continue">
-          <div className="card-body text-center">
-            <div className="text-4xl font-bold mb-2">{stats.postureBreakdown.CONTINUE}</div>
-            <div className="text-sm uppercase tracking-wider">Continue</div>
+          <div className="card-body text-center py-6">
+            <div className="text-4xl font-bold mb-1">{stats.postureBreakdown.CONTINUE}</div>
+            <div className="text-sm uppercase tracking-wider font-semibold opacity-80">Continue</div>
           </div>
         </div>
         <div className="card posture-degrade">
-          <div className="card-body text-center">
-            <div className="text-4xl font-bold mb-2">{stats.postureBreakdown.DEGRADE}</div>
-            <div className="text-sm uppercase tracking-wider">Degrade</div>
+          <div className="card-body text-center py-6">
+            <div className="text-4xl font-bold mb-1">{stats.postureBreakdown.DEGRADE}</div>
+            <div className="text-sm uppercase tracking-wider font-semibold opacity-80">Degrade</div>
           </div>
         </div>
         <div className="card posture-pause">
-          <div className="card-body text-center">
-            <div className="text-4xl font-bold mb-2">{stats.postureBreakdown.PAUSE}</div>
-            <div className="text-sm uppercase tracking-wider">Pause</div>
+          <div className="card-body text-center py-6">
+            <div className="text-4xl font-bold mb-1">{stats.postureBreakdown.PAUSE}</div>
+            <div className="text-sm uppercase tracking-wider font-semibold opacity-80">Pause</div>
           </div>
         </div>
       </div>
 
-      {/* Add Decision Button */}
       <div className="flex justify-end">
         <button onClick={() => setShowAddDecision(true)} className="btn btn-primary">
           <Plus className="w-4 h-4" />
@@ -644,11 +678,17 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
         </button>
       </div>
 
-      {/* Add Decision Form */}
       {showAddDecision && (
-        <div className="card">
+        <div className="card animate-scale-in">
           <div className="card-header">
-            <h3 className="font-semibold text-ops-dark-100">Record New Decision</h3>
+            <h3 className="font-semibold text-ops-dark-50">Record New Decision</h3>
+            <button
+              onClick={() => setShowAddDecision(false)}
+              className="p-1.5 rounded-lg hover:bg-ops-dark-700/60 transition-colors"
+              aria-label="Close form"
+            >
+              <X className="w-4 h-4 text-ops-dark-400" />
+            </button>
           </div>
           <div className="card-body">
             <AddDecisionForm
@@ -662,21 +702,20 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
         </div>
       )}
 
-      {/* Decisions List */}
       <div className="space-y-4">
         {log.decisions.length === 0 ? (
           <div className="card">
-            <div className="card-body text-center py-12">
-              <Radio className="w-12 h-12 text-ops-dark-600 mx-auto mb-4" />
-              <p className="text-ops-dark-400">No decisions recorded yet.</p>
-              <p className="text-sm text-ops-dark-500 mt-1">
+            <div className="card-body empty-state">
+              <Radio className="empty-state-icon" />
+              <p className="empty-state-title">No decisions recorded yet</p>
+              <p className="empty-state-description">
                 Record decisions as you progress through the incident response.
               </p>
             </div>
           </div>
         ) : (
           log.decisions.map((decision) => (
-            <div key={decision.id} className="card">
+            <div key={decision.id} className="card animate-fade-in-up">
               <div className="card-header">
                 <div className="flex items-center gap-3">
                   <span
@@ -690,22 +729,22 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
                   >
                     {decision.posture}
                   </span>
-                  <h4 className="font-semibold text-ops-dark-100">{decision.title}</h4>
+                  <h4 className="font-semibold text-ops-dark-50">{decision.title}</h4>
                 </div>
                 <div className="text-xs text-ops-dark-500 font-mono">
                   {new Date(decision.timestamp).toLocaleString()}
                 </div>
               </div>
               <div className="card-body">
-                <p className="text-sm text-ops-dark-300 mb-4">{decision.description}</p>
-                <div className="bg-ops-dark-800/50 rounded-lg p-3">
-                  <div className="text-xs text-ops-dark-500 uppercase tracking-wider mb-1">
+                <p className="text-sm text-ops-dark-300 mb-4 leading-relaxed">{decision.description}</p>
+                <div className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                  <div className="text-2xs text-ops-dark-500 uppercase tracking-wider mb-1.5 font-semibold">
                     Rationale
                   </div>
-                  <p className="text-sm text-ops-dark-200">{decision.rationale}</p>
+                  <p className="text-sm text-ops-dark-200 leading-relaxed">{decision.rationale}</p>
                 </div>
                 <div className="flex items-center gap-4 mt-4 text-xs text-ops-dark-500">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" />
                     {decision.owner} ({decision.ownerRole})
                   </div>
@@ -719,7 +758,6 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
   );
 }
 
-// Playbook Tab Component
 interface PlaybookTabProps {
   playbook: ReturnType<typeof getVendorCompromisePlaybook>;
   expandedPhase: string | null;
@@ -737,12 +775,11 @@ function PlaybookTab({
 }: PlaybookTabProps): JSX.Element {
   return (
     <div className="space-y-6">
-      {/* Playbook Header */}
       <div className="card">
         <div className="card-body">
-          <h3 className="text-xl font-semibold text-ops-dark-100 mb-2">{playbook.name}</h3>
-          <p className="text-sm text-ops-dark-400 mb-4">{playbook.description}</p>
-          <div className="flex items-center gap-6 text-sm">
+          <h3 className="text-xl font-semibold text-ops-dark-50 mb-2">{playbook.name}</h3>
+          <p className="text-sm text-ops-dark-400 mb-5 leading-relaxed">{playbook.description}</p>
+          <div className="flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-ops-dark-500" />
               <span className="text-ops-dark-300">
@@ -757,7 +794,6 @@ function PlaybookTab({
         </div>
       </div>
 
-      {/* Phase List */}
       <div className="space-y-4">
         {playbook.phases.map((phase, index) => {
           const isExpanded = expandedPhase === phase.id;
@@ -768,10 +804,11 @@ function PlaybookTab({
           const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
           return (
-            <div key={phase.id} className="card">
+            <div key={phase.id} className="card overflow-hidden">
               <button
-                className="card-header w-full text-left"
+                className="card-header w-full text-left focus-visible:ring-inset"
                 onClick={() => onPhaseToggle(isExpanded ? null : phase.id)}
+                aria-expanded={isExpanded}
               >
                 <div className="flex items-center gap-4">
                   <div
@@ -780,65 +817,83 @@ function PlaybookTab({
                     }`}
                   />
                   <div>
-                    <div className="text-sm text-ops-dark-500">
-                      Phase {index + 1} • {phase.durationMinutes} min
+                    <div className="text-xs text-ops-dark-500 font-medium">
+                      Phase {index + 1} · {phase.durationMinutes} min
                     </div>
-                    <h4 className="font-semibold text-ops-dark-100">{phase.name}</h4>
+                    <h4 className="font-semibold text-ops-dark-50">{phase.name}</h4>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <div className="text-xs text-ops-dark-500">Progress</div>
+                    <div className="text-2xs text-ops-dark-500 uppercase tracking-wider">Progress</div>
                     <div className="text-sm font-mono text-ops-dark-300">
                       {completedCount}/{totalCount}
                     </div>
                   </div>
-                  {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-ops-dark-500" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-ops-dark-500" />
-                  )}
+                  <div className="p-1">
+                    {isExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-ops-dark-500" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-ops-dark-500" />
+                    )}
+                  </div>
                 </div>
               </button>
 
               {isExpanded && (
-                <div className="card-body border-t border-ops-dark-800">
-                  <p className="text-sm text-ops-dark-400 mb-4">{phase.description}</p>
+                <div className="card-body border-t border-ops-dark-800/60 animate-fade-in-down">
+                  <p className="text-sm text-ops-dark-400 mb-6 leading-relaxed">{phase.description}</p>
 
-                  {/* Objectives */}
                   <div className="mb-6">
-                    <h5 className="text-sm font-semibold text-ops-dark-200 mb-2">Objectives</h5>
-                    <ul className="space-y-1">
+                    <h5 className="text-sm font-semibold text-ops-dark-200 mb-3 flex items-center gap-2">
+                      <Target className="w-4 h-4 text-ops-accent-green-500" />
+                      Objectives
+                    </h5>
+                    <ul className="space-y-2">
                       {phase.objectives.map((obj, i) => (
-                        <li key={i} className="text-sm text-ops-dark-400 flex items-start gap-2">
-                          <Circle className="w-3 h-3 mt-1.5 text-ops-accent-green" />
-                          {obj}
+                        <li key={i} className="text-sm text-ops-dark-400 flex items-start gap-2.5">
+                          <Circle className="w-2 h-2 mt-2 text-ops-accent-green-500 fill-current" />
+                          <span>{obj}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Key Questions */}
                   <div className="mb-6">
-                    <h5 className="text-sm font-semibold text-ops-dark-200 mb-2">Key Questions</h5>
-                    <ul className="space-y-1">
+                    <h5 className="text-sm font-semibold text-ops-dark-200 mb-3 flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-ops-accent-blue-500" />
+                      Key Questions
+                    </h5>
+                    <ul className="space-y-2">
                       {phase.keyQuestions.map((q, i) => (
-                        <li key={i} className="text-sm text-ops-dark-400">
-                          • {q}
+                        <li key={i} className="text-sm text-ops-dark-400 flex items-start gap-2.5">
+                          <span className="text-ops-dark-600">•</span>
+                          <span>{q}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Checklist */}
                   <div>
-                    <h5 className="text-sm font-semibold text-ops-dark-200 mb-3">Checklist</h5>
+                    <h5 className="text-sm font-semibold text-ops-dark-200 mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-ops-accent-amber-500" />
+                      Checklist
+                    </h5>
                     <div className="space-y-1">
                       {phase.checklistItems.map((item) => (
                         <div
                           key={item.id}
-                          className="checklist-item"
+                          className="checklist-item group"
                           onClick={() => onChecklistToggle(item.id)}
+                          role="checkbox"
+                          aria-checked={completedChecklist.has(item.id)}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onChecklistToggle(item.id);
+                            }
+                          }}
                         >
                           <div
                             className={`checklist-checkbox ${
@@ -846,7 +901,7 @@ function PlaybookTab({
                             }`}
                           >
                             {completedChecklist.has(item.id) && (
-                              <CheckCircle2 className="w-4 h-4 text-ops-dark-950" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
                             )}
                           </div>
                           <div className="flex-1">
@@ -864,7 +919,7 @@ function PlaybookTab({
                             )}
                           </div>
                           {item.required && (
-                            <span className="text-xs text-ops-accent-red">Required</span>
+                            <span className="text-2xs text-ops-accent-red-400 font-semibold uppercase">Required</span>
                           )}
                         </div>
                       ))}
@@ -877,17 +932,16 @@ function PlaybookTab({
         })}
       </div>
 
-      {/* Governance Notes */}
       <div className="card">
         <div className="card-header">
-          <h4 className="font-semibold text-ops-dark-100">Governance Notes</h4>
+          <h4 className="font-semibold text-ops-dark-50">Governance Notes</h4>
         </div>
         <div className="card-body">
           <ul className="space-y-3">
             {playbook.governanceNotes.map((note, i) => (
               <li key={i} className="text-sm text-ops-dark-400 flex items-start gap-3">
-                <Lock className="w-4 h-4 mt-0.5 text-ops-accent-amber flex-shrink-0" />
-                {note}
+                <Lock className="w-4 h-4 mt-0.5 text-ops-accent-amber-500 flex-shrink-0" />
+                <span className="leading-relaxed">{note}</span>
               </li>
             ))}
           </ul>
@@ -897,7 +951,6 @@ function PlaybookTab({
   );
 }
 
-// Export Tab Component
 interface ExportTabProps {
   log: DecisionLog;
   onExport: (format: 'markdown' | 'json') => void;
@@ -909,32 +962,34 @@ function ExportTab({ log, onExport }: ExportTabProps): JSX.Element {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="card">
-        <div className="card-body text-center py-8">
-          <FileText className="w-16 h-16 text-ops-dark-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-ops-dark-100 mb-2">
+        <div className="card-body text-center py-10">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-ops-dark-700/50 to-ops-dark-800/50 flex items-center justify-center mx-auto mb-6">
+            <FileText className="w-10 h-10 text-ops-dark-500" />
+          </div>
+          <h3 className="text-2xl font-semibold text-ops-dark-50 mb-2">
             Export After-Action Report
           </h3>
-          <p className="text-sm text-ops-dark-400 mb-6">
+          <p className="text-sm text-ops-dark-400 mb-8 max-w-md mx-auto leading-relaxed">
             Generate a comprehensive after-action report documenting all decisions, facts,
             assumptions, and timeline events from this training exercise.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
-            <div className="bg-ops-dark-800/50 rounded-lg p-4 text-left">
-              <div className="text-3xl font-bold text-ops-accent-green mb-1">
+          <div className="grid sm:grid-cols-2 gap-4 mb-8">
+            <div className="bg-ops-dark-800/40 rounded-xl p-5 text-left border border-ops-dark-700/30">
+              <div className="text-3xl font-bold text-ops-accent-green-400 mb-1">
                 {stats.totalDecisions}
               </div>
               <div className="text-sm text-ops-dark-400">Decisions Recorded</div>
             </div>
-            <div className="bg-ops-dark-800/50 rounded-lg p-4 text-left">
-              <div className="text-3xl font-bold text-ops-accent-blue mb-1">
+            <div className="bg-ops-dark-800/40 rounded-xl p-5 text-left border border-ops-dark-700/30">
+              <div className="text-3xl font-bold text-ops-accent-blue-400 mb-1">
                 {log.timeline.length}
               </div>
               <div className="text-sm text-ops-dark-400">Timeline Events</div>
             </div>
           </div>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <button onClick={() => onExport('markdown')} className="btn btn-primary">
               <Download className="w-4 h-4" />
               Download Markdown
@@ -948,7 +1003,7 @@ function ExportTab({ log, onExport }: ExportTabProps): JSX.Element {
       </div>
 
       <div className="governance-banner text-center">
-        <p className="text-sm">
+        <p className="text-sm leading-relaxed">
           Exported reports include a training/exercise watermark. These are for learning purposes
           and should not be used as actual incident documentation.
         </p>
@@ -957,7 +1012,12 @@ function ExportTab({ log, onExport }: ExportTabProps): JSX.Element {
   );
 }
 
-// Form Components
+function EmptyState({ message }: { message: string }): JSX.Element {
+  return (
+    <p className="text-sm text-ops-dark-500 text-center py-4">{message}</p>
+  );
+}
+
 function AddFactForm({
   onSubmit,
   onCancel,
@@ -969,13 +1029,14 @@ function AddFactForm({
   const [source, setSource] = useState('');
 
   return (
-    <div className="bg-ops-dark-800/50 rounded-lg p-3 space-y-3">
+    <div className="bg-ops-dark-800/40 rounded-xl p-4 space-y-3 border border-ops-dark-700/30 animate-scale-in">
       <input
         type="text"
         placeholder="Fact description..."
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="input text-sm"
+        autoFocus
       />
       <input
         type="text"
@@ -984,14 +1045,14 @@ function AddFactForm({
         onChange={(e) => setSource(e.target.value)}
         className="input text-sm"
       />
-      <div className="flex justify-end gap-2">
-        <button onClick={onCancel} className="btn btn-secondary text-xs py-1">
+      <div className="flex justify-end gap-2 pt-1">
+        <button onClick={onCancel} className="btn btn-ghost text-xs py-2">
           Cancel
         </button>
         <button
           onClick={() => onSubmit(description, source)}
           disabled={!description || !source}
-          className="btn btn-primary text-xs py-1 disabled:opacity-50"
+          className="btn btn-primary text-xs py-2"
         >
           Add Fact
         </button>
@@ -1012,13 +1073,14 @@ function AddAssumptionForm({
   const [riskIfWrong, setRiskIfWrong] = useState('');
 
   return (
-    <div className="bg-ops-dark-800/50 rounded-lg p-3 space-y-3">
+    <div className="bg-ops-dark-800/40 rounded-xl p-4 space-y-3 border border-ops-dark-700/30 animate-scale-in">
       <input
         type="text"
         placeholder="Assumption..."
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="input text-sm"
+        autoFocus
       />
       <input
         type="text"
@@ -1034,14 +1096,14 @@ function AddAssumptionForm({
         onChange={(e) => setRiskIfWrong(e.target.value)}
         className="input text-sm"
       />
-      <div className="flex justify-end gap-2">
-        <button onClick={onCancel} className="btn btn-secondary text-xs py-1">
+      <div className="flex justify-end gap-2 pt-1">
+        <button onClick={onCancel} className="btn btn-ghost text-xs py-2">
           Cancel
         </button>
         <button
           onClick={() => onSubmit(description, basis, riskIfWrong)}
           disabled={!description || !basis || !riskIfWrong}
-          className="btn btn-primary text-xs py-1 disabled:opacity-50"
+          className="btn btn-primary text-xs py-2"
         >
           Add Assumption
         </button>
@@ -1061,13 +1123,14 @@ function AddUnknownForm({
   const [priority, setPriority] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('HIGH');
 
   return (
-    <div className="bg-ops-dark-800/50 rounded-lg p-3 space-y-3">
+    <div className="bg-ops-dark-800/40 rounded-xl p-4 space-y-3 border border-ops-dark-700/30 animate-scale-in">
       <input
         type="text"
         placeholder="What do we need to know?"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         className="input text-sm"
+        autoFocus
       />
       <select
         value={priority}
@@ -1079,14 +1142,14 @@ function AddUnknownForm({
         <option value="MEDIUM">Medium</option>
         <option value="LOW">Low</option>
       </select>
-      <div className="flex justify-end gap-2">
-        <button onClick={onCancel} className="btn btn-secondary text-xs py-1">
+      <div className="flex justify-end gap-2 pt-1">
+        <button onClick={onCancel} className="btn btn-ghost text-xs py-2">
           Cancel
         </button>
         <button
           onClick={() => onSubmit(question, priority)}
           disabled={!question}
-          className="btn btn-primary text-xs py-1 disabled:opacity-50"
+          className="btn btn-primary text-xs py-2"
         >
           Add Unknown
         </button>
@@ -1111,13 +1174,14 @@ function AddActionForm({
   const [priority, setPriority] = useState<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('HIGH');
 
   return (
-    <div className="bg-ops-dark-800/50 rounded-lg p-3 space-y-3">
+    <div className="bg-ops-dark-800/40 rounded-xl p-4 space-y-3 border border-ops-dark-700/30 animate-scale-in">
       <input
         type="text"
         placeholder="Action description..."
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         className="input text-sm"
+        autoFocus
       />
       <input
         type="text"
@@ -1136,14 +1200,14 @@ function AddActionForm({
         <option value="MEDIUM">Medium</option>
         <option value="LOW">Low</option>
       </select>
-      <div className="flex justify-end gap-2">
-        <button onClick={onCancel} className="btn btn-secondary text-xs py-1">
+      <div className="flex justify-end gap-2 pt-1">
+        <button onClick={onCancel} className="btn btn-ghost text-xs py-2">
           Cancel
         </button>
         <button
           onClick={() => onSubmit(description, owner, priority)}
           disabled={!description || !owner}
-          className="btn btn-primary text-xs py-1 disabled:opacity-50"
+          className="btn btn-primary text-xs py-2"
         >
           Add Action
         </button>
@@ -1170,7 +1234,7 @@ function AddDecisionForm({
   const [rationale, setRationale] = useState('');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
         <label className="label">Decision Title</label>
         <input
@@ -1179,6 +1243,7 @@ function AddDecisionForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="input"
+          autoFocus
         />
       </div>
       <div>
@@ -1189,14 +1254,14 @@ function AddDecisionForm({
               key={p}
               type="button"
               onClick={() => setPosture(p)}
-              className={`py-3 rounded-lg border text-sm font-medium transition-colors ${
+              className={`py-3.5 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
                 posture === p
                   ? p === 'CONTINUE'
-                    ? 'posture-continue'
+                    ? 'border-ops-accent-green-500/60 bg-ops-accent-green-500/15 text-ops-accent-green-400 shadow-glow-green'
                     : p === 'DEGRADE'
-                      ? 'posture-degrade'
-                      : 'posture-pause'
-                  : 'border-ops-dark-700 text-ops-dark-400 hover:border-ops-dark-600'
+                      ? 'border-ops-accent-amber-500/60 bg-ops-accent-amber-500/15 text-ops-accent-amber-400 shadow-glow-amber'
+                      : 'border-ops-accent-red-500/60 bg-ops-accent-red-500/15 text-ops-accent-red-400 shadow-glow-red'
+                  : 'border-ops-dark-700/60 text-ops-dark-400 hover:border-ops-dark-600 hover:text-ops-dark-300'
               }`}
             >
               {p}
@@ -1224,14 +1289,14 @@ function AddDecisionForm({
           className="input resize-none"
         />
       </div>
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-3 pt-2">
         <button onClick={onCancel} className="btn btn-secondary">
           Cancel
         </button>
         <button
           onClick={() => onSubmit(title, description, posture, rationale)}
           disabled={!title || !description || !rationale}
-          className="btn btn-primary disabled:opacity-50"
+          className="btn btn-primary"
         >
           Record Decision
         </button>
