@@ -36,6 +36,9 @@ import {
   generateAfterActionReport,
   exportToMarkdown,
   exportToJSON,
+  revealInject,
+  getNextInject,
+  getRevealedInjects,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -102,8 +105,21 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
   );
 
   const handleRecordDecision = useCallback(
-    (title: string, description: string, posture: DecisionPosture, rationale: string) => {
+    (
+      title: string,
+      description: string,
+      posture: DecisionPosture,
+      rationale: string,
+      assetOwner?: string,
+      residualRisk?: string
+    ) => {
       if (log) {
+        const treatmentMap: Record<DecisionPosture, 'ACCEPT' | 'MITIGATE' | 'AVOID'> = {
+          CONTINUE: 'ACCEPT',
+          DEGRADE: 'MITIGATE',
+          PAUSE: 'AVOID',
+        };
+
         setLog(
           recordDecision(log, {
             title,
@@ -112,6 +128,15 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
             owner: 'GSOC Manager',
             ownerRole: 'Incident Commander',
             rationale,
+            esrmFraming:
+              assetOwner || residualRisk
+                ? {
+                    assetOwner: assetOwner || 'Not specified',
+                    assetOwnerRole: 'Asset Owner',
+                    treatment: treatmentMap[posture],
+                    residualRisk: residualRisk || 'Not documented',
+                  }
+                : undefined,
           })
         );
       }
@@ -133,6 +158,15 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
       if (log) {
         const newStatus = currentStatus === 'COMPLETED' ? 'OPEN' : 'COMPLETED';
         setLog(updateActionItemStatus(log, actionId, newStatus as 'OPEN' | 'COMPLETED'));
+      }
+    },
+    [log]
+  );
+
+  const handleRevealInject = useCallback(
+    (injectId: string) => {
+      if (log) {
+        setLog(revealInject(log, injectId));
       }
     },
     [log]
@@ -293,6 +327,7 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
               onAddUnknown={handleAddUnknown}
               onAddAction={handleAddAction}
               onToggleActionComplete={handleToggleActionComplete}
+              onRevealInject={handleRevealInject}
             />
           )}
 
@@ -329,6 +364,7 @@ interface OverviewTabProps {
     priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
   ) => void;
   onToggleActionComplete: (actionId: string, currentStatus: string) => void;
+  onRevealInject: (injectId: string) => void;
 }
 
 function OverviewTab({
@@ -339,15 +375,105 @@ function OverviewTab({
   onAddUnknown,
   onAddAction,
   onToggleActionComplete,
+  onRevealInject,
 }: OverviewTabProps): JSX.Element {
   const [showAddFact, setShowAddFact] = useState(false);
   const [showAddAssumption, setShowAddAssumption] = useState(false);
   const [showAddUnknown, setShowAddUnknown] = useState(false);
   const [showAddAction, setShowAddAction] = useState(false);
 
+  const nextInject = getNextInject(log);
+  const revealedInjects = getRevealedInjects(log);
+
   return (
     <div className="grid lg:grid-cols-3 gap-6">
       <div className="space-y-6">
+        {/* Learning Objective */}
+        {log.learningObjective && (
+          <div className="card border-ops-accent-blue-500/30">
+            <div className="card-header bg-ops-accent-blue-500/5">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-ops-accent-blue-400" />
+                <h3 className="font-semibold text-ops-accent-blue-400">Learning Objective</h3>
+              </div>
+            </div>
+            <div className="card-body">
+              <p className="text-sm text-ops-dark-200 leading-relaxed mb-3">
+                {log.learningObjective.primary}
+              </p>
+              {log.learningObjective.skillsTrained && (
+                <div className="flex flex-wrap gap-1.5">
+                  {log.learningObjective.skillsTrained.map((skill, i) => (
+                    <span
+                      key={i}
+                      className="text-2xs px-2 py-0.5 rounded bg-ops-dark-800 text-ops-dark-400"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Inject Timeline */}
+        {log.injects.length > 0 && (
+          <div className="card">
+            <div className="card-header">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-ops-accent-amber-400" />
+                <h3 className="font-semibold text-ops-dark-50">Scenario Injects</h3>
+              </div>
+              <span className="text-xs text-ops-dark-500">
+                {revealedInjects.length}/{log.injects.length}
+              </span>
+            </div>
+            <div className="card-body space-y-3">
+              {revealedInjects.map((inject) => (
+                <div
+                  key={inject.id}
+                  className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-accent-amber-500/20"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xs text-ops-accent-amber-400 font-semibold">
+                      INJECT {inject.sequenceNumber}
+                    </span>
+                    <span className="text-2xs text-ops-dark-500">@ {inject.revealAtMinute}min</span>
+                  </div>
+                  <div className="text-sm text-ops-dark-100 font-medium mb-1">{inject.title}</div>
+                  <p className="text-sm text-ops-dark-400 leading-relaxed mb-2">{inject.content}</p>
+                  <div className="text-xs text-ops-dark-500">Source: {inject.source}</div>
+                  {inject.decisionPressure && (
+                    <div className="mt-2 p-2 rounded bg-ops-accent-amber-500/10 border border-ops-accent-amber-500/20">
+                      <div className="text-2xs text-ops-accent-amber-400 font-semibold mb-1">
+                        DECISION PRESSURE
+                      </div>
+                      <p className="text-xs text-ops-dark-300">{inject.decisionPressure}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {nextInject && (
+                <button
+                  onClick={() => onRevealInject(nextInject.id)}
+                  className="w-full py-3 rounded-xl border-2 border-dashed border-ops-dark-700 hover:border-ops-accent-amber-500/50 hover:bg-ops-accent-amber-500/5 transition-all duration-200 text-sm text-ops-dark-400 hover:text-ops-accent-amber-400"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Reveal Inject {nextInject.sequenceNumber} (@ {nextInject.revealAtMinute}min)
+                  </span>
+                </button>
+              )}
+              {!nextInject && log.injects.length > 0 && (
+                <div className="text-center py-2 text-xs text-ops-dark-500">
+                  All injects revealed
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="card">
           <div className="card-header">
             <h3 className="font-semibold text-ops-dark-50">Incident Summary</h3>
@@ -661,7 +787,9 @@ interface DecisionsTabProps {
     title: string,
     description: string,
     posture: DecisionPosture,
-    rationale: string
+    rationale: string,
+    assetOwner?: string,
+    residualRisk?: string
   ) => void;
 }
 
@@ -714,8 +842,8 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
           </div>
           <div className="card-body">
             <AddDecisionForm
-              onSubmit={(title, desc, posture, rationale) => {
-                onRecordDecision(title, desc, posture, rationale);
+              onSubmit={(title, desc, posture, rationale, assetOwner, residualRisk) => {
+                onRecordDecision(title, desc, posture, rationale, assetOwner, residualRisk);
                 setShowAddDecision(false);
               }}
               onCancel={() => setShowAddDecision(false)}
@@ -761,13 +889,36 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
                 <p className="text-sm text-ops-dark-300 mb-4 leading-relaxed">
                   {decision.description}
                 </p>
-                <div className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                <div className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30 mb-4">
                   <div className="text-2xs text-ops-dark-500 uppercase tracking-wider mb-1.5 font-semibold">
                     Rationale
                   </div>
                   <p className="text-sm text-ops-dark-200 leading-relaxed">{decision.rationale}</p>
                 </div>
-                <div className="flex items-center gap-4 mt-4 text-xs text-ops-dark-500">
+                {decision.esrmFraming && (
+                  <div className="bg-ops-accent-blue-500/5 rounded-xl p-4 border border-ops-accent-blue-500/20 mb-4">
+                    <div className="text-2xs text-ops-accent-blue-400 uppercase tracking-wider mb-2 font-semibold">
+                      ESRM Risk Framing
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <div className="text-2xs text-ops-dark-500 mb-0.5">Asset Owner</div>
+                        <div className="text-ops-dark-200">{decision.esrmFraming.assetOwner}</div>
+                      </div>
+                      <div>
+                        <div className="text-2xs text-ops-dark-500 mb-0.5">Treatment</div>
+                        <div className="text-ops-dark-200">{decision.esrmFraming.treatment}</div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <div className="text-2xs text-ops-dark-500 mb-0.5">Residual Risk</div>
+                        <div className="text-ops-dark-300 text-xs leading-relaxed">
+                          {decision.esrmFraming.residualRisk}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-4 text-xs text-ops-dark-500">
                   <div className="flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" />
                     {decision.owner} ({decision.ownerRole})
@@ -1252,7 +1403,9 @@ function AddDecisionForm({
     title: string,
     description: string,
     posture: DecisionPosture,
-    rationale: string
+    rationale: string,
+    assetOwner?: string,
+    residualRisk?: string
   ) => void;
   onCancel: () => void;
 }): JSX.Element {
@@ -1260,6 +1413,14 @@ function AddDecisionForm({
   const [description, setDescription] = useState('');
   const [posture, setPosture] = useState<DecisionPosture>('CONTINUE');
   const [rationale, setRationale] = useState('');
+  const [assetOwner, setAssetOwner] = useState('');
+  const [residualRisk, setResidualRisk] = useState('');
+
+  const treatmentMap: Record<DecisionPosture, string> = {
+    CONTINUE: 'Accept',
+    DEGRADE: 'Mitigate',
+    PAUSE: 'Avoid',
+  };
 
   return (
     <div className="space-y-5">
@@ -1275,14 +1436,14 @@ function AddDecisionForm({
         />
       </div>
       <div>
-        <label className="label">Posture</label>
+        <label className="label">Posture (ESRM Treatment)</label>
         <div className="grid grid-cols-3 gap-3">
           {(['CONTINUE', 'DEGRADE', 'PAUSE'] as const).map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setPosture(p)}
-              className={`py-3.5 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+              className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-200 flex flex-col items-center gap-1 ${
                 posture === p
                   ? p === 'CONTINUE'
                     ? 'border-ops-accent-green-500/60 bg-ops-accent-green-500/15 text-ops-accent-green-400 shadow-glow-green'
@@ -1292,7 +1453,8 @@ function AddDecisionForm({
                   : 'border-ops-dark-700/60 text-ops-dark-400 hover:border-ops-dark-600 hover:text-ops-dark-300'
               }`}
             >
-              {p}
+              <span>{p}</span>
+              <span className="text-2xs opacity-70">{treatmentMap[p]}</span>
             </button>
           ))}
         </div>
@@ -1303,7 +1465,7 @@ function AddDecisionForm({
           placeholder="What is being decided and what operations are affected..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          rows={3}
+          rows={2}
           className="input resize-none"
         />
       </div>
@@ -1313,16 +1475,44 @@ function AddDecisionForm({
           placeholder="Why this decision is being made at this time..."
           value={rationale}
           onChange={(e) => setRationale(e.target.value)}
-          rows={3}
+          rows={2}
           className="input resize-none"
         />
+      </div>
+      <div className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30 space-y-4">
+        <div className="text-2xs text-ops-dark-500 uppercase tracking-wider font-semibold">
+          ESRM Risk Framing (Optional)
+        </div>
+        <div>
+          <label className="label text-ops-dark-400">Asset Owner</label>
+          <input
+            type="text"
+            placeholder="Who owns the risk? (e.g., Facilities Director, Site Manager)"
+            value={assetOwner}
+            onChange={(e) => setAssetOwner(e.target.value)}
+            className="input text-sm"
+          />
+          <p className="text-2xs text-ops-dark-500 mt-1">
+            GSOC advises; asset owner approves posture changes affecting their operations
+          </p>
+        </div>
+        <div>
+          <label className="label text-ops-dark-400">Residual Risk</label>
+          <textarea
+            placeholder="What risk remains after this treatment? What gaps exist?"
+            value={residualRisk}
+            onChange={(e) => setResidualRisk(e.target.value)}
+            rows={2}
+            className="input resize-none text-sm"
+          />
+        </div>
       </div>
       <div className="flex justify-end gap-3 pt-2">
         <button onClick={onCancel} className="btn btn-secondary">
           Cancel
         </button>
         <button
-          onClick={() => onSubmit(title, description, posture, rationale)}
+          onClick={() => onSubmit(title, description, posture, rationale, assetOwner, residualRisk)}
           disabled={!title || !description || !rationale}
           className="btn btn-primary"
         >

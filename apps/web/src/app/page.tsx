@@ -1,5 +1,16 @@
 import Link from 'next/link';
-import { Shield, ArrowRight, Clock, FileText, CheckCircle, Brain, Sparkles } from 'lucide-react';
+import {
+  Shield,
+  ArrowRight,
+  Clock,
+  FileText,
+  CheckCircle,
+  Brain,
+  Sparkles,
+  AlertTriangle,
+  BookOpen,
+  Target,
+} from 'lucide-react';
 import { getAvailableScenarios } from '@gsoc-decision-ops/core';
 
 export default function HomePage(): JSX.Element {
@@ -29,17 +40,17 @@ export default function HomePage(): JSX.Element {
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-ops-accent-amber-500/10 border border-ops-accent-amber-500/20">
             <Sparkles className="w-3.5 h-3.5 text-ops-accent-amber-400" />
             <span className="text-xs font-semibold text-ops-accent-amber-400 uppercase tracking-wider">
-              Demo
+              Portfolio Demo
             </span>
           </div>
         </div>
       </header>
 
       <main className="relative max-w-5xl mx-auto px-6 py-16">
-        <div className="text-center mb-16 animate-in">
+        <div className="text-center mb-12 animate-in">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-ops-dark-800/60 border border-ops-dark-700/50 text-xs font-medium text-ops-dark-300 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-ops-accent-green-500 animate-pulse" />
-            First-Principles Design
+            Built on Resolver-class + ESRM Principles
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold text-ops-dark-50 mb-5 tracking-tight text-balance">
             First-Hour Decision
@@ -47,8 +58,23 @@ export default function HomePage(): JSX.Element {
           </h1>
           <p className="text-xl text-ops-dark-400 max-w-2xl mx-auto leading-relaxed text-balance">
             Practice structured decision-making under incomplete information. Separate facts from
-            assumptions. Make defensible choices.
+            assumptions. Advise asset owners on residual risk.
           </p>
+        </div>
+
+        {/* Honesty strip */}
+        <div className="governance-banner mb-12 animate-in-delay-1">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium mb-1">Training Tool — Not Production Software</p>
+              <p className="text-xs text-ops-accent-amber-400/80">
+                All scenarios are synthetic. This tool trains first-hour judgment beside
+                Resolver-class platforms — it does not replace enterprise incident management or
+                ESRM programs.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
@@ -140,55 +166,148 @@ export default function HomePage(): JSX.Element {
           </div>
         </div>
 
-        <div className="glass-card p-8 mb-16 animate-in-delay-3">
-          <h3 className="text-xl font-semibold text-ops-dark-50 mb-6 tracking-tight">
+        {/* Decision Postures with ESRM mapping */}
+        <div className="glass-card p-8 mb-8 animate-in-delay-3">
+          <h3 className="text-xl font-semibold text-ops-dark-50 mb-2 tracking-tight">
             Decision Postures
           </h3>
+          <p className="text-sm text-ops-dark-500 mb-6">
+            Mapped to ESRM risk treatment: Accept → Mitigate → Avoid
+          </p>
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="p-5 rounded-xl bg-ops-accent-green-500/8 border border-ops-accent-green-500/20 hover:border-ops-accent-green-500/35 transition-colors duration-300">
-              <div className="flex items-center gap-2.5 mb-3">
+              <div className="flex items-center gap-2.5 mb-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-ops-accent-green-500 shadow-sm shadow-ops-accent-green-500/50" />
                 <div className="font-bold text-ops-accent-green-400 uppercase tracking-wider text-sm">
                   Continue
                 </div>
               </div>
+              <div className="text-2xs text-ops-dark-500 uppercase tracking-wider mb-2">
+                Treatment: Accept
+              </div>
               <div className="text-sm text-ops-dark-400 leading-relaxed">
-                Proceed with normal operations. No immediate impact identified.
+                Risk within tolerance. Proceed with monitoring.
               </div>
             </div>
             <div className="p-5 rounded-xl bg-ops-accent-amber-500/8 border border-ops-accent-amber-500/20 hover:border-ops-accent-amber-500/35 transition-colors duration-300">
-              <div className="flex items-center gap-2.5 mb-3">
+              <div className="flex items-center gap-2.5 mb-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-ops-accent-amber-500 shadow-sm shadow-ops-accent-amber-500/50" />
                 <div className="font-bold text-ops-accent-amber-400 uppercase tracking-wider text-sm">
                   Degrade
                 </div>
               </div>
+              <div className="text-2xs text-ops-dark-500 uppercase tracking-wider mb-2">
+                Treatment: Mitigate
+              </div>
               <div className="text-sm text-ops-dark-400 leading-relaxed">
-                Operate with reduced capability. Compensating controls in place.
+                Reduce exposure via compensating controls.
               </div>
             </div>
             <div className="p-5 rounded-xl bg-ops-accent-red-500/8 border border-ops-accent-red-500/20 hover:border-ops-accent-red-500/35 transition-colors duration-300">
-              <div className="flex items-center gap-2.5 mb-3">
+              <div className="flex items-center gap-2.5 mb-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-ops-accent-red-500 shadow-sm shadow-ops-accent-red-500/50" />
                 <div className="font-bold text-ops-accent-red-400 uppercase tracking-wider text-sm">
                   Pause
                 </div>
               </div>
+              <div className="text-2xs text-ops-dark-500 uppercase tracking-wider mb-2">
+                Treatment: Avoid
+              </div>
               <div className="text-sm text-ops-dark-400 leading-relaxed">
-                Halt affected operations. Critical impact, unacceptable risk.
+                Halt operations to eliminate exposure.
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* How This Trains You (F15) */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="glass-card p-6 animate-in-delay-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="icon-box icon-box-green">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-ops-dark-50">How This Trains You</h3>
+            </div>
+            <ul className="space-y-3 text-sm text-ops-dark-400">
+              <li className="flex items-start gap-2">
+                <Target className="w-4 h-4 text-ops-accent-green-500 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong className="text-ops-dark-300">Tabletop exercise design</strong> — Single
+                  learning objective, escalating injects, forced decisions
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Target className="w-4 h-4 text-ops-accent-green-500 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong className="text-ops-dark-300">Klein RPD model</strong> — Cue recognition,
+                  mental simulation, satisficing first workable posture
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Target className="w-4 h-4 text-ops-accent-green-500 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong className="text-ops-dark-300">Military AAR</strong> — Intended vs actual,
+                  sustains, improves, action items with owner
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Target className="w-4 h-4 text-ops-accent-green-500 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong className="text-ops-dark-300">ESRM principles</strong> — Asset owner owns
+                  risk; GSOC advises on residual risk
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="glass-card p-6 animate-in-delay-3">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="icon-box icon-box-red">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <h3 className="font-semibold text-ops-dark-50">What This Is NOT</h3>
+            </div>
+            <ul className="space-y-3 text-sm text-ops-dark-400">
+              <li className="flex items-start gap-2">
+                <span className="text-ops-accent-red-400 mt-0.5">✕</span>
+                <span>
+                  <strong className="text-ops-dark-300">Not a Resolver replacement</strong> — Trains
+                  beside Resolver-class tools, does not replicate case management
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ops-accent-red-400 mt-0.5">✕</span>
+                <span>
+                  <strong className="text-ops-dark-300">Not a full ESRM suite</strong> — Teaches
+                  principles; no assessments, integrations, or compliance reporting
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ops-accent-red-400 mt-0.5">✕</span>
+                <span>
+                  <strong className="text-ops-dark-300">Not production software</strong> — Training
+                  scenarios only; not a system of record
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ops-accent-red-400 mt-0.5">✕</span>
+                <span>
+                  <strong className="text-ops-dark-300">Not SIEM/detection</strong> — No log
+                  ingestion or threat detection capabilities
+                </span>
+              </li>
+            </ul>
           </div>
         </div>
 
         <footer className="text-center border-t border-ops-dark-800/50 pt-8">
           <p className="text-sm text-ops-dark-500 mb-3 max-w-lg mx-auto">
             <span className="text-ops-dark-300 font-medium">Portfolio Demonstration</span> — All
-            scenarios are synthetic. Built to demonstrate structured operational decision-making
-            methodology.
+            scenarios are synthetic. Trains first-hour judgment beside enterprise platforms.
           </p>
           <p className="text-xs text-ops-dark-600">
-            Created by Shannon Brown · GSOC Manager · Harvard ALM/ALB · CompTIA CySA+
+            Shannon Brown · GSOC Manager · Harvard ALM/ALB · CompTIA CySA+
           </p>
         </footer>
       </main>

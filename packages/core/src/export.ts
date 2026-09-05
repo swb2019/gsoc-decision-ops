@@ -3,9 +3,16 @@
  *
  * Generate structured after-action reports in Markdown and JSON formats
  * for documentation, compliance, and continuous improvement.
+ *
+ * AAR structure based on military/organizational methodology:
+ * - What was supposed to happen (intended outcomes)
+ * - What actually happened (actual outcomes)
+ * - What went well (sustains)
+ * - What can improve (improves)
+ * - Action items with owner and due date
  */
 
-import type { DecisionLog, AfterActionReport } from './types.js';
+import type { DecisionLog, AfterActionReport, AARActionItem } from './types.js';
 import { generateId, now, formatDuration, sortByTimestamp } from './utils.js';
 import { calculateStats } from './decision-log.js';
 
@@ -15,7 +22,10 @@ import { calculateStats } from './decision-log.js';
 export function generateAfterActionReport(
   log: DecisionLog,
   lessonsLearned: string[] = [],
-  recommendations: string[] = []
+  recommendations: string[] = [],
+  sustains: string[] = [],
+  improves: string[] = [],
+  actionItems: AARActionItem[] = []
 ): AfterActionReport {
   const stats = calculateStats(log);
   const sortedTimeline = sortByTimestamp(log.timeline, true);
@@ -27,6 +37,11 @@ export function generateAfterActionReport(
     log.incident.status === 'CLOSED' || log.incident.status === 'RESOLVED'
       ? formatDuration(log.incident.detectedAt, log.lastUpdated)
       : formatDuration(log.incident.detectedAt);
+
+  const lastPosture =
+    log.decisions.length > 0 ? log.decisions[log.decisions.length - 1].posture : 'CONTINUE';
+
+  const revealedInjects = log.injects.filter((i) => i.revealed).length;
 
   return {
     id: generateId('AAR'),
@@ -40,6 +55,22 @@ export function generateAfterActionReport(
       duration,
       severity: log.incident.severity,
       impactSummary: log.incident.impactCategories.join(', '),
+    },
+
+    learningObjective: log.learningObjective,
+
+    intendedOutcomes: {
+      expectedPosture: log.learningObjective?.expectedDecisions?.[0] ?? 'Per scenario guidance',
+      expectedDecisions: log.learningObjective?.expectedDecisions ?? [],
+      trainingGoals: log.learningObjective?.skillsTrained ?? [],
+    },
+
+    actualOutcomes: {
+      finalPosture: lastPosture,
+      decisionsRecorded: stats.totalDecisions,
+      postureChanges: countPostureChanges(log),
+      injectsRevealed: revealedInjects,
+      injectsTotal: log.injects.length,
     },
 
     chronology: sortedTimeline,
@@ -59,6 +90,10 @@ export function generateAfterActionReport(
       assumptionsInvalidated: stats.invalidatedAssumptions,
     },
 
+    sustains: sustains.length > 0 ? sustains : generateDefaultSustains(log, stats),
+    improves: improves.length > 0 ? improves : generateDefaultImproves(log, stats),
+    actionItems: actionItems.length > 0 ? actionItems : generateDefaultActionItems(log),
+
     lessonsLearned,
     recommendations,
 
@@ -67,6 +102,94 @@ export function generateAfterActionReport(
       exportFormat: 'BOTH',
     },
   };
+}
+
+/**
+ * Count posture changes in the decision log
+ */
+function countPostureChanges(log: DecisionLog): number {
+  if (log.decisions.length <= 1) return 0;
+  let changes = 0;
+  for (let i = 1; i < log.decisions.length; i++) {
+    if (log.decisions[i].posture !== log.decisions[i - 1].posture) {
+      changes++;
+    }
+  }
+  return changes;
+}
+
+/**
+ * Generate default sustains based on log analysis
+ */
+function generateDefaultSustains(
+  log: DecisionLog,
+  stats: ReturnType<typeof calculateStats>
+): string[] {
+  const sustains: string[] = [];
+
+  if (stats.totalFacts > 0) {
+    sustains.push(`Documented ${stats.totalFacts} facts with sources`);
+  }
+  if (stats.totalAssumptions > 0 && log.assumptions.every((a) => a.riskIfWrong)) {
+    sustains.push('All assumptions included risk-if-wrong assessment');
+  }
+  if (stats.totalDecisions > 0) {
+    sustains.push(`Recorded ${stats.totalDecisions} decisions with rationale`);
+  }
+  if (log.decisions.some((d) => d.esrmFraming?.residualRisk)) {
+    sustains.push('Decisions included residual risk framing (ESRM best practice)');
+  }
+
+  return sustains;
+}
+
+/**
+ * Generate default improves based on log analysis
+ */
+function generateDefaultImproves(
+  log: DecisionLog,
+  stats: ReturnType<typeof calculateStats>
+): string[] {
+  const improves: string[] = [];
+
+  if (stats.totalUnknowns > stats.resolvedUnknowns) {
+    improves.push(`${stats.totalUnknowns - stats.resolvedUnknowns} unknowns remain unresolved`);
+  }
+  if (stats.criticalUnknowns > 0) {
+    improves.push(`${stats.criticalUnknowns} critical unknowns still open`);
+  }
+  if (log.decisions.length > 0 && !log.decisions.some((d) => d.esrmFraming)) {
+    improves.push('Consider adding ESRM risk framing (asset owner, residual risk) to decisions');
+  }
+  if (log.injects.length > 0 && log.injects.filter((i) => i.revealed).length < log.injects.length) {
+    improves.push(
+      `Only ${log.injects.filter((i) => i.revealed).length}/${log.injects.length} injects revealed — consider completing full scenario`
+    );
+  }
+
+  return improves;
+}
+
+/**
+ * Generate default action items from open items in log
+ */
+function generateDefaultActionItems(log: DecisionLog): AARActionItem[] {
+  const actionItems: AARActionItem[] = [];
+
+  log.actionItems
+    .filter((a) => a.status !== 'COMPLETED' && a.status !== 'CANCELLED')
+    .forEach((a) => {
+      actionItems.push({
+        id: generateId('AAR_ACT'),
+        description: a.description,
+        owner: a.owner,
+        dueDate: a.dueBy,
+        priority: a.priority === 'CRITICAL' ? 'HIGH' : a.priority === 'HIGH' ? 'HIGH' : 'MEDIUM',
+        status: 'OPEN',
+      });
+    });
+
+  return actionItems;
 }
 
 /**
@@ -130,16 +253,45 @@ export function exportToMarkdown(report: AfterActionReport): string {
   if (log.metadata.exerciseMode || log.metadata.syntheticScenario) {
     lines.push('');
     lines.push(
-      '> ⚠️ **EXERCISE/TRAINING SCENARIO** - This report documents a synthetic scenario for training purposes.'
+      '> ⚠️ **TRAINING EXERCISE** - This report documents a synthetic scenario. Not for production use.'
     );
   }
 
   lines.push('');
 
+  // Learning Objective (if present)
+  if (report.learningObjective) {
+    lines.push('## Learning Objective');
+    lines.push('');
+    lines.push(`**Primary:** ${report.learningObjective.primary}`);
+    if (report.learningObjective.secondary && report.learningObjective.secondary.length > 0) {
+      lines.push('');
+      lines.push('**Secondary:**');
+      report.learningObjective.secondary.forEach((s) => lines.push(`- ${s}`));
+    }
+    lines.push('');
+  }
+
   // Executive Summary
   lines.push('## Executive Summary');
   lines.push('');
   lines.push(report.executiveSummary);
+  lines.push('');
+
+  // What Was Supposed to Happen vs What Actually Happened
+  lines.push('## Intended vs. Actual Outcomes');
+  lines.push('');
+  lines.push('| Metric | Intended | Actual |');
+  lines.push('|--------|----------|--------|');
+  lines.push(
+    `| Posture | ${report.intendedOutcomes.expectedPosture} | ${report.actualOutcomes.finalPosture} |`
+  );
+  lines.push(
+    `| Decisions | (per scenario) | ${report.actualOutcomes.decisionsRecorded} recorded |`
+  );
+  lines.push(
+    `| Injects | ${report.actualOutcomes.injectsTotal} total | ${report.actualOutcomes.injectsRevealed} revealed |`
+  );
   lines.push('');
 
   // Incident Overview
@@ -249,6 +401,40 @@ export function exportToMarkdown(report: AfterActionReport): string {
     lines.push('');
   }
 
+  // Sustains (What Went Well)
+  if (report.sustains.length > 0) {
+    lines.push('## Sustains (What Went Well)');
+    lines.push('');
+    report.sustains.forEach((sustain) => {
+      lines.push(`- ✓ ${sustain}`);
+    });
+    lines.push('');
+  }
+
+  // Improves (What Can Be Better)
+  if (report.improves.length > 0) {
+    lines.push('## Improves (Opportunities)');
+    lines.push('');
+    report.improves.forEach((improve) => {
+      lines.push(`- △ ${improve}`);
+    });
+    lines.push('');
+  }
+
+  // Action Items
+  if (report.actionItems.length > 0) {
+    lines.push('## Action Items');
+    lines.push('');
+    lines.push('| Action | Owner | Due | Priority | Status |');
+    lines.push('|--------|-------|-----|----------|--------|');
+    report.actionItems.forEach((item) => {
+      lines.push(
+        `| ${item.description} | ${item.owner} | ${item.dueDate ?? 'TBD'} | ${item.priority} | ${item.status} |`
+      );
+    });
+    lines.push('');
+  }
+
   // Lessons Learned
   if (report.lessonsLearned.length > 0) {
     lines.push('## Lessons Learned');
@@ -272,8 +458,12 @@ export function exportToMarkdown(report: AfterActionReport): string {
   // Footer
   lines.push('---');
   lines.push('');
-  lines.push(`*Generated by GSOC Decision Ops Toolkit*`);
+  lines.push('*Generated by GSOC Decision Ops*');
   lines.push(`*Organization: ${log.metadata.organization}*`);
+  lines.push('');
+  lines.push(
+    '> This tool trains first-hour judgment beside Resolver-class platforms — it does not replace enterprise incident management.'
+  );
 
   return lines.join('\n');
 }

@@ -1,215 +1,148 @@
 # GSOC Decision Ops
 
+First-hour decision training for corporate security operations leaders.
+
 [![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
 [![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-**A first-hour decision training tool for GSOC leaders. Practice structured judgment under incomplete information.**
-
-[**Live Demo**](https://swb2019.github.io/gsoc-decision-ops/)
-
-> **Portfolio Demo** — All scenarios are synthetic. This demonstrates decision-making methodology, not a production security platform.
-
-**[Product Requirements Document (PRD 1.1)](docs/PRD.md)** — Locked product definition including invariants, release gates, and honesty threat model.
+[**Live Demo →**](https://swb2019.github.io/gsoc-decision-ops/)
 
 ---
 
-## SOTA UI on a First-Principles Product
-
-This project demonstrates that exceptional UI/UX can coexist with radical simplicity. After applying Musk's 5-step engineering algorithm to eliminate complexity, the remaining surfaces were elevated to state-of-the-art 2026 visual design:
-
-- **Refined dark ops aesthetic** — Custom color system with intentional green/amber/red semantic hierarchy
-- **Premium glass morphism** — Layered transparency with subtle backdrop blur and noise texture
-- **Micro-interactions** — Smooth 200-300ms transitions, scale feedback on buttons, animated gradient borders
-- **Typography hierarchy** — Inter + JetBrains Mono with proper tracking, weight, and spacing rhythm
-- **Mobile-first responsive** — Touch-friendly targets, adaptive layouts, horizontal scroll on tabs
-- **Accessibility** — WCAG contrast compliance, visible focus states, keyboard navigation, reduced motion support
-- **Designed states** — Loading spinners, empty states, error handling that feels intentional
-
-The result: a product that looks like it came from a well-funded design team, built on a foundation of zero unnecessary complexity. Two clicks to first decision, beautiful every step of the way.
+> **Portfolio demonstration.** All scenarios are synthetic. This tool trains decision-making methodology — it is not a production system of record.
 
 ---
 
-## What This Does
+## What
 
-When a critical vendor experiences a security incident, GSOC leaders must make rapid decisions with incomplete information. This tool trains that skill:
+A training tool for practicing structured decision-making during vendor compromises and cyber-adjacent disruptions. Users work through synthetic scenarios, document facts vs. assumptions, record posture decisions (CONTINUE/DEGRADE/PAUSE), follow a 60-minute playbook, and export after-action reports.
 
-1. **Select a scenario** — Synthetic vendor compromise incidents
-2. **Log decisions** — Separate facts from assumptions, record CONTINUE/DEGRADE/PAUSE postures with rationale
-3. **Follow playbook** — 60-minute structured response framework
-4. **Export after-action** — Markdown/JSON report in under 2 minutes
+## Why
 
-The core loop: **Open → Decide → Export** in under 2 minutes.
+When a critical vendor reports a security incident, GSOC leaders must make rapid decisions with incomplete information. This skill is difficult to practice in production. GSOC Decision Ops provides a structured training environment to build first-hour judgment.
 
----
+## Who
 
-## Built with Musk's Algorithm
+GSOC managers and security operations leads who want to practice:
 
-This project was rebuilt from first principles using Elon Musk's 5-step engineering algorithm:
-
-### 1. Make the Requirements Less Dumb
-
-**Question asked:** What is the single job of this portfolio project?
-
-**Answer:** Prove Shannon can design and ship a sharp GSOC first-hour decision system — not a fake Salesforce clone.
-
-**Deleted requirements that were dumb:**
-
-- Multi-tenant SaaS architecture (no employer cares about fake org switching)
-- Pricing tiers and billing stubs (vanity theater)
-- Sign-in/sign-up flows (gates that slow the demo)
-- RBAC and team management (complexity that proves nothing)
-- Settings panels with SSO/API key stubs (enterprise cosplay)
-- Activity feeds and audit logs (fake engagement metrics)
-
-### 2. Delete the Part or Process
-
-**Deleted 13 pages/components:**
-
-- `/pricing` — fake pricing page
-- `/signin`, `/signup` — auth theater
-- `/app/team` — fake team management
-- `/app/settings` — 6-tab settings console
-- `/app/reports` — redundant (export is on scenario page)
-- `/app/playbooks` — redundant (playbook is on scenario page)
-- `/app/incidents/*` — fake incident list and CRUD
-- `/app/dashboard` — fake stats dashboard
-- Sidebar with org/workspace switchers
-- Marketing components (Hero, Features, HowItWorks, ComparisonSection)
-- Multi-organization/workspace state management
-- Complex auth context with localStorage persistence
-
-**Net deletion:** ~2,500 lines of code, 13 route handlers, 6 React components
-
-### 3. Simplify / Optimize
-
-**After deletion, simplified to:**
-
-- **1 landing page** → lists scenarios directly
-- **1 scenario page** → decision log, playbook, export in tabs
-- **Zero auth gates** — instant demo access
-- **Zero navigation complexity** — back arrow goes home
-
-**Information architecture:**
-
-```
-/ (home)
-└── /scenarios/[id]
-    ├── Overview (facts, assumptions, unknowns, actions)
-    ├── Decisions (CONTINUE/DEGRADE/PAUSE with rationale)
-    ├── Playbook (60-min framework with checklists)
-    └── Export (Markdown/JSON download)
-```
-
-### 4. Accelerate Cycle Time
-
-**Before:** Landing → Auth → Dashboard → Incidents → Select → Load → Train → Navigate → Export
-
-**After:** Landing → Select → Train → Export
-
-**Clicks to first decision:** 2 (home → scenario → record decision)
-
-**Time to export after-action:** Under 2 minutes
-
-### 5. Automate (Last)
-
-Only after steps 1-4 were complete:
-
-- Tests remain (109 passing)
-- CI remains (typecheck + lint + test)
-- GitHub Pages deploy remains
-- No new automation added — what remains works
+- Separating facts from assumptions under time pressure
+- Making defensible posture calls with explicit rationale
+- Following structured response frameworks
+- Generating after-action documentation
 
 ---
 
-## Quick Start
+## Foundation
+
+Built on **Resolver-class workflow principles** and **ASIS ESRM risk methodology**:
+
+| Foundation                  | Application                                               |
+| --------------------------- | --------------------------------------------------------- |
+| Decision log with ownership | Every decision captures timestamp, owner, role, rationale |
+| Common Operating Picture    | Facts / Assumptions / Unknowns as distinct categories     |
+| ESRM risk framing           | Asset owner owns risk; GSOC advises on residual risk      |
+| Treatment mapping           | CONTINUE (accept) · DEGRADE (mitigate) · PAUSE (avoid)    |
+
+This tool **trains first-hour judgment beside the enterprise suite** — it does not replace Resolver-class incident management or full ESRM programs.
+
+See [TRAINING.md](docs/TRAINING.md) for pedagogy details.
+
+---
+
+## Quickstart
 
 ```bash
 git clone https://github.com/swb2019/gsoc-decision-ops.git
 cd gsoc-decision-ops
 npm install
 npm run dev
-# Open http://localhost:3000
 ```
+
+Open [http://localhost:3000](http://localhost:3000).
 
 ### Commands
 
-| Command             | Description                |
-| ------------------- | -------------------------- |
-| `npm run dev`       | Start development server   |
-| `npm run build`     | Build all packages         |
-| `npm test`          | Run test suite (109 tests) |
-| `npm run typecheck` | TypeScript type checking   |
+| Command             | Description           |
+| ------------------- | --------------------- |
+| `npm run dev`       | Development server    |
+| `npm run build`     | Production build      |
+| `npm test`          | Run tests (109 tests) |
+| `npm run typecheck` | TypeScript checking   |
+
+---
+
+## Architecture
+
+```
+gsoc-decision-ops/
+├── apps/web/              # Next.js application (static export)
+│   └── src/
+│       ├── app/           # Routes: / (home), /scenarios/[id]
+│       └── lib/           # Client utilities
+├── packages/core/         # Domain logic library
+│   └── src/
+│       ├── scenarios/     # Synthetic training scenarios
+│       ├── playbooks/     # Response frameworks
+│       ├── decision-log.ts
+│       ├── export.ts
+│       └── types.ts
+├── docs/                  # Documentation
+└── examples/              # Sample exports
+```
+
+**Stack:** Next.js 14 · TypeScript · Tailwind CSS · Vitest
 
 ---
 
 ## Decision Framework
 
-### Decision Postures
+### Postures
 
-| Posture      | When to Use                                       |
-| ------------ | ------------------------------------------------- |
-| **CONTINUE** | No immediate impact identified. Proceed normally. |
-| **DEGRADE**  | Partial impact. Compensating controls in place.   |
-| **PAUSE**    | Critical impact. Halt affected operations.        |
+| Posture      | ESRM Treatment | When to Use                                    |
+| ------------ | -------------- | ---------------------------------------------- |
+| **CONTINUE** | Accept         | Risk within tolerance; proceed with monitoring |
+| **DEGRADE**  | Mitigate       | Reduce exposure via compensating controls      |
+| **PAUSE**    | Avoid          | Halt operations to eliminate exposure          |
 
-### Facts vs. Assumptions
+### Information Categories
 
-- **Facts** — Verified information with sources and confidence levels
-- **Assumptions** — Working beliefs with explicit "risk if wrong"
-- **Unknowns** — Questions requiring resolution, prioritized
+| Category       | Definition               | Required Fields                   |
+| -------------- | ------------------------ | --------------------------------- |
+| **Fact**       | Verified information     | Description, source, confidence   |
+| **Assumption** | Working belief           | Description, basis, risk-if-wrong |
+| **Unknown**    | Gap requiring resolution | Question, priority, assignee      |
 
-### 60-Minute Playbook
+### 60-Minute Playbook Phases
 
-| Phase                    | Duration | Focus                        |
-| ------------------------ | -------- | ---------------------------- |
-| Initial Assessment       | 10 min   | Scope, initial posture       |
-| Stakeholder Notification | 10 min   | Communication, bridge setup  |
-| Operational Continuity   | 15 min   | Backup procedures            |
-| Information Management   | 15 min   | Data assessment, credentials |
-| First Hour Checkpoint    | 10 min   | Decision review, next steps  |
-
----
-
-## Tech Stack
-
-- **Framework:** Next.js 14 (App Router, static export)
-- **Language:** TypeScript 5.3
-- **Styling:** Tailwind CSS
-- **Testing:** Vitest (109 tests)
-- **Deploy:** GitHub Pages
+| Phase   | Duration  | Focus                                   |
+| ------- | --------- | --------------------------------------- |
+| Declare | 0–10 min  | Confirm incident, initial posture       |
+| Assess  | 10–20 min | Scope impact, map dependencies          |
+| Bridge  | 20–35 min | Stakeholder notification, coordination  |
+| Brief   | 35–50 min | Executive communication, documentation  |
+| Learn   | 50–60 min | First checkpoint, assumption validation |
 
 ---
 
-## Project Structure
+## Documentation
 
-```
-gsoc-decision-ops/
-├── apps/web/                    # Next.js application
-│   └── src/
-│       ├── app/                 # 2 routes: home + scenario
-│       └── lib/                 # Minimal utilities
-├── packages/core/               # Decision-making library
-│   └── src/
-│       ├── decision-log.ts      # Log management
-│       ├── playbooks/           # Response frameworks
-│       ├── scenarios/           # Synthetic scenarios
-│       ├── export.ts            # Report generation
-│       └── types.ts             # Type definitions
-└── examples/                    # Sample exports
-```
+| Document                           | Purpose                                            |
+| ---------------------------------- | -------------------------------------------------- |
+| [PRD 1.1](docs/PRD.md)             | Product definition, invariants, release gates      |
+| [TRAINING](docs/TRAINING.md)       | Pedagogy: Klein RPD, military AAR, ESRM principles |
+| [ENGINEERING](docs/ENGINEERING.md) | Technical approach and decisions                   |
+| [CONTRIBUTING](CONTRIBUTING.md)    | Contribution guidelines                            |
+| [SECURITY](SECURITY.md)            | Security policy                                    |
 
 ---
 
 ## Author
 
-**Shannon Brown**  
-GSOC Manager | Harvard ALM/ALB | CompTIA CySA+
-
-This project demonstrates structured operational decision-making methodology for corporate security operations.
+**Shannon Brown** — GSOC Manager · Harvard ALM/ALB · CompTIA CySA+
 
 ---
 
 ## License
 
-MIT License — See [LICENSE](LICENSE)
+MIT — See [LICENSE](LICENSE)
