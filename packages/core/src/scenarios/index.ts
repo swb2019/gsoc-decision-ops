@@ -9,6 +9,19 @@ import type { DecisionLog, VendorContext, LearningObjective, ScenarioInject } fr
 import { createDecisionLog } from '../decision-log.js';
 import { generateId } from '../utils.js';
 
+export {
+  FUSED_SCENARIOS,
+  createExecutiveThreatScenario,
+  createSupplyChainScenario,
+  createInsiderThreatScenario,
+  EXECUTIVE_THREAT_ESRM,
+  SUPPLY_CHAIN_ESRM,
+  INSIDER_THREAT_ESRM,
+  type FusedInject,
+  type SecurityDomain,
+  type InjectSource,
+} from './fused-gsoc.js';
+
 /**
  * Scenario 1: Access Control Vendor Ransomware
  *
@@ -344,17 +357,33 @@ export function createAlarmMonitoringOutageScenario(): DecisionLog {
 /**
  * Get all available training scenarios
  */
+import type { ScenarioESRMConfig } from '../esrm.js';
+
 export interface ScenarioInfo {
   id: string;
   name: string;
   description: string;
   severity: string;
   vendorType: string;
+  domains?: ('PHYSICAL' | 'INTELLIGENCE' | 'CYBER')[];
+  esrmConfig?: ScenarioESRMConfig;
   createFn: () => DecisionLog;
 }
 
+import { FUSED_SCENARIOS } from './fused-gsoc.js';
+
 export function getAvailableScenarios(): ScenarioInfo[] {
   return [
+    ...FUSED_SCENARIOS.map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      severity: s.severity,
+      vendorType: s.vendorType,
+      domains: s.domains,
+      esrmConfig: s.esrmConfig,
+      createFn: s.createFn,
+    })),
     {
       id: 'access-control-ransomware',
       name: 'Access Control Vendor Ransomware',

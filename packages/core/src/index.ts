@@ -99,9 +99,16 @@ export {
   createAlarmMonitoringOutageScenario,
   getAvailableScenarios,
   createScenarioById,
+  FUSED_SCENARIOS,
+  createExecutiveThreatScenario,
+  createSupplyChainScenario,
+  createInsiderThreatScenario,
+  EXECUTIVE_THREAT_ESRM,
+  SUPPLY_CHAIN_ESRM,
+  INSIDER_THREAT_ESRM,
 } from './scenarios/index.js';
 
-export type { ScenarioInfo } from './scenarios/index.js';
+export type { ScenarioInfo, FusedInject, SecurityDomain, InjectSource } from './scenarios/index.js';
 
 // Utilities
 export {
@@ -116,6 +123,28 @@ export {
   groupBy,
   countWhere,
 } from './utils.js';
+
+// ESRM Framework
+export {
+  treatmentToPosture,
+  postureToTreatment,
+  calculateESRMScore,
+  EXECUTIVE_THREAT_ASSETS,
+  SUPPLY_CHAIN_ASSETS,
+  INSIDER_THREAT_ASSETS,
+} from './esrm.js';
+
+export type {
+  AssetCriticality,
+  RiskTreatmentOption,
+  ProtectedAsset,
+  AssetOwner,
+  RiskAssessment,
+  ESRMDecisionContext,
+  RiskCommunication,
+  ScenarioESRMConfig,
+  ESRMScorecard,
+} from './esrm.js';
 
 // Validation
 export {
