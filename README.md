@@ -6,17 +6,15 @@ First-hour decision training for corporate security operations leaders.
 [![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-[**Live Demo →**](https://swb2019.github.io/gsoc-decision-ops/)
-
----
-
-> **Portfolio demonstration.** All scenarios are synthetic. This tool trains decision-making methodology — it is not a production system of record.
+[**Play Now →**](https://swb2019.github.io/gsoc-decision-ops/)
 
 ---
 
 ## What
 
-A training tool for practicing structured decision-making during vendor compromises and cyber-adjacent disruptions. Users work through synthetic scenarios, document facts vs. assumptions, record posture decisions (CONTINUE/DEGRADE/PAUSE), follow a 60-minute playbook, and export after-action reports.
+A first-hour decision simulation for GSOC leaders. Practice structured decision-making under time pressure through realistic vendor compromise scenarios. Document facts vs. assumptions, make posture calls (CONTINUE/DEGRADE/PAUSE), follow a 60-minute playbook, and export after-action reports.
+
+_Training simulation — not a production system of record._
 
 ## Why
 
@@ -35,7 +33,7 @@ GSOC managers and security operations leads who want to practice:
 
 ## Foundation
 
-Built on **Resolver-class workflow principles** and **ASIS ESRM risk methodology**:
+Built on **enterprise incident management patterns** and **ASIS ESRM risk methodology**:
 
 | Foundation                  | Application                                               |
 | --------------------------- | --------------------------------------------------------- |
@@ -43,8 +41,6 @@ Built on **Resolver-class workflow principles** and **ASIS ESRM risk methodology
 | Common Operating Picture    | Facts / Assumptions / Unknowns as distinct categories     |
 | ESRM risk framing           | Asset owner owns risk; GSOC advises on residual risk      |
 | Treatment mapping           | CONTINUE (accept) · DEGRADE (mitigate) · PAUSE (avoid)    |
-
-This tool **trains first-hour judgment beside the enterprise suite** — it does not replace Resolver-class incident management or full ESRM programs.
 
 See [TRAINING.md](docs/TRAINING.md) for pedagogy details.
 
@@ -82,7 +78,7 @@ gsoc-decision-ops/
 │       └── lib/           # Client utilities
 ├── packages/core/         # Domain logic library
 │   └── src/
-│       ├── scenarios/     # Synthetic training scenarios
+│       ├── scenarios/     # Training scenarios
 │       ├── playbooks/     # Response frameworks
 │       ├── decision-log.ts
 │       ├── export.ts

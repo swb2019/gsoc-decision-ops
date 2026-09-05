@@ -47,12 +47,12 @@ This product is built on established workflow and risk management principles:
 
 | Layer          | Foundation                              | Application                                                           |
 | -------------- | --------------------------------------- | --------------------------------------------------------------------- |
-| **Workflow**   | Resolver-class incident management      | Decision log, timeline, ownership, escalation cues, COP               |
+| **Workflow**   | Enterprise incident management patterns | Decision log, timeline, ownership, escalation cues, COP               |
 | **Risk**       | ASIS ESRM principles                    | Asset owner owns risk; GSOC = trusted advisor; residual risk explicit |
 | **Pedagogy**   | Klein RPD, military AAR, HSEEP tabletop | Injects, structured debrief, treatment framing                        |
 | **First-Hour** | NIST/CISA incident guidance             | Declare/Assess/Bridge/Brief/Learn phases                              |
 
-**Training wedge position:** This tool trains first-hour judgment _beside_ Resolver-class platforms and ESRM programs — it does not replace them.
+**Training wedge position:** This simulation trains first-hour judgment through realistic scenarios — it complements enterprise incident management and ESRM programs.
 
 ---
 
@@ -60,31 +60,25 @@ This product is built on established workflow and risk management principles:
 
 ### What This Is
 
-A **training wedge** that sits beside Resolver-class ESRM platforms:
+A **simulation game** for practicing first-hour decision-making under pressure:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│            Enterprise Security Stack                   │
-├──────────────┬──────────────────┬─────────────────────┤
-│ SIEM/SOAR    │ ESRM (Resolver)  │ GRC Tools           │
-│ (Detection)  │ (Case Mgmt)      │ (Compliance)        │
-├──────────────┴──────────────────┴─────────────────────┤
-│  ┌──────────────────────────────────────────┐         │
-│  │  GSOC Decision Ops                       │ ◄ WEDGE │
-│  │  (First-Hour Decision TRAINING)          │         │
-│  └──────────────────────────────────────────┘         │
+│             GSOC Decision Ops Simulation               │
+├────────────────────────────────────────────────────────┤
+│  Briefing → Live Inject Clock → Decision Under         │
+│  Pressure → Consequence Feedback → Debrief/AAR         │
 └────────────────────────────────────────────────────────┘
 ```
 
 ### What This Is NOT
 
-| NOT This             | Because                                                                           |
-| -------------------- | --------------------------------------------------------------------------------- |
-| Resolver replacement | Trains beside Resolver-class tools, does not replicate case management            |
-| Full ESRM suite      | Teaches ESRM principles; does not provide assessments, integrations, or reporting |
-| Production SIEM      | No log ingestion, no threat detection                                             |
-| Enterprise SaaS      | No auth, no billing, no multi-tenant                                              |
-| Job application      | Portfolio demo, not "hire me" plea                                                |
+| NOT This                   | Because                                                                           |
+| -------------------------- | --------------------------------------------------------------------------------- |
+| Production incident system | Simulation for training; not a system of record                                   |
+| Full ESRM suite            | Teaches ESRM principles; does not provide assessments, integrations, or reporting |
+| Production SIEM            | No log ingestion, no threat detection                                             |
+| Enterprise SaaS            | No auth, no billing, no multi-tenant                                              |
 
 ---
 
@@ -100,15 +94,15 @@ A **training wedge** that sits beside Resolver-class ESRM platforms:
 
 ### Jobs to Be Done
 
-| JTBD                             | Success Criteria                             |
-| -------------------------------- | -------------------------------------------- |
-| Practice first-hour judgment     | Complete scenario in < 5 min                 |
-| Separate facts from assumptions  | Document both with metadata                  |
-| Make defensible posture calls    | Record CONTINUE/DEGRADE/PAUSE with rationale |
-| Follow structured playbook       | Complete checklist phases                    |
-| Generate after-action docs       | Export in < 2 min                            |
-| Frame risk in ESRM terms         | Decisions capture residual risk, asset owner |
-| Train alongside enterprise tools | Language/workflow familiar to Resolver users |
+| JTBD                             | Success Criteria                               |
+| -------------------------------- | ---------------------------------------------- |
+| Practice first-hour judgment     | Complete scenario in < 5 min                   |
+| Separate facts from assumptions  | Document both with metadata                    |
+| Make defensible posture calls    | Record CONTINUE/DEGRADE/PAUSE with rationale   |
+| Follow structured playbook       | Complete checklist phases                      |
+| Generate after-action docs       | Export in < 2 min                              |
+| Frame risk in ESRM terms         | Decisions capture residual risk, asset owner   |
+| Train alongside enterprise tools | Language/workflow familiar to enterprise users |
 
 ---
 
@@ -154,12 +148,12 @@ The following 12 invariants must **always** hold. Any PR violating an invariant 
 
 ### Truthfulness Locks
 
-| ID         | Invariant                                             | Violation Example                                             |
-| ---------- | ----------------------------------------------------- | ------------------------------------------------------------- |
-| **INV-01** | All scenarios are explicitly synthetic                | Implying real vendor data                                     |
-| **INV-02** | Demo badge visible; "trains beside, does not replace" | Hiding portfolio nature or implying Resolver/ESRM replacement |
-| **INV-03** | Training banner on scenario workspace                 | Implying production use                                       |
-| **INV-04** | Export includes training watermark                    | Clean exports that look official                              |
+| ID         | Invariant                                            | Violation Example                             |
+| ---------- | ---------------------------------------------------- | --------------------------------------------- |
+| **INV-01** | All scenarios are training simulations               | Implying real vendor data                     |
+| **INV-02** | Quiet honesty: subtle footer/chip indicates training | Loud distracting banners that break immersion |
+| **INV-03** | Simulation framing clear without wall of disclaimers | Production UI that implies system of record   |
+| **INV-04** | Export includes training watermark                   | Clean exports that look official              |
 
 ### Anti-Theater Locks
 
@@ -255,13 +249,13 @@ THEN I can enter a decision
 VERIFY: clicks from home to decision form = 2
 ```
 
-### P0-09: Demo Visibility
+### P0-09: Quiet Honesty
 
 ```gherkin
 GIVEN I am on any page
-THEN demo/portfolio indicator is visible
-  - Home: "Portfolio Demo" badge
-  - Scenario: "Training Mode" banner
+THEN training nature is clear but not distracting
+  - Subtle footer or chip indicates simulation
+  - No loud banners breaking immersion
 ```
 
 ### P0-10: Static Build
@@ -317,18 +311,18 @@ Before merge to `main` or deploy to Pages, **all** gates must pass:
 
 ### Manual Gates (PR Review)
 
-| Gate                      | Verification                           |
-| ------------------------- | -------------------------------------- |
-| ☐ PRD present             | `docs/PRD.md` exists, version ≥ 1.1    |
-| ☐ PRD linked              | README references PRD                  |
-| ☐ No auth added           | No sign-in/sign-up routes              |
-| ☐ No pricing added        | No /pricing or tier UI                 |
-| ☐ No SaaS theater         | No team/settings/billing/org UI        |
-| ☐ Demo badge visible      | Home page shows portfolio indicator    |
-| ☐ Training banner visible | Scenario page shows training mode      |
-| ☐ 2-click path works      | Home → Scenario → Decision in 2 clicks |
-| ☐ Mobile works            | Core loop on 375px viewport            |
-| ☐ Invariants respected    | All 12 invariants verified             |
+| Gate                     | Verification                           |
+| ------------------------ | -------------------------------------- |
+| ☐ PRD present            | `docs/PRD.md` exists, version ≥ 1.1    |
+| ☐ PRD linked             | README references PRD                  |
+| ☐ No auth added          | No sign-in/sign-up routes              |
+| ☐ No pricing added       | No /pricing or tier UI                 |
+| ☐ No SaaS theater        | No team/settings/billing/org UI        |
+| ☐ Quiet honesty present  | Subtle training indicator visible      |
+| ☐ No distracting banners | Immersion not broken by disclaimers    |
+| ☐ 2-click path works     | Home → Scenario → Decision in 2 clicks |
+| ☐ Mobile works           | Core loop on 375px viewport            |
+| ☐ Invariants respected   | All 12 invariants verified             |
 
 ---
 
@@ -364,11 +358,11 @@ Ways this product could mislead employers, with explicit mitigations:
 
 ### Threat 9.4: Overclaiming Credentials
 
-| Attack Vector           | Misleading Because        | Mitigation                                |
-| ----------------------- | ------------------------- | ----------------------------------------- |
-| Inflated tenure         | "10 years SOC" when false | **INV-12** requires factual only          |
-| Fake certs              | Listing certs not held    | **INV-12** requires factual only          |
-| "Built enterprise SIEM" | Demo ≠ production system  | **INV-02, INV-03** make demo nature clear |
+| Attack Vector           | Misleading Because             | Mitigation                                    |
+| ----------------------- | ------------------------------ | --------------------------------------------- |
+| Inflated tenure         | "10 years SOC" when false      | **INV-12** requires factual only              |
+| Fake certs              | Listing certs not held         | **INV-12** requires factual only              |
+| "Built enterprise SIEM" | Simulation ≠ production system | **INV-02, INV-03** make training nature clear |
 
 ### Threat 9.5: Job-Hunt Pollution
 
@@ -382,7 +376,7 @@ Ways this product could mislead employers, with explicit mitigations:
 
 | Attack Vector      | Misleading Because           | Mitigation                                 |
 | ------------------ | ---------------------------- | ------------------------------------------ |
-| Overly polished UI | "This must be real"          | **INV-02, INV-03** always show demo status |
+| Overly polished UI | "This must be real"          | **INV-02, INV-03** quiet honesty indicator |
 | Clean exports      | Look like real incident docs | **INV-04** requires training watermark     |
 | Custom domain      | Implies real product         | Use github.io subdomain                    |
 
@@ -392,15 +386,15 @@ Ways this product could mislead employers, with explicit mitigations:
 
 Features that are **closed by default** — require explicit PRD amendment to open:
 
-| Feature                            | Default | Rationale                     | Open Condition                              |
-| ---------------------------------- | ------- | ----------------------------- | ------------------------------------------- |
-| Resolver-class incident management | CLOSED  | Training only, not production | Never (invariant)                           |
-| Phase timer / countdown mode       | CLOSED  | Adds complexity               | PRD 1.2+ with user research                 |
-| "Featured" badge on scenarios      | CLOSED  | Wait until UI SOTA ships      | After UI SOTA merged, demo-appropriate only |
-| Local storage persistence          | CLOSED  | Adds state complexity         | PRD 1.2+ if training value proven           |
-| Custom scenario builder            | CLOSED  | Scope creep risk              | PRD 2.0+                                    |
-| Keyboard shortcuts                 | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
-| Print stylesheet                   | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
+| Feature                        | Default | Rationale                     | Open Condition                              |
+| ------------------------------ | ------- | ----------------------------- | ------------------------------------------- |
+| Production incident management | CLOSED  | Training only, not production | Never (invariant)                           |
+| Phase timer / countdown mode   | OPEN    | Core to simulation pressure   | Implemented in 1.2                          |
+| "Featured" badge on scenarios  | CLOSED  | Wait until UI SOTA ships      | After UI SOTA merged, demo-appropriate only |
+| Local storage persistence      | CLOSED  | Adds state complexity         | PRD 1.2+ if training value proven           |
+| Custom scenario builder        | CLOSED  | Scope creep risk              | PRD 2.0+                                    |
+| Keyboard shortcuts             | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
+| Print stylesheet               | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
 
 ---
 
@@ -513,25 +507,25 @@ The following are **permanently out of scope** per invariants:
 
 ## §15 Glossary
 
-| Term               | Definition                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **GSOC**           | Global Security Operations Center                                                                                                     |
-| **ESRM**           | Enterprise Security Risk Management — ASIS International framework where asset owners own risk and security serves as trusted advisor |
-| **Residual Risk**  | Risk remaining after treatment (accept/mitigate/transfer/avoid); must be explicit in decisions                                        |
-| **Asset Owner**    | Business stakeholder who owns the risk; GSOC advises, asset owner decides                                                             |
-| **Resolver-class** | Category of enterprise ESRM platforms (Resolver, etc.) providing incident lifecycle management                                        |
-| **Posture**        | Operational stance: CONTINUE (accept), DEGRADE (mitigate), or PAUSE (avoid)                                                           |
-| **Treatment**      | Risk response: accept, mitigate, transfer, or avoid — maps to postures                                                                |
-| **Wedge**          | Market entry that complements rather than competes                                                                                    |
-| **SaaS Theater**   | Non-functional features simulating enterprise software                                                                                |
-| **Invariant**      | Rule that must always hold; violation = PR rejection                                                                                  |
-| **Closed Default** | Feature disabled until explicit PRD amendment                                                                                         |
-| **RACI**           | Responsibility matrix: Responsible, Accountable, Consulted, Informed                                                                  |
-| **P0**             | Priority 0 (must-have for release)                                                                                                    |
-| **SOTA**           | State of the Art                                                                                                                      |
-| **COP**            | Common Operating Picture — shared situational awareness across stakeholders                                                           |
-| **RPD**            | Recognition-Primed Decision — Klein's naturalistic decision-making model                                                              |
-| **AAR**            | After-Action Review — structured debrief: intended vs actual, sustains, improves                                                      |
+| Term                | Definition                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **GSOC**            | Global Security Operations Center                                                                                                     |
+| **ESRM**            | Enterprise Security Risk Management — ASIS International framework where asset owners own risk and security serves as trusted advisor |
+| **Residual Risk**   | Risk remaining after treatment (accept/mitigate/transfer/avoid); must be explicit in decisions                                        |
+| **Asset Owner**     | Business stakeholder who owns the risk; GSOC advises, asset owner decides                                                             |
+| **Enterprise ESRM** | Category of enterprise platforms providing incident lifecycle management                                                              |
+| **Posture**         | Operational stance: CONTINUE (accept), DEGRADE (mitigate), or PAUSE (avoid)                                                           |
+| **Treatment**       | Risk response: accept, mitigate, transfer, or avoid — maps to postures                                                                |
+| **Wedge**           | Market entry that complements rather than competes                                                                                    |
+| **SaaS Theater**    | Non-functional features simulating enterprise software                                                                                |
+| **Invariant**       | Rule that must always hold; violation = PR rejection                                                                                  |
+| **Closed Default**  | Feature disabled until explicit PRD amendment                                                                                         |
+| **RACI**            | Responsibility matrix: Responsible, Accountable, Consulted, Informed                                                                  |
+| **P0**              | Priority 0 (must-have for release)                                                                                                    |
+| **SOTA**            | State of the Art                                                                                                                      |
+| **COP**             | Common Operating Picture — shared situational awareness across stakeholders                                                           |
+| **RPD**             | Recognition-Primed Decision — Klein's naturalistic decision-making model                                                              |
+| **AAR**             | After-Action Review — structured debrief: intended vs actual, sustains, improves                                                      |
 
 ---
 

@@ -2,7 +2,7 @@
   "id": "AAR_m3k7p9_x2f4h1",
   "generatedAt": "2026-09-05T14:30:00.000Z",
   "decisionLogId": "DL_m3k7n8_q9w2e3",
-  "executiveSummary": "On September 5, 2026, a HIGH severity incident was detected: \"Access Control Vendor Ransomware Incident\". The incident involved SecureAccess Solutions (FICTIONAL) (Physical Access Control System Provider), affecting 4 service(s). Over 1 hour 12 minutes, the response team made 3 documented decisions (1 CONTINUE, 1 DEGRADE, 1 PAUSE). The team tracked 5 facts, 3 assumptions, and 4 unknowns. Current status: MONITORING.",
+  "executiveSummary": "On September 5, 2026, a HIGH severity incident was detected: \"Access Control Vendor Ransomware Incident\". The incident involved SecureAccess Solutions (Physical Access Control System Provider), affecting 4 service(s). Over 1 hour 12 minutes, the response team made 3 documented decisions (1 CONTINUE, 1 DEGRADE, 1 PAUSE). The team tracked 5 facts, 3 assumptions, and 4 unknowns. Current status: MONITORING.",
   "incidentOverview": {
     "title": "Access Control Vendor Ransomware Incident",
     "duration": "1 hour 12 minutes",

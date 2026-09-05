@@ -1,8 +1,7 @@
 /**
- * GSOC Decision Ops - Demo Data
+ * GSOC Decision Ops - Training Data
  *
- * Minimal synthetic data for portfolio demonstration.
- * All data is fictional and for training purposes.
+ * Sample data for the training simulation.
  */
 
 export const DEMO_USER = {

@@ -4,11 +4,11 @@
 **Generated:** September 5, 2026, 14:30 UTC
 **Decision Log ID:** DL_m3k7n8_q9w2e3
 
-> ⚠️ **EXERCISE/TRAINING SCENARIO** - This report documents a synthetic scenario for training purposes.
+> **TRAINING EXERCISE** - This report documents a training scenario.
 
 ## Executive Summary
 
-On September 5, 2026, a HIGH severity incident was detected: "Access Control Vendor Ransomware Incident". The incident involved SecureAccess Solutions (FICTIONAL) (Physical Access Control System Provider), affecting 4 service(s). Over 1 hour 12 minutes, the response team made 3 documented decisions (1 CONTINUE, 1 DEGRADE, 1 PAUSE). The team tracked 5 facts, 3 assumptions, and 4 unknowns. Current status: MONITORING.
+On September 5, 2026, a HIGH severity incident was detected: "Access Control Vendor Ransomware Incident". The incident involved SecureAccess Solutions (Physical Access Control System Provider), affecting 4 service(s). Over 1 hour 12 minutes, the response team made 3 documented decisions (1 CONTINUE, 1 DEGRADE, 1 PAUSE). The team tracked 5 facts, 3 assumptions, and 4 unknowns. Current status: MONITORING.
 
 ## Incident Overview
 
@@ -24,7 +24,7 @@ On September 5, 2026, a HIGH severity incident was detected: "Access Control Ven
 
 | Property          | Value                                                                                                                   |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Vendor            | SecureAccess Solutions (FICTIONAL)                                                                                      |
+| Vendor            | SecureAccess Solutions                                                                                                  |
 | Type              | Physical Access Control System Provider                                                                                 |
 | Services Affected | Badge credential management, Access control panel communications, Mobile credential app, Visitor management integration |
 | SLA Requirements  | 99.9% uptime, 4-hour response for critical issues                                                                       |
@@ -32,7 +32,7 @@ On September 5, 2026, a HIGH severity incident was detected: "Access Control Ven
 ## Incident Timeline
 
 - **09:15:32** [DETECTION] Incident Detected
-  - Vendor (SecureAccess Solutions - FICTIONAL) has notified us of a ransomware attack affecting their cloud infrastructure.
+  - SecureAccess Solutions has notified us of a ransomware attack affecting their cloud infrastructure.
 - **09:18:45** [UPDATE] Fact Recorded
   - New fact: Vendor confirmed ransomware attack on their cloud infrastructure
 - **09:22:10** [DECISION] Decision: Continue badge reader operations
