@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import {
   Shield,
   ArrowLeft,
@@ -973,14 +973,14 @@ function AddFactForm({
         type="text"
         placeholder="Fact description..."
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
         className="input text-sm"
       />
       <input
         type="text"
         placeholder="Source..."
         value={source}
-        onChange={(e) => setSource(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setSource(e.target.value)}
         className="input text-sm"
       />
       <div className="flex justify-end gap-2">
@@ -1016,21 +1016,21 @@ function AddAssumptionForm({
         type="text"
         placeholder="Assumption..."
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
         className="input text-sm"
       />
       <input
         type="text"
         placeholder="Basis for assumption..."
         value={basis}
-        onChange={(e) => setBasis(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setBasis(e.target.value)}
         className="input text-sm"
       />
       <input
         type="text"
         placeholder="Risk if wrong..."
         value={riskIfWrong}
-        onChange={(e) => setRiskIfWrong(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setRiskIfWrong(e.target.value)}
         className="input text-sm"
       />
       <div className="flex justify-end gap-2">
@@ -1065,12 +1065,14 @@ function AddUnknownForm({
         type="text"
         placeholder="What do we need to know?"
         value={question}
-        onChange={(e) => setQuestion(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setQuestion(e.target.value)}
         className="input text-sm"
       />
       <select
         value={priority}
-        onChange={(e) => setPriority(e.target.value as typeof priority)}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+          setPriority(e.target.value as typeof priority)
+        }
         className="input text-sm"
       >
         <option value="CRITICAL">Critical</option>
@@ -1115,19 +1117,21 @@ function AddActionForm({
         type="text"
         placeholder="Action description..."
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
         className="input text-sm"
       />
       <input
         type="text"
         placeholder="Owner..."
         value={owner}
-        onChange={(e) => setOwner(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setOwner(e.target.value)}
         className="input text-sm"
       />
       <select
         value={priority}
-        onChange={(e) => setPriority(e.target.value as typeof priority)}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+          setPriority(e.target.value as typeof priority)
+        }
         className="input text-sm"
       >
         <option value="CRITICAL">Critical</option>
@@ -1176,7 +1180,7 @@ function AddDecisionForm({
           type="text"
           placeholder="Brief title for the decision..."
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
           className="input"
         />
       </div>
@@ -1208,7 +1212,7 @@ function AddDecisionForm({
         <textarea
           placeholder="What is being decided and what operations are affected..."
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
           rows={3}
           className="input resize-none"
         />
@@ -1218,7 +1222,7 @@ function AddDecisionForm({
         <textarea
           placeholder="Why this decision is being made at this time..."
           value={rationale}
-          onChange={(e) => setRationale(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setRationale(e.target.value)}
           rows={3}
           className="input resize-none"
         />
