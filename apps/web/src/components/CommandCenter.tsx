@@ -736,25 +736,31 @@ function useSoundEffects(
   enabled: boolean,
   reducedMotion: boolean
 ): { playSound: (soundType: keyof typeof SOUND_EFFECTS) => void } {
-  const audioContextRef = useRef<AudioContext | null>(null);
+  useEffect(() => {
+    initAudio();
+    loadAudioConfig();
+  }, []);
+
+  useEffect(() => {
+    saveAudioConfig({ enabled });
+  }, [enabled]);
 
   const playSound = useCallback(
     (soundType: keyof typeof SOUND_EFFECTS): void => {
       if (!enabled || reducedMotion) return;
 
-      try {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new (
-            window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-          )();
-        }
+      const sfxMap: Record<string, Parameters<typeof playSFX>[0]> = {
+        injectArrive: 'injectArrive',
+        decisionConfirm: 'correctDecision',
+        escalation: 'warning',
+        error: 'error',
+        tick: 'timerTick',
+        microTaskComplete: 'microTask',
+      };
 
-        const audio = new Audio(SOUND_EFFECTS[soundType]);
-        audio.volume = 0.3;
-        audio.play().catch(() => {});
-      } catch {
-        // Silently fail if audio not supported
+      const sfxType = sfxMap[soundType];
+      if (sfxType) {
+        playSFX(sfxType);
       }
     },
     [enabled, reducedMotion]
@@ -1006,6 +1012,15 @@ import { TeamPanel, StakeholderPanel } from './TeamStakeholderPanel';
 import { completeScenario } from '../lib/campaign';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { playSFX, initAudio, loadAudioConfig, saveAudioConfig } from '../lib/audio';
+import {
+  loadFieldGuideConfig,
+  saveSeenTip,
+  hasSeenTip,
+  areTipsEnabled,
+  setTipsEnabled,
+  getTip,
+} from '../lib/field-guide';
 
 type SecurityDomain = 'PHYSICAL' | 'INTELLIGENCE' | 'CYBER';
 type MobileTab = 'intel' | 'decision' | 'cop';
@@ -1217,6 +1232,8 @@ export default function CommandCenter({
   const [mobileTab, setMobileTab] = useState<MobileTab>('intel');
   const [showFieldGuide, setShowFieldGuide] = useState(false);
   const [showCoachMarks, setShowCoachMarks] = useState(true);
+  const [activeFieldGuideTip, setActiveFieldGuideTip] = useState<string | null>(null);
+  const [fieldGuideTipsEnabled, setFieldGuideTipsEnabled] = useState(true);
   const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>(
     'ACTIVITY'
   );
@@ -1270,6 +1287,11 @@ export default function CommandCenter({
   const [selectedResidualRisk, setSelectedResidualRisk] = useState<string | null>(null);
   const [treatmentBonusGiven, setTreatmentBonusGiven] = useState(false);
 
+  // Initialize field guide config on mount
+  useEffect(() => {
+    loadFieldGuideConfig();
+  }, []);
+
   // Handler for treatment category selection with bonus time
   const handleTreatmentCategorySelect = useCallback(
     (category: 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | null) => {
@@ -1280,8 +1302,12 @@ export default function CommandCenter({
         );
         setTreatmentBonusGiven(true);
       }
+      // Trigger JIT field guide tip for treatment category
+      if (category && fieldGuideTipsEnabled && !hasSeenTip(category)) {
+        setActiveFieldGuideTip(category);
+      }
     },
-    [treatmentBonusGiven, pendingDecision]
+    [treatmentBonusGiven, pendingDecision, fieldGuideTipsEnabled]
   );
 
   // Mobile menu button ref for portal positioning
@@ -1649,7 +1675,12 @@ export default function CommandCenter({
             setUrgentPulse(true);
             setTimeout(() => setUrgentPulse(false), 500);
           }
+          // Play urgent timer SFX when time is low
+          if (t <= 10 && t > 0) {
+            playSFX('timerUrgent');
+          }
           if (t <= 0) {
+            playSFX('error');
             handleTimeoutDecision();
             return 0;
           }
@@ -1680,6 +1711,9 @@ export default function CommandCenter({
         processedInjectsRef.current.add(inject.id);
         setLog(revealInject(log, inject.id));
         setLastInjectTime(elapsedSeconds);
+
+        // Play inject arrival SFX
+        playSFX('injectArrive');
 
         triggerInjectAlert(inject);
 
@@ -2123,6 +2157,9 @@ export default function CommandCenter({
     ).resourcesRequired;
     if (!required) return;
 
+    // Play tactical deploy SFX
+    playSFX('tacticalDeploy');
+
     setDispatchResources((prev) => ({
       guards: {
         ...prev.guards,
@@ -2381,6 +2418,21 @@ export default function CommandCenter({
       const totalPoints = scoringResult.totalPoints;
       const newStreak = scoringResult.newStreak;
       const isCorrect = scoringResult.isCorrect;
+
+      // Play SFX based on decision outcome
+      if (isCorrect) {
+        playSFX('correctDecision');
+        if (newStreak >= 3) {
+          setTimeout(() => playSFX('streakBonus'), 300);
+        }
+      } else {
+        playSFX('wrongDecision');
+      }
+
+      // Score up sound for positive points
+      if (totalPoints > 0) {
+        setTimeout(() => playSFX('scoreUp'), 150);
+      }
 
       // Trigger ESRM cascade effect for PAUSE decisions
       if (posture === 'PAUSE') {
@@ -2912,6 +2964,25 @@ export default function CommandCenter({
               title={ambientMusicEnabled ? 'Ambient music on' : 'Ambient music off'}
             >
               <Music className="w-5 h-5" />
+            </button>
+
+            {/* Field Guide Tips toggle */}
+            <button
+              onClick={() => {
+                const newValue = !fieldGuideTipsEnabled;
+                setFieldGuideTipsEnabled(newValue);
+                setTipsEnabled(newValue);
+              }}
+              className={clsx(
+                'flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
+                fieldGuideTipsEnabled
+                  ? 'text-cyan-400 bg-cyan-500/20 hover:bg-cyan-500/30'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
+              )}
+              aria-label={fieldGuideTipsEnabled ? 'Disable JIT tips' : 'Enable JIT tips'}
+              title={fieldGuideTipsEnabled ? 'Field Guide tips on' : 'Field Guide tips off'}
+            >
+              <HelpCircle className="w-5 h-5" />
             </button>
 
             {/* Escalation Level Indicator - hidden on small mobile */}
@@ -3986,6 +4057,11 @@ export default function CommandCenter({
             <div className="text-sm font-medium mt-1">{showScorePopup.message}</div>
           </div>
         </div>
+      )}
+
+      {/* Field Guide JIT Tip */}
+      {activeFieldGuideTip && (
+        <FieldGuideTip term={activeFieldGuideTip} onDismiss={() => setActiveFieldGuideTip(null)} />
       )}
 
       {/* Debrief Modal */}
@@ -5297,6 +5373,70 @@ function IdleState({
         <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4 animate-pulse" />
         <h2 className="text-lg font-medium text-gray-400">Monitoring for new intel...</h2>
         <p className="text-sm text-gray-600 mt-2">{decisions.length} decisions logged</p>
+      </div>
+    </div>
+  );
+}
+
+function FieldGuideTip({
+  term,
+  onDismiss,
+}: {
+  term: string;
+  onDismiss: () => void;
+}): JSX.Element | null {
+  const tip = getTip(term);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (tip && !hasSeenTip(term)) {
+      saveSeenTip(term);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        onDismiss();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [term, tip, onDismiss]);
+
+  if (!tip || !visible || !areTipsEnabled()) return null;
+
+  const categoryColors = {
+    treatment: 'border-emerald-500/50 bg-emerald-500/10',
+    metric: 'border-blue-500/50 bg-blue-500/10',
+    process: 'border-amber-500/50 bg-amber-500/10',
+    role: 'border-violet-500/50 bg-violet-500/10',
+  };
+
+  return (
+    <div
+      className={clsx(
+        'fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] max-w-sm p-4 rounded-2xl border shadow-2xl backdrop-blur-xl animate-scale-in',
+        categoryColors[tip.category]
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-lg bg-gray-800/50 flex items-center justify-center flex-shrink-0">
+          <BookOpen className="w-4 h-4 text-gray-300" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-bold text-white">{tip.term}</span>
+            <span className="text-2xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400 uppercase">
+              {tip.category}
+            </span>
+          </div>
+          <p className="text-xs text-gray-300 leading-relaxed">{tip.shortTip}</p>
+        </div>
+        <button
+          onClick={() => {
+            setVisible(false);
+            onDismiss();
+          }}
+          className="p-1 rounded-lg hover:bg-gray-700/50 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
