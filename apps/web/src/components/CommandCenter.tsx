@@ -3115,21 +3115,6 @@ export default function CommandCenter({
               </button>
             </div>
 
-            {/* Ambient Music Toggle */}
-            <button
-              onClick={handleAmbientMusicToggle}
-              className={clsx(
-                'hidden sm:flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
-                ambientMusicEnabled && isMusicPlaying
-                  ? 'text-violet-400 hover:text-violet-300 hover:bg-violet-500/10'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
-              )}
-              aria-label={ambientMusicEnabled ? 'Disable ambient music' : 'Enable ambient music'}
-              title={ambientMusicEnabled ? 'Ambient music on' : 'Ambient music off'}
-            >
-              <Music className="w-5 h-5" />
-            </button>
-
             {/* Mobile overflow menu button */}
             <div className="lg:hidden flex-shrink-0">
               <button
