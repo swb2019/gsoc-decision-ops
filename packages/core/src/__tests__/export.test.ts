@@ -91,7 +91,7 @@ describe('Export', () => {
       const report = generateAfterActionReport(log);
       const markdown = exportToMarkdown(report);
 
-      expect(markdown).toContain('EXERCISE/TRAINING SCENARIO');
+      expect(markdown).toContain('TRAINING EXERCISE');
     });
 
     it('should include vendor context when present', () => {

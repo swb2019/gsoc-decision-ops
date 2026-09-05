@@ -5,6 +5,9 @@
  * a critical vendor experiences a security incident or operational
  * disruption that may impact physical security operations.
  *
+ * Built on Resolver-class workflow principles and ASIS ESRM methodology.
+ * GSOC serves as trusted advisor to asset owners; asset owners own the risk.
+ *
  * GOVERNANCE NOTE: This playbook represents a training framework for
  * educational and exercise purposes. Actual incident response should
  * follow your organization's established procedures and policies.
@@ -46,7 +49,9 @@ export const vendorCompromisePlaybook: Playbook = {
   name: 'Vendor Compromise First-Hour Response',
   version: '1.0.0',
   description:
-    'Structured first-hour response for corporate GSOC when a critical vendor experiences a security incident or operational disruption. Focuses on maintaining security operations continuity while supporting enterprise incident response.',
+    'Structured first-hour response for corporate GSOC when a critical vendor experiences a security incident. ' +
+    'Built on ESRM principles: asset owners own the risk; GSOC advises on residual risk and compensating controls. ' +
+    'Phases: Declare → Assess → Bridge → Brief → Learn.',
   applicableScenarios: [
     'Vendor announces security breach',
     'Vendor system unavailability with suspected security cause',
@@ -122,49 +127,67 @@ export const vendorCompromisePlaybook: Playbook = {
       ],
     },
 
-    // Phase 2: Stakeholder Notification (10-20 minutes)
+    // Phase 2: Bridge & Coordination (10-20 minutes)
     {
       id: 'PHASE_2_NOTIFICATION',
-      name: 'Stakeholder Notification',
+      name: 'Bridge & Coordination',
       description:
-        'Notify key stakeholders based on impact assessment. Establish communication channels and bridge schedule.',
+        'Establish joint bridge with stakeholders. GSOC coordinates but does not own all decisions — ' +
+        'asset owners (Facilities, IT, Business Units) own their risk. Frame GSOC role as trusted advisor.',
       durationMinutes: 10,
       objectives: [
-        'Notify required internal stakeholders',
-        'Establish communication with vendor (if not already)',
-        'Set up incident bridge/war room',
-        'Coordinate with IT Security/CISO team',
+        'Establish joint bridge with required stakeholders',
+        'Clarify decision authority (who owns which risk)',
+        'Set communication cadence',
+        'Coordinate with IT Security on technical response',
       ],
       keyQuestions: [
-        'Who needs to know about this incident and at what detail level?',
-        'Is IT Security already engaged? Do they have the lead?',
-        'What is our communication protocol with the vendor?',
-        'Who is our executive sponsor for this incident?',
+        'Who is the asset owner for affected systems?',
+        'Is IT Security leading technical response? What do they need from GSOC?',
+        'What is the vendor communication protocol?',
+        'What is the executive briefing requirement?',
         'What is the bridge call cadence?',
       ],
       checklistItems: [
-        createChecklistItem('Notify Corporate Security leadership', true, 'GSOC Manager'),
-        createChecklistItem('Coordinate with IT Security/CISO team', true, 'GSOC Manager'),
         createChecklistItem(
-          'Establish contact with vendor account team',
+          'GSOC ↔ IT Security: Confirm technical lead, share COP',
+          true,
+          'GSOC Manager'
+        ),
+        createChecklistItem(
+          'GSOC ↔ Facilities: Building systems status, backup procedures',
+          true,
+          'GSOC Supervisor'
+        ),
+        createChecklistItem(
+          'GSOC ↔ Communications: Internal messaging plan, executive brief schedule',
+          false,
+          'GSOC Manager'
+        ),
+        createChecklistItem(
+          'GSOC ↔ Legal/Compliance: Regulatory notification triggers',
+          false,
+          'GSOC Manager'
+        ),
+        createChecklistItem(
+          'GSOC ↔ Vendor: Account team contact, status update schedule',
           true,
           'GSOC Administrator'
         ),
         createChecklistItem('Set up incident bridge line', true, 'GSOC Supervisor'),
-        createChecklistItem('Notify affected site/regional security teams', true, 'GSOC Manager'),
-        createChecklistItem(
-          'Notify Facilities Management if building systems affected',
-          false,
-          'GSOC Supervisor'
-        ),
+        createChecklistItem('Identify asset owners for each affected system', true, 'GSOC Manager'),
         createChecklistItem('Document stakeholder notification times', true, 'GSOC Administrator'),
-        createChecklistItem('Establish bridge call schedule', true, 'GSOC Manager'),
-        createChecklistItem('Confirm executive briefing requirements', false, 'GSOC Manager'),
+        createChecklistItem(
+          'Establish bridge call schedule (recommend 30-min cadence)',
+          true,
+          'GSOC Manager'
+        ),
       ],
       escalationTriggers: [
         'Unable to reach vendor contacts',
         'IT Security requests immediate GSOC action',
         'Executive briefing required within the hour',
+        'Asset owner unavailable for risk decision',
       ],
     },
 
@@ -340,12 +363,13 @@ export const vendorCompromisePlaybook: Playbook = {
   ],
 
   governanceNotes: [
-    "This playbook is a training and exercise framework. Actual incidents should follow your organization's established incident response procedures.",
-    'Decision authority must be clearly established. This playbook assumes GSOC Manager has authority for operational decisions; enterprise security decisions may require CISO/CSO approval.',
-    'All decisions should be documented with timestamp, decision owner, and rationale for audit and after-action purposes.',
-    'Human-in-the-loop governance is essential. Automated systems should support but not replace human judgment in incident response.',
-    'Coordinate closely with IT Security - they likely have the technical lead; GSOC provides operational continuity and physical security perspective.',
-    'Vendor relationships are long-term. Balance urgent response with maintaining productive vendor partnership.',
+    "TRAINING ONLY: This playbook is an exercise framework. Actual incidents should follow your organization's established procedures.",
+    'ESRM PRINCIPLE: Asset owners own the risk. GSOC advises on residual risk and compensating controls; asset owners approve posture changes affecting their operations.',
+    'DECISION AUTHORITY: GSOC Manager has authority for GSOC operational decisions. Enterprise-wide decisions require CISO/CSO or asset owner approval.',
+    'DOCUMENTATION: All decisions must capture timestamp, owner, rationale, and residual risk for audit and AAR purposes.',
+    'HUMAN JUDGMENT: Automated systems support but do not replace human decision-making. GSOC serves as trusted advisor, not autonomous controller.',
+    'IT COORDINATION: IT Security typically leads technical investigation. GSOC provides operational continuity and physical security perspective.',
+    'VENDOR RELATIONSHIPS: Balance urgent response with maintaining productive long-term vendor partnership.',
   ],
 };
 

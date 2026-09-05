@@ -19,6 +19,10 @@ import type {
   DecisionPosture,
   ConfidenceLevel,
   VendorContext,
+  LearningObjective,
+  ScenarioInject,
+  RPDPrompts,
+  ESRMRiskFraming,
 } from './types.js';
 import { generateId, now, countWhere } from './utils.js';
 
@@ -36,6 +40,8 @@ export interface CreateDecisionLogConfig {
   exerciseMode?: boolean;
   syntheticScenario?: boolean;
   vendorContext?: VendorContext;
+  learningObjective?: LearningObjective;
+  injects?: ScenarioInject[];
 }
 
 /**
@@ -62,6 +68,8 @@ export function createDecisionLog(config: CreateDecisionLogConfig): DecisionLog 
     },
 
     vendorContext: config.vendorContext,
+    learningObjective: config.learningObjective,
+    injects: config.injects ?? [],
 
     facts: [],
     assumptions: [],
@@ -193,6 +201,8 @@ export interface RecordDecisionConfig {
   alternativesConsidered?: string[];
   reviewTrigger?: string;
   reviewTime?: string;
+  rpdPrompts?: RPDPrompts;
+  esrmFraming?: ESRMRiskFraming;
 }
 
 export function recordDecision(log: DecisionLog, config: RecordDecisionConfig): DecisionLog {
@@ -211,6 +221,8 @@ export function recordDecision(log: DecisionLog, config: RecordDecisionConfig): 
     alternativesConsidered: config.alternativesConsidered,
     reviewTrigger: config.reviewTrigger,
     reviewTime: config.reviewTime,
+    rpdPrompts: config.rpdPrompts,
+    esrmFraming: config.esrmFraming,
   };
 
   return {
@@ -447,6 +459,56 @@ export function updateIncidentStatus(
       },
     ],
   };
+}
+
+/**
+ * Reveal an inject in the scenario
+ */
+export function revealInject(log: DecisionLog, injectId: string): DecisionLog {
+  const inject = log.injects.find((i) => i.id === injectId);
+  if (!inject || inject.revealed) {
+    return log;
+  }
+
+  const updatedInjects = log.injects.map((i) => {
+    if (i.id === injectId) {
+      return { ...i, revealed: true, revealedAt: now() };
+    }
+    return i;
+  });
+
+  return {
+    ...log,
+    lastUpdated: now(),
+    injects: updatedInjects,
+    timeline: [
+      ...log.timeline,
+      {
+        id: generateId('TL'),
+        timestamp: now(),
+        type: 'UPDATE',
+        title: `Inject: ${inject.title}`,
+        description: inject.content,
+        relatedIds: [inject.id],
+      },
+    ],
+  };
+}
+
+/**
+ * Get next unrevealed inject
+ */
+export function getNextInject(log: DecisionLog): ScenarioInject | undefined {
+  return log.injects
+    .filter((i) => !i.revealed)
+    .sort((a, b) => a.sequenceNumber - b.sequenceNumber)[0];
+}
+
+/**
+ * Get all revealed injects
+ */
+export function getRevealedInjects(log: DecisionLog): ScenarioInject[] {
+  return log.injects.filter((i) => i.revealed).sort((a, b) => a.sequenceNumber - b.sequenceNumber);
 }
 
 /**

@@ -22,6 +22,7 @@ export type {
   SeverityLevel,
   ImpactCategory,
   ConfidenceLevel,
+  RiskTreatment,
   Fact,
   Assumption,
   Unknown,
@@ -30,9 +31,14 @@ export type {
   BridgeRecord,
   ActionItem,
   VendorContext,
+  LearningObjective,
+  ScenarioInject,
+  RPDPrompts,
+  ESRMRiskFraming,
   DecisionLog,
   TimelineEvent,
   AfterActionReport,
+  AARActionItem,
   PlaybookPhase,
   ChecklistItem,
   Playbook,
@@ -54,6 +60,9 @@ export {
   validateAssumption,
   updateIncidentStatus,
   calculateStats,
+  revealInject,
+  getNextInject,
+  getRevealedInjects,
 } from './decision-log.js';
 
 export type {

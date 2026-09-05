@@ -113,6 +113,8 @@ export interface Decision {
   reviewTrigger?: string;
   reviewTime?: string;
   supersedes?: string;
+  rpdPrompts?: RPDPrompts;
+  esrmFraming?: ESRMRiskFraming;
 }
 
 /**
@@ -163,6 +165,60 @@ export interface VendorContext {
 }
 
 /**
+ * Scenario inject - new information revealed during exercise
+ * Based on tabletop exercise design principles
+ */
+export interface ScenarioInject {
+  id: string;
+  sequenceNumber: number;
+  revealAtMinute: number;
+  title: string;
+  content: string;
+  source: string;
+  decisionPressure: string;
+  expectedPostureImpact?: DecisionPosture;
+  revealed: boolean;
+  revealedAt?: string;
+}
+
+/**
+ * Learning objective for a training scenario
+ */
+export interface LearningObjective {
+  primary: string;
+  secondary?: string[];
+  expectedDecisions: string[];
+  skillsTrained: string[];
+}
+
+/**
+ * RPD (Recognition-Primed Decision) prompts for decision capture
+ */
+export interface RPDPrompts {
+  cuesNoticed?: string;
+  expectancies?: string;
+  mentalSimulation?: string;
+}
+
+/**
+ * ESRM risk treatment type
+ * Maps to postures: ACCEPT→CONTINUE, MITIGATE→DEGRADE, AVOID→PAUSE
+ */
+export type RiskTreatment = 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID';
+
+/**
+ * ESRM risk framing for decisions
+ * Asset owner owns the risk; GSOC advises
+ */
+export interface ESRMRiskFraming {
+  assetOwner: string;
+  assetOwnerRole: string;
+  treatment: RiskTreatment;
+  residualRisk: string;
+  businessImpact?: string;
+}
+
+/**
  * Complete decision log for an incident
  */
 export interface DecisionLog {
@@ -183,6 +239,8 @@ export interface DecisionLog {
   };
 
   vendorContext?: VendorContext;
+  learningObjective?: LearningObjective;
+  injects: ScenarioInject[];
 
   facts: Fact[];
   assumptions: Assumption[];
@@ -225,7 +283,20 @@ export interface TimelineEvent {
 }
 
 /**
+ * AAR action item with owner and due date
+ */
+export interface AARActionItem {
+  id: string;
+  description: string;
+  owner: string;
+  dueDate?: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  status: 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
+}
+
+/**
  * After-action report structure
+ * Based on military/organizational AAR methodology
  */
 export interface AfterActionReport {
   id: string;
@@ -239,6 +310,22 @@ export interface AfterActionReport {
     duration: string;
     severity: SeverityLevel;
     impactSummary: string;
+  };
+
+  learningObjective?: LearningObjective;
+
+  intendedOutcomes: {
+    expectedPosture: string;
+    expectedDecisions: string[];
+    trainingGoals: string[];
+  };
+
+  actualOutcomes: {
+    finalPosture: string;
+    decisionsRecorded: number;
+    postureChanges: number;
+    injectsRevealed: number;
+    injectsTotal: number;
   };
 
   chronology: TimelineEvent[];
@@ -257,6 +344,10 @@ export interface AfterActionReport {
     assumptionsValidated: number;
     assumptionsInvalidated: number;
   };
+
+  sustains: string[];
+  improves: string[];
+  actionItems: AARActionItem[];
 
   lessonsLearned: string[];
   recommendations: string[];
