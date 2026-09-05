@@ -182,7 +182,9 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   const [mobileTab, setMobileTab] = useState<MobileTab>('intel');
   const [showFieldGuide, setShowFieldGuide] = useState(false);
   const [showCoachMarks, setShowCoachMarks] = useState(true);
-  const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>('ACTIVITY');
+  const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>(
+    'ACTIVITY'
+  );
   const [dispatchResources, setDispatchResources] = useState({
     guards: { available: 3, total: 4, cooldown: 0 },
     analysts: { available: 2, total: 3, cooldown: 0 },
@@ -196,7 +198,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(mediaQuery.matches);
-    const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+    const handler = (e: MediaQueryListEvent): void => setReducedMotion(e.matches);
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
@@ -317,17 +319,26 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         guards: {
           ...prev.guards,
           cooldown: Math.max(0, prev.guards.cooldown - 1),
-          available: prev.guards.cooldown <= 1 ? Math.min(prev.guards.available + 1, prev.guards.total) : prev.guards.available,
+          available:
+            prev.guards.cooldown <= 1
+              ? Math.min(prev.guards.available + 1, prev.guards.total)
+              : prev.guards.available,
         },
         analysts: {
           ...prev.analysts,
           cooldown: Math.max(0, prev.analysts.cooldown - 1),
-          available: prev.analysts.cooldown <= 1 ? Math.min(prev.analysts.available + 1, prev.analysts.total) : prev.analysts.available,
+          available:
+            prev.analysts.cooldown <= 1
+              ? Math.min(prev.analysts.available + 1, prev.analysts.total)
+              : prev.analysts.available,
         },
         responders: {
           ...prev.responders,
           cooldown: Math.max(0, prev.responders.cooldown - 1),
-          available: prev.responders.cooldown <= 1 ? Math.min(prev.responders.available + 1, prev.responders.total) : prev.responders.available,
+          available:
+            prev.responders.cooldown <= 1
+              ? Math.min(prev.responders.available + 1, prev.responders.total)
+              : prev.responders.available,
         },
       }));
     }, 10000);
@@ -342,7 +353,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     }
   }, [log.decisions.length]);
 
-  const triggerInjectAlert = (inject: ScenarioInject) => {
+  const triggerInjectAlert = (inject: ScenarioInject): void => {
     const urgency = (inject as unknown as { urgencyLevel?: string }).urgencyLevel;
     if (urgency === 'IMMEDIATE') {
       setScreenFlash('red');
@@ -352,7 +363,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     setTimeout(() => setScreenFlash(null), 300);
   };
 
-  const handleTimeoutDecision = () => {
+  const handleTimeoutDecision = (): void => {
     if (!pendingDecision) return;
 
     setGameState((prev) => ({
@@ -371,7 +382,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   };
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       switch (e.key.toLowerCase()) {
@@ -990,8 +1001,16 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
               </div>
               <div className="space-y-2">
                 <DispatchResource label="Guards" resource={dispatchResources.guards} color="cyan" />
-                <DispatchResource label="Analysts" resource={dispatchResources.analysts} color="violet" />
-                <DispatchResource label="Responders" resource={dispatchResources.responders} color="orange" />
+                <DispatchResource
+                  label="Analysts"
+                  resource={dispatchResources.analysts}
+                  color="violet"
+                />
+                <DispatchResource
+                  label="Responders"
+                  resource={dispatchResources.responders}
+                  color="orange"
+                />
               </div>
             </div>
 
@@ -1251,9 +1270,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       )}
 
       {/* Field Guide Modal */}
-      {showFieldGuide && (
-        <FieldGuideModal onClose={() => setShowFieldGuide(false)} />
-      )}
+      {showFieldGuide && <FieldGuideModal onClose={() => setShowFieldGuide(false)} />}
 
       {/* Coach Marks - First Run Help */}
       {showCoachMarks && !isRunning && revealedInjects.length === 0 && (
@@ -1728,7 +1745,7 @@ function DispatchResource({
     violet: 'bg-violet-500',
     orange: 'bg-orange-500',
   };
-  
+
   const textColors = {
     cyan: 'text-cyan-400',
     violet: 'text-violet-400',
@@ -1745,9 +1762,7 @@ function DispatchResource({
               key={i}
               className={clsx(
                 'w-2 h-2 rounded-full transition-all',
-                i < resource.available
-                  ? colorClasses[color]
-                  : 'bg-gray-700'
+                i < resource.available ? colorClasses[color] : 'bg-gray-700'
               )}
             />
           ))}
@@ -2044,7 +2059,9 @@ function StatCard({
 }
 
 function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
-  const [activeSection, setActiveSection] = useState<'loop' | 'postures' | 'domains' | 'esrm' | 'scoring'>('loop');
+  const [activeSection, setActiveSection] = useState<
+    'loop' | 'postures' | 'domains' | 'esrm' | 'scoring'
+  >('loop');
 
   const sections = [
     { id: 'loop' as const, label: 'Core Loop', icon: <Hourglass className="w-4 h-4" /> },
@@ -2068,10 +2085,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <p className="text-xs text-gray-500">Hourglass Command Operations Manual</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl hover:bg-gray-800 transition-colors"
-          >
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-800 transition-colors">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
@@ -2101,16 +2115,18 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">The Core Loop</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Hourglass Command simulates the first hour of a security incident. Your job: make fast, 
-                defensible decisions under pressure with incomplete information.
+                Hourglass Command simulates the first hour of a security incident. Your job: make
+                fast, defensible decisions under pressure with incomplete information.
               </p>
               <div className="grid grid-cols-5 gap-2 py-4">
                 {['Intel', 'Triage', 'Decide', 'Execute', 'Debrief'].map((step, i) => (
                   <div key={step} className="text-center">
-                    <div className={clsx(
-                      'w-10 h-10 mx-auto rounded-xl flex items-center justify-center font-bold text-lg mb-1',
-                      i === 2 ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-800 text-gray-400'
-                    )}>
+                    <div
+                      className={clsx(
+                        'w-10 h-10 mx-auto rounded-xl flex items-center justify-center font-bold text-lg mb-1',
+                        i === 2 ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-800 text-gray-400'
+                      )}
+                    >
                       {i + 1}
                     </div>
                     <span className="text-2xs text-gray-500">{step}</span>
@@ -2119,7 +2135,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               </div>
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <p className="text-sm text-amber-200">
-                  <strong>Fast-paced:</strong> Intel arrives every 15-45 seconds. No time to overthink—trust your training.
+                  <strong>Fast-paced:</strong> Intel arrives every 15-45 seconds. No time to
+                  overthink—trust your training.
                 </p>
               </div>
             </div>
@@ -2129,7 +2146,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">Decision Postures</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Every decision maps to one of three postures. These translate directly to ESRM risk treatments.
+                Every decision maps to one of three postures. These translate directly to ESRM risk
+                treatments.
               </p>
               <div className="space-y-3">
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
@@ -2167,7 +2185,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">Security Domains</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Modern incidents span multiple domains. Fused GSOC operations require cross-domain awareness.
+                Modern incidents span multiple domains. Fused GSOC operations require cross-domain
+                awareness.
               </p>
               <div className="space-y-3">
                 <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
@@ -2216,8 +2235,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 mb-4">
                 <h4 className="text-violet-400 font-semibold mb-2">Key Principle</h4>
                 <p className="text-sm text-gray-300">
-                  <strong>Security advises; asset owners own the risk.</strong> GSOC provides risk-informed 
-                  recommendations. The asset owner makes the final call and accepts residual risk.
+                  <strong>Security advises; asset owners own the risk.</strong> GSOC provides
+                  risk-informed recommendations. The asset owner makes the final call and accepts
+                  residual risk.
                 </p>
               </div>
               <div className="space-y-2">
@@ -2225,21 +2245,27 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   <Target className="w-5 h-5 text-amber-400 mt-0.5" />
                   <div>
                     <span className="text-white font-medium">1. Identify Asset</span>
-                    <p className="text-xs text-gray-400 mt-0.5">What&apos;s at risk? Who owns it?</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      What&apos;s at risk? Who owns it?
+                    </p>
                   </div>
                 </div>
                 <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
                   <Phone className="w-5 h-5 text-violet-400 mt-0.5" />
                   <div>
                     <span className="text-white font-medium">2. Brief Owner</span>
-                    <p className="text-xs text-gray-400 mt-0.5">Communicate risk clearly. Get acknowledgment.</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Communicate risk clearly. Get acknowledgment.
+                    </p>
                   </div>
                 </div>
                 <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
                   <TrendingUp className="w-5 h-5 text-emerald-400 mt-0.5" />
                   <div>
                     <span className="text-white font-medium">3. Document Residual Risk</span>
-                    <p className="text-xs text-gray-400 mt-0.5">What risk remains after your decision?</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      What risk remains after your decision?
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2280,7 +2306,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
               </div>
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
                 <p className="text-sm text-emerald-200">
-                  <strong>Grades:</strong> S (Legend), A (Commander), B (Operator), C (Learning), D (Needs Work), F (Mission Failed)
+                  <strong>Grades:</strong> S (Legend), A (Commander), B (Operator), C (Learning), D
+                  (Needs Work), F (Mission Failed)
                 </p>
               </div>
             </div>
@@ -2312,7 +2339,8 @@ function CoachMarks({ onDismiss }: { onDismiss: () => void }): JSX.Element {
           <div className="flex-1">
             <h4 className="text-amber-400 font-semibold mb-1">Quick Start</h4>
             <p className="text-sm text-gray-300 leading-relaxed">
-              Press <strong>Play</strong> to start. Intel arrives fast—select an item to make a posture decision.
+              Press <strong>Play</strong> to start. Intel arrives fast—select an item to make a
+              posture decision.
             </p>
             <div className="flex items-center gap-3 mt-3">
               <button

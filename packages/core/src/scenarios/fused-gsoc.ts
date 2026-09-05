@@ -167,7 +167,7 @@ export function createExecutiveThreatScenario(): DecisionLog {
       title: 'EP: Surveillance in Singapore',
       content:
         'EP team reports possible surveillance of advance team at hotel. Two individuals ' +
-        'photographing vehicles 30+ mins. Local liaison can\'t ID. CEO arrival in 18 hours.',
+        "photographing vehicles 30+ mins. Local liaison can't ID. CEO arrival in 18 hours.",
       source: 'Executive Protection Lead',
       decisionPressure: 'Connect to dark web post? Recommend trip modification?',
       expectedPostureImpact: 'PAUSE',

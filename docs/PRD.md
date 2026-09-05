@@ -4,11 +4,11 @@
 
 ## Document Control
 
-| Field              | Value                            |
-| ------------------ | -------------------------------- |
-| **Document ID**    | PRD-HC-1.2                       |
-| **Version**        | 1.2 (Max-Port)                   |
-| **Status**         | Locked                           |
+| Field              | Value                   |
+| ------------------ | ----------------------- |
+| **Document ID**    | PRD-HC-1.2              |
+| **Version**        | 1.2 (Max-Port)          |
+| **Status**         | Locked                  |
 | **Owner**          | Shannon Brown           |
 | **Approved By**    | Chief of Staff          |
 | **Effective Date** | September 2026          |
@@ -410,45 +410,46 @@ Port **maximum enterprise incident management system functionality** as original
 
 ### Simulation Systems (MUST Implement)
 
-| System                     | Description                                                              | UX Approach                         |
-| -------------------------- | ------------------------------------------------------------------------ | ----------------------------------- |
-| **COP / Shared Picture**   | Cross-domain situational awareness (Physical + Intel + Cyber)            | Domain badges, fusion indicators    |
-| **Dispatch Pressure**      | Abstracted resource availability, ETA, attention management              | Resource tokens, cooldown timers    |
-| **Triage & Routing**       | Prioritization queue, urgency sorting, attention allocation              | Priority badges, sorted intel feed  |
-| **Guided Playbooks**       | Step-by-step response phases with checklists                             | Phase progress, checklist UI        |
-| **Entity Links**           | People, places, assets connected across injects                          | Linked entity chips, cross-refs     |
-| **ESRM Cascades**          | Advisor/owner model, residual risk, accept/mitigate/transfer/avoid       | Asset owner selection, risk framing |
-| **Escalation Path**        | Activity → Incident → Investigation-grade pressure (training fidelity)  | Escalation level indicator          |
-| **Audit Timeline / AAR**   | Chronological decision log, structured debrief, exportable               | Timeline view, AAR export           |
+| System                   | Description                                                            | UX Approach                         |
+| ------------------------ | ---------------------------------------------------------------------- | ----------------------------------- |
+| **COP / Shared Picture** | Cross-domain situational awareness (Physical + Intel + Cyber)          | Domain badges, fusion indicators    |
+| **Dispatch Pressure**    | Abstracted resource availability, ETA, attention management            | Resource tokens, cooldown timers    |
+| **Triage & Routing**     | Prioritization queue, urgency sorting, attention allocation            | Priority badges, sorted intel feed  |
+| **Guided Playbooks**     | Step-by-step response phases with checklists                           | Phase progress, checklist UI        |
+| **Entity Links**         | People, places, assets connected across injects                        | Linked entity chips, cross-refs     |
+| **ESRM Cascades**        | Advisor/owner model, residual risk, accept/mitigate/transfer/avoid     | Asset owner selection, risk framing |
+| **Escalation Path**      | Activity → Incident → Investigation-grade pressure (training fidelity) | Escalation level indicator          |
+| **Audit Timeline / AAR** | Chronological decision log, structured debrief, exportable             | Timeline view, AAR export           |
 
 ### Systems NOT Ported (Production Scope)
 
 The following remain **permanently closed** per invariants:
 
-| Excluded System        | Reason                                                   |
-| ---------------------- | -------------------------------------------------------- |
-| Real CAD/PSIM/ACS      | Requires production integrations (violates INV-11)       |
-| Production case suite  | System of record scope (violates INV-01, INV-03)         |
-| SSO / billing          | SaaS theater (violates INV-05, INV-06)                   |
-| Live data connectors   | Production capability claims (violates INV-11)           |
+| Excluded System       | Reason                                             |
+| --------------------- | -------------------------------------------------- |
+| Real CAD/PSIM/ACS     | Requires production integrations (violates INV-11) |
+| Production case suite | System of record scope (violates INV-01, INV-03)   |
+| SSO / billing         | SaaS theater (violates INV-05, INV-06)             |
+| Live data connectors  | Production capability claims (violates INV-11)     |
 
 ### UI/UX Requirements
 
-| Requirement               | Specification                                                    |
-| ------------------------- | ---------------------------------------------------------------- |
-| **Fast-casual tempo**     | First inject within ~15 seconds, dense cadence every 20-45s      |
-| **Glanceable surface**    | "What's urgent?" and "What do I do next?" answered in <1 second  |
-| **One primary action**    | Single clear CTA per moment; tap targets ≥44px                   |
-| **Progressive disclosure**| Depth revealed through play; no tutorial walls                   |
-| **In-game Field Guide**   | Help panel covering core loop, postures, ESRM, domains, scoring  |
-| **Coach marks**           | Dismissible first-run hints; non-blocking                        |
-| **Mobile-first**          | Bottom tabs (Intel/Decision/COP); desktop same mental model      |
+| Requirement                | Specification                                                   |
+| -------------------------- | --------------------------------------------------------------- |
+| **Fast-casual tempo**      | First inject within ~15 seconds, dense cadence every 20-45s     |
+| **Glanceable surface**     | "What's urgent?" and "What do I do next?" answered in <1 second |
+| **One primary action**     | Single clear CTA per moment; tap targets ≥44px                  |
+| **Progressive disclosure** | Depth revealed through play; no tutorial walls                  |
+| **In-game Field Guide**    | Help panel covering core loop, postures, ESRM, domains, scoring |
+| **Coach marks**            | Dismissible first-run hints; non-blocking                       |
+| **Mobile-first**           | Bottom tabs (Intel/Decision/COP); desktop same mental model     |
 
 ### Naming Constraint
 
 **CRITICAL:** The product name for these systems is **Hourglass Command**. The term "Resolver" must **never** appear in:
+
 - UI text or labels
-- README or documentation  
+- README or documentation
 - User-facing help content
 - Marketing or descriptive copy
 
@@ -573,33 +574,33 @@ The following are **permanently out of scope** per invariants:
 
 ## §15 Glossary
 
-| Term                     | Definition                                                                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **GSOC**                 | Global Security Operations Center                                                                                                     |
-| **ESRM**                 | Enterprise Security Risk Management — ASIS International framework where asset owners own risk and security serves as trusted advisor |
-| **Residual Risk**        | Risk remaining after treatment (accept/mitigate/transfer/avoid); must be explicit in decisions                                        |
-| **Asset Owner**          | Business stakeholder who owns the risk; GSOC advises, asset owner decides                                                             |
-| **Enterprise ESRM**      | Category of enterprise platforms providing incident lifecycle management                                                              |
-| **Posture**              | Operational stance: CONTINUE (accept), DEGRADE (mitigate), or PAUSE (avoid)                                                           |
-| **Treatment**            | Risk response: accept, mitigate, transfer, or avoid — maps to postures                                                                |
-| **Wedge**                | Market entry that complements rather than competes                                                                                    |
-| **SaaS Theater**         | Non-functional features simulating enterprise software                                                                                |
-| **Invariant**            | Rule that must always hold; violation = PR rejection                                                                                  |
-| **Closed Default**       | Feature disabled until explicit PRD amendment                                                                                         |
-| **RACI**                 | Responsibility matrix: Responsible, Accountable, Consulted, Informed                                                                  |
-| **P0**                   | Priority 0 (must-have for release)                                                                                                    |
-| **SOTA**                 | State of the Art                                                                                                                      |
-| **COP**                  | Common Operating Picture — shared situational awareness across stakeholders                                                           |
-| **RPD**                  | Recognition-Primed Decision — Klein's naturalistic decision-making model                                                              |
-| **AAR**                  | After-Action Review — structured debrief: intended vs actual, sustains, improves                                                      |
-| **Dispatch Pressure**    | Abstracted resource availability, response times, and attention allocation in simulation                                              |
-| **Triage**               | Prioritization of injects based on urgency and domain impact                                                                          |
-| **Entity Link**          | Cross-reference between people, places, and assets across multiple injects                                                            |
-| **Escalation Path**      | Activity → Incident → Investigation progression indicating severity                                                                  |
-| **Fused GSOC**           | Cross-domain operations integrating Physical Security, Intelligence, and Cybersecurity                                                |
-| **Domain**               | Security lane: PHYSICAL (access, surveillance), INTELLIGENCE (threat intel), or CYBER (network, endpoint)                            |
-| **Progressive Disclosure**| UX pattern revealing complexity through play rather than upfront                                                                      |
-| **Fast-Casual**          | Game tempo designed for quick engagement without sacrificing depth                                                                    |
+| Term                       | Definition                                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **GSOC**                   | Global Security Operations Center                                                                                                     |
+| **ESRM**                   | Enterprise Security Risk Management — ASIS International framework where asset owners own risk and security serves as trusted advisor |
+| **Residual Risk**          | Risk remaining after treatment (accept/mitigate/transfer/avoid); must be explicit in decisions                                        |
+| **Asset Owner**            | Business stakeholder who owns the risk; GSOC advises, asset owner decides                                                             |
+| **Enterprise ESRM**        | Category of enterprise platforms providing incident lifecycle management                                                              |
+| **Posture**                | Operational stance: CONTINUE (accept), DEGRADE (mitigate), or PAUSE (avoid)                                                           |
+| **Treatment**              | Risk response: accept, mitigate, transfer, or avoid — maps to postures                                                                |
+| **Wedge**                  | Market entry that complements rather than competes                                                                                    |
+| **SaaS Theater**           | Non-functional features simulating enterprise software                                                                                |
+| **Invariant**              | Rule that must always hold; violation = PR rejection                                                                                  |
+| **Closed Default**         | Feature disabled until explicit PRD amendment                                                                                         |
+| **RACI**                   | Responsibility matrix: Responsible, Accountable, Consulted, Informed                                                                  |
+| **P0**                     | Priority 0 (must-have for release)                                                                                                    |
+| **SOTA**                   | State of the Art                                                                                                                      |
+| **COP**                    | Common Operating Picture — shared situational awareness across stakeholders                                                           |
+| **RPD**                    | Recognition-Primed Decision — Klein's naturalistic decision-making model                                                              |
+| **AAR**                    | After-Action Review — structured debrief: intended vs actual, sustains, improves                                                      |
+| **Dispatch Pressure**      | Abstracted resource availability, response times, and attention allocation in simulation                                              |
+| **Triage**                 | Prioritization of injects based on urgency and domain impact                                                                          |
+| **Entity Link**            | Cross-reference between people, places, and assets across multiple injects                                                            |
+| **Escalation Path**        | Activity → Incident → Investigation progression indicating severity                                                                   |
+| **Fused GSOC**             | Cross-domain operations integrating Physical Security, Intelligence, and Cybersecurity                                                |
+| **Domain**                 | Security lane: PHYSICAL (access, surveillance), INTELLIGENCE (threat intel), or CYBER (network, endpoint)                             |
+| **Progressive Disclosure** | UX pattern revealing complexity through play rather than upfront                                                                      |
+| **Fast-Casual**            | Game tempo designed for quick engagement without sacrificing depth                                                                    |
 
 ---
 
