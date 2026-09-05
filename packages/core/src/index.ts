@@ -51,6 +51,12 @@ export type {
   DispatchState,
   ResourcePool,
   ContentionEvent,
+  IntakeChannel,
+  IntakeConfidence,
+  IntakeCompleteness,
+  AttachmentType,
+  InjectAttachment,
+  IntakeMetadata,
 } from './types.js';
 
 // Decision log management
@@ -178,3 +184,18 @@ export {
 } from './validation.js';
 
 export type { ValidationResult, ValidationError, ValidationWarning } from './validation.js';
+
+// Intake Channels
+export {
+  INTAKE_CHANNELS,
+  getChannelConfig,
+  calculateEffectivePriority,
+  calculateQueueWeight,
+  generateSourceSystem,
+  generateSourceId,
+  createIntakeMetadata,
+  createNoiseIntake,
+  createCorrectionIntake,
+} from './intake-channels.js';
+
+export type { ChannelConfig } from './intake-channels.js';

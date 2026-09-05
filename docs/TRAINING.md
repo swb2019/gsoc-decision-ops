@@ -256,6 +256,40 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ---
 
+### 2.7 Realistic Intake Channel Simulation
+
+**Source:** GSOC operations workflow; PSIM/SIEM integration patterns; enterprise incident management
+
+**Pedagogical goal:** Operators must understand not just _what_ happened, but _how they learned about it_. Source system characteristics affect confidence assessment, triage priority, and verification requirements.
+
+**Intake channels simulated (original names; no vendor trademarks):**
+
+| Channel        | System Types                   | Confidence Profile | Training Focus                    |
+| -------------- | ------------------------------ | ------------------ | --------------------------------- |
+| **ACS**        | Badge readers, access control  | HIGH               | Physical access anomalies         |
+| **VMS**        | Cameras, analytics             | MEDIUM             | Visual correlation, context       |
+| **ALARM**      | Intrusion, duress, supervisory | HIGH               | Life-safety priority              |
+| **SIEM**       | Cyber security, UEBA, DLP      | MEDIUM             | Cross-domain correlation          |
+| **OSINT**      | Intel desk, dark web, media    | MEDIUM             | Source reliability assessment     |
+| **TIP**        | Hotline, email, chat           | LOW                | Incomplete info handling          |
+| **RADIO**      | Dispatch, officer mobile       | HIGH               | Real-time field coordination      |
+| **FACILITIES** | BMS, HVAC, fire, elevator      | HIGH               | Life-safety / business continuity |
+
+**Key pedagogical elements:**
+
+| Element                   | Implementation                                                    |
+| ------------------------- | ----------------------------------------------------------------- |
+| **Confidence indicators** | VERIFIED → HIGH → MEDIUM → LOW → UNVERIFIED → CONFLICTING         |
+| **Completeness tracking** | COMPLETE → PARTIAL → MINIMAL → FRAGMENT                           |
+| **Corrections/updates**   | UPDATE badge links to prior inject; revised assessment            |
+| **Noise vs. signal**      | Routine items (scheduled maintenance, verified deliveries) appear |
+| **Attachments**           | Simulated stills, map pins, log excerpts, documents               |
+| **Source system feel**    | Realistic system names, source IDs, timestamps                    |
+
+**Key insight:** Effective triage requires source literacy. Knowing that VMS analytics have higher false-positive rates than ACS alarms affects how you prioritize and verify. Conflicting intel from different channels forces explicit confidence assessment.
+
+---
+
 ## §3 Feature-to-Pedagogy Mapping
 
 | Feature                              | Primary Foundation        | Secondary Foundations             |
@@ -277,6 +311,11 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 | Playbook phases (5-phase)            | NIST first-hour           | Tabletop design (structure)       |
 | Entity linking across injects        | COP                       | Intel analysis tradecraft         |
 | Dispatch pressure/resources          | Tabletop realism          | Resource management               |
+| Intake channel badges                | GSOC workflow realism     | Source literacy                   |
+| Confidence/completeness indicators   | Intel analysis tradecraft | Information quality assessment    |
+| Corrections/updates to prior injects | COP update discipline     | Dynamic situational awareness     |
+| Noise injects (routine items)        | Triage discipline         | Attention management              |
+| Simulated attachments                | Evidence handling         | Visual correlation                |
 | Escalation path indicators           | Enterprise workflow       | ESRM escalation governance        |
 | AAR with lessons learned             | Military AAR              | ESRM continuous improvement       |
 | Continuous improvement tracking      | ESRM cycle completion     | Allen & Loyear maturity model     |
