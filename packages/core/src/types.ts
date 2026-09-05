@@ -165,6 +165,24 @@ export interface VendorContext {
 }
 
 /**
+ * Entity type for cross-inject linking
+ */
+export type EntityType = 'PERSON' | 'PLACE' | 'ASSET' | 'ORGANIZATION' | 'SYSTEM';
+
+/**
+ * A linked entity that appears across multiple injects
+ */
+export interface LinkedEntity {
+  id: string;
+  type: EntityType;
+  name: string;
+  shortName?: string;
+  description?: string;
+  criticality?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  relatedEntityIds?: string[];
+}
+
+/**
  * Scenario inject - new information revealed during exercise
  * Based on tabletop exercise design principles
  */
@@ -179,6 +197,13 @@ export interface ScenarioInject {
   expectedPostureImpact?: DecisionPosture;
   revealed: boolean;
   revealedAt?: string;
+  linkedEntityIds?: string[];
+  triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE';
+  resourcesRequired?: {
+    guards?: number;
+    analysts?: number;
+    responders?: number;
+  };
 }
 
 /**
@@ -241,6 +266,7 @@ export interface DecisionLog {
   vendorContext?: VendorContext;
   learningObjective?: LearningObjective;
   injects: ScenarioInject[];
+  linkedEntities?: LinkedEntity[];
 
   facts: Fact[];
   assumptions: Assumption[];
@@ -251,6 +277,9 @@ export interface DecisionLog {
   actionItems: ActionItem[];
 
   timeline: TimelineEvent[];
+  triageQueue?: TriageQueue;
+  dispatchState?: DispatchState;
+  playbookExecution?: PlaybookExecution;
 
   metadata: {
     createdBy: string;
@@ -415,5 +444,82 @@ export interface PlaybookExecution {
     startedAt?: string;
     completedAt?: string;
     checklistProgress: Record<string, boolean>;
+    gateRequirementsMet?: boolean;
+    phaseScore?: number;
   }[];
+  totalScore: number;
+  phaseTransitions: PhaseTransition[];
+}
+
+/**
+ * Record of a phase transition during playbook execution
+ */
+export interface PhaseTransition {
+  fromPhaseIndex: number;
+  toPhaseIndex: number;
+  timestamp: string;
+  transitionType: 'NATURAL' | 'FORCED' | 'SKIPPED';
+  gateStatus: 'ALL_MET' | 'PARTIAL' | 'BYPASSED';
+  timeInPreviousPhase: number;
+}
+
+/**
+ * Phase gate requirements that must be met before advancing
+ */
+export interface PhaseGate {
+  minimumChecklistCompletion: number;
+  requiredDecisionCount?: number;
+  requiredEntityIdentification?: number;
+  requiredAssetOwnerBriefings?: number;
+  canBypass: boolean;
+  bypassPenalty?: number;
+}
+
+/**
+ * Triage queue for managing inject priority
+ */
+export interface TriageQueue {
+  pendingInjects: {
+    injectId: string;
+    priority: 'IMMEDIATE' | 'URGENT' | 'ROUTINE';
+    queuedAt: string;
+    timeInQueue: number;
+    escalated: boolean;
+  }[];
+  processedCount: number;
+  averageResponseTime: number;
+  missedUrgentCount: number;
+}
+
+/**
+ * Dispatch resource state with contention tracking
+ */
+export interface DispatchState {
+  guards: ResourcePool;
+  analysts: ResourcePool;
+  responders: ResourcePool;
+  contentionEvents: ContentionEvent[];
+}
+
+/**
+ * Resource pool for dispatch tracking
+ */
+export interface ResourcePool {
+  available: number;
+  total: number;
+  deployed: { injectId: string; count: number; deployedAt: string }[];
+  cooldownEndTime?: string;
+  contentionLevel: 'NORMAL' | 'STRAINED' | 'CRITICAL';
+}
+
+/**
+ * Event when resources are contested
+ */
+export interface ContentionEvent {
+  timestamp: string;
+  resourceType: 'guards' | 'analysts' | 'responders';
+  requestedBy: string;
+  granted: boolean;
+  alternativeUsed?: string;
+  impactOnDecision?: string;
 }

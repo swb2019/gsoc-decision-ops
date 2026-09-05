@@ -43,6 +43,14 @@ export type {
   ChecklistItem,
   Playbook,
   PlaybookExecution,
+  EntityType,
+  LinkedEntity,
+  PhaseTransition,
+  PhaseGate,
+  TriageQueue,
+  DispatchState,
+  ResourcePool,
+  ContentionEvent,
 } from './types.js';
 
 // Decision log management

@@ -6,7 +6,13 @@
  * threat intelligence, and cybersecurity simultaneously.
  */
 
-import type { DecisionLog, VendorContext, LearningObjective, ScenarioInject } from '../types.js';
+import type {
+  DecisionLog,
+  VendorContext,
+  LearningObjective,
+  ScenarioInject,
+  LinkedEntity,
+} from '../types.js';
 import { createDecisionLog } from '../decision-log.js';
 import { generateId } from '../utils.js';
 import type { ScenarioESRMConfig } from '../esrm.js';
@@ -42,6 +48,102 @@ export interface FusedInject extends ScenarioInject {
   crossDomainImpact?: SecurityDomain[];
   urgencyLevel: 'IMMEDIATE' | 'URGENT' | 'ROUTINE';
 }
+
+/**
+ * Entity definitions for Executive Threat scenario
+ */
+const EXECUTIVE_THREAT_ENTITIES: LinkedEntity[] = [
+  {
+    id: 'ENT-CEO',
+    type: 'PERSON',
+    name: 'Chief Executive Officer',
+    shortName: 'CEO',
+    description: 'Target of coordinated threat activity',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-SINGAPORE', 'ENT-EA-TEAM', 'ENT-EP-TEAM'],
+  },
+  {
+    id: 'ENT-EA-TEAM',
+    type: 'PERSON',
+    name: 'Executive Assistants',
+    shortName: 'EAs',
+    description: 'Three EAs with calendar access, targeted by phishing',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-CEO', 'ENT-APT-ACTOR'],
+  },
+  {
+    id: 'ENT-SINGAPORE',
+    type: 'PLACE',
+    name: 'Singapore Hotel & Venue',
+    shortName: 'SG Trip',
+    description: 'Overseas trip location with surveillance indicators',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-CEO', 'ENT-EP-TEAM'],
+  },
+  {
+    id: 'ENT-EXEC-FLOOR',
+    type: 'PLACE',
+    name: 'Executive Floor (HQ)',
+    shortName: 'Exec Floor',
+    description: 'C-suite offices with badge anomalies detected',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-BADGE-SYSTEM', 'ENT-SUSP-VEHICLE'],
+  },
+  {
+    id: 'ENT-BADGE-SYSTEM',
+    type: 'SYSTEM',
+    name: 'GlobalSecure Access System',
+    shortName: 'Badge System',
+    description: 'Physical access control with vendor API issues',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-EXEC-FLOOR', 'ENT-GLOBALSECURE'],
+  },
+  {
+    id: 'ENT-GLOBALSECURE',
+    type: 'ORGANIZATION',
+    name: 'GlobalSecure Access (Vendor)',
+    shortName: 'GlobalSecure',
+    description: 'Badge system vendor investigating API compromise',
+    criticality: 'MEDIUM',
+    relatedEntityIds: ['ENT-BADGE-SYSTEM'],
+  },
+  {
+    id: 'ENT-APT-ACTOR',
+    type: 'ORGANIZATION',
+    name: 'APT Threat Actor',
+    shortName: 'APT',
+    description: 'Sophisticated actor with physical ops capability',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-EA-TEAM', 'ENT-CEO', 'ENT-C2-BEACON'],
+  },
+  {
+    id: 'ENT-EP-TEAM',
+    type: 'PERSON',
+    name: 'Executive Protection Team',
+    shortName: 'EP Team',
+    description: 'Advance team in Singapore reporting surveillance',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-CEO', 'ENT-SINGAPORE'],
+  },
+  {
+    id: 'ENT-SUSP-VEHICLE',
+    type: 'ASSET',
+    name: 'Suspicious Rental Vehicle',
+    shortName: 'Susp. Vehicle',
+    description: 'Unknown vehicle in exec parking with equipment',
+    criticality: 'MEDIUM',
+    relatedEntityIds: ['ENT-EXEC-FLOOR', 'ENT-APT-ACTOR'],
+  },
+  {
+    id: 'ENT-C2-BEACON',
+    type: 'SYSTEM',
+    name: 'C2 Beacon (EA Workstation)',
+    shortName: 'C2 Beacon',
+    description: 'Dormant malware with calendar access confirmed',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-EA-TEAM', 'ENT-APT-ACTOR', 'ENT-CEO'],
+  },
+];
 
 /**
  * Scenario 1: Executive Threat Convergence
@@ -105,6 +207,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'MEDIUM',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-CEO', 'ENT-SINGAPORE', 'ENT-APT-ACTOR'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -123,6 +228,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['INTELLIGENCE', 'PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-EA-TEAM', 'ENT-APT-ACTOR', 'ENT-SINGAPORE'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 2 },
     },
     {
       id: generateId('INJ'),
@@ -141,6 +249,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'MEDIUM',
       crossDomainImpact: ['CYBER'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-EXEC-FLOOR', 'ENT-BADGE-SYSTEM', 'ENT-GLOBALSECURE'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { guards: 2, analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -159,6 +270,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-GLOBALSECURE', 'ENT-BADGE-SYSTEM', 'ENT-EXEC-FLOOR'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -177,6 +291,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['INTELLIGENCE'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-EP-TEAM', 'ENT-SINGAPORE', 'ENT-CEO', 'ENT-APT-ACTOR'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -195,6 +312,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER', 'PHYSICAL'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-APT-ACTOR', 'ENT-CEO', 'ENT-EA-TEAM'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -213,6 +333,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['INTELLIGENCE'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-SUSP-VEHICLE', 'ENT-EXEC-FLOOR', 'ENT-APT-ACTOR'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { guards: 2, responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -231,6 +354,15 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL', 'INTELLIGENCE'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: [
+        'ENT-C2-BEACON',
+        'ENT-EA-TEAM',
+        'ENT-APT-ACTOR',
+        'ENT-CEO',
+        'ENT-SINGAPORE',
+      ],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 2, responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -249,6 +381,9 @@ export function createExecutiveThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL', 'CYBER'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-CEO', 'ENT-SINGAPORE', 'ENT-APT-ACTOR'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: {},
     },
   ];
 
@@ -268,16 +403,104 @@ export function createExecutiveThreatScenario(): DecisionLog {
     ],
     reportedBy: 'Threat Intelligence Analyst',
     createdBy: 'GSOC Watch Commander',
-    organization: 'Aegis Command Training',
+    organization: 'Hourglass Command Training',
     exerciseMode: true,
     syntheticScenario: true,
     vendorContext,
     learningObjective,
     injects: injects as ScenarioInject[],
+    linkedEntities: EXECUTIVE_THREAT_ENTITIES,
   });
 
   return log;
 }
+
+/**
+ * Entity definitions for Supply Chain scenario
+ */
+const SUPPLY_CHAIN_ENTITIES: LinkedEntity[] = [
+  {
+    id: 'ENT-NEXUS',
+    type: 'ORGANIZATION',
+    name: 'Nexus Industrial Controls',
+    shortName: 'Nexus',
+    description: 'Building automation vendor with confirmed breach',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-BMS', 'ENT-HVAC', 'ENT-FIRE-PANEL'],
+  },
+  {
+    id: 'ENT-DC',
+    type: 'PLACE',
+    name: 'Primary Data Center',
+    shortName: 'Data Center',
+    description: 'Critical infrastructure with thermal risk',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-HVAC', 'ENT-FIRE-PANEL', 'ENT-FLOOR-PLANS'],
+  },
+  {
+    id: 'ENT-BMS',
+    type: 'SYSTEM',
+    name: 'Building Management System',
+    shortName: 'BMS',
+    description: 'Central control for HVAC, access, and fire systems',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-NEXUS', 'ENT-HVAC', 'ENT-FIRE-PANEL'],
+  },
+  {
+    id: 'ENT-HVAC',
+    type: 'SYSTEM',
+    name: 'HVAC Control System',
+    shortName: 'HVAC',
+    description: 'Environmental controls with hijacked setpoints',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-BMS', 'ENT-DC', 'ENT-NEXUS'],
+  },
+  {
+    id: 'ENT-FIRE-PANEL',
+    type: 'SYSTEM',
+    name: 'Fire Safety Panel',
+    shortName: 'Fire Panel',
+    description: 'Life safety system with comm fault',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-BMS', 'ENT-DC'],
+  },
+  {
+    id: 'ENT-APT-SPIDER',
+    type: 'ORGANIZATION',
+    name: 'Industrial Spider APT',
+    shortName: 'Ind. Spider',
+    description: 'APT group targeting building automation',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-NEXUS', 'ENT-FLOOR-PLANS'],
+  },
+  {
+    id: 'ENT-FLOOR-PLANS',
+    type: 'ASSET',
+    name: 'DC Floor Plans & Topology',
+    shortName: 'Floor Plans',
+    description: 'Sensitive blueprints leaked to paste site',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-DC', 'ENT-APT-SPIDER'],
+  },
+  {
+    id: 'ENT-FAKE-CONTRACTORS',
+    type: 'PERSON',
+    name: 'Fake Nexus Contractors',
+    shortName: 'Fake Contractors',
+    description: 'Unknown individuals claiming vendor access',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-NEXUS', 'ENT-APT-SPIDER'],
+  },
+  {
+    id: 'ENT-CREDS-DC',
+    type: 'ASSET',
+    name: 'DC Perimeter Credentials',
+    shortName: 'DC Creds',
+    description: 'Credentials showing replay attack pattern',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-DC', 'ENT-NEXUS'],
+  },
+];
 
 /**
  * Scenario 2: Supply Chain Intrusion
@@ -345,6 +568,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-NEXUS', 'ENT-BMS', 'ENT-FIRE-PANEL'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 2 },
     },
     {
       id: generateId('INJ'),
@@ -363,6 +589,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER', 'PHYSICAL'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-APT-SPIDER', 'ENT-NEXUS'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -381,6 +610,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'MEDIUM',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-DC', 'ENT-CREDS-DC', 'ENT-NEXUS'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { guards: 2, analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -399,6 +631,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-DC', 'ENT-HVAC', 'ENT-BMS', 'ENT-APT-SPIDER'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { responders: 2, analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -417,6 +652,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: [],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-FIRE-PANEL', 'ENT-BMS', 'ENT-DC'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -435,6 +673,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL', 'INTELLIGENCE'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-NEXUS', 'ENT-FLOOR-PLANS', 'ENT-BMS', 'ENT-APT-SPIDER'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 2 },
     },
     {
       id: generateId('INJ'),
@@ -453,6 +694,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['INTELLIGENCE'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-FAKE-CONTRACTORS', 'ENT-NEXUS', 'ENT-APT-SPIDER'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { guards: 2, responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -471,6 +715,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-FLOOR-PLANS', 'ENT-DC', 'ENT-APT-SPIDER'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 1, guards: 1 },
     },
     {
       id: generateId('INJ'),
@@ -489,6 +736,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-APT-SPIDER', 'ENT-NEXUS'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -507,6 +757,9 @@ export function createSupplyChainScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL', 'CYBER'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-DC', 'ENT-FIRE-PANEL', 'ENT-NEXUS'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: {},
     },
   ];
 
@@ -526,16 +779,104 @@ export function createSupplyChainScenario(): DecisionLog {
     ],
     reportedBy: 'Vendor Emergency Line',
     createdBy: 'GSOC Watch Commander',
-    organization: 'Aegis Command Training',
+    organization: 'Hourglass Command Training',
     exerciseMode: true,
     syntheticScenario: true,
     vendorContext,
     learningObjective,
     injects: injects as ScenarioInject[],
+    linkedEntities: SUPPLY_CHAIN_ENTITIES,
   });
 
   return log;
 }
+
+/**
+ * Entity definitions for Insider Threat scenario
+ */
+const INSIDER_THREAT_ENTITIES: LinkedEntity[] = [
+  {
+    id: 'ENT-JSMITH',
+    type: 'PERSON',
+    name: 'JSmith (Sr. Network Engineer)',
+    shortName: 'JSmith',
+    description: 'Subject of investigation, privileged access',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-JSMITH-WKSTN', 'ENT-DC-ACCESS', 'ENT-COMPETITOR'],
+  },
+  {
+    id: 'ENT-JSMITH-WKSTN',
+    type: 'SYSTEM',
+    name: 'JSmith Workstation',
+    shortName: 'Subject Wkstn',
+    description: 'Source of 2.3GB data exfiltration',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-CUSTOMER-DATA'],
+  },
+  {
+    id: 'ENT-CUSTOMER-DATA',
+    type: 'ASSET',
+    name: 'Customer Database & Contracts',
+    shortName: 'Customer Data',
+    description: 'PII and contracts transferred to personal cloud',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-JSMITH-WKSTN', 'ENT-COMPETITOR'],
+  },
+  {
+    id: 'ENT-NETWORK-CONFIGS',
+    type: 'ASSET',
+    name: 'Network Infrastructure Configs',
+    shortName: 'Network Configs',
+    description: 'Firewall rules and diagrams exfiltrated',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-BACKUP-SYSTEM'],
+  },
+  {
+    id: 'ENT-DC-ACCESS',
+    type: 'PLACE',
+    name: 'Data Center (Physical)',
+    shortName: 'DC',
+    description: 'Location of after-hours photography',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-DC-MANTRAP'],
+  },
+  {
+    id: 'ENT-DC-MANTRAP',
+    type: 'PLACE',
+    name: 'DC Mantrap',
+    shortName: 'Mantrap',
+    description: 'Access control point for confrontation decision',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-DC-ACCESS', 'ENT-JSMITH'],
+  },
+  {
+    id: 'ENT-COMPETITOR',
+    type: 'ORGANIZATION',
+    name: 'Competitor (Strategic Initiatives)',
+    shortName: 'Competitor',
+    description: 'LinkedIn recruiter connection, suspected coordinator',
+    criticality: 'HIGH',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-CUSTOMER-DATA'],
+  },
+  {
+    id: 'ENT-BACKUP-SYSTEM',
+    type: 'SYSTEM',
+    name: 'Backup Infrastructure',
+    shortName: 'Backup System',
+    description: 'Customer DB copies, stale credentials used',
+    criticality: 'CRITICAL',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-CUSTOMER-DATA'],
+  },
+  {
+    id: 'ENT-FBI-AGENT',
+    type: 'PERSON',
+    name: 'FBI Economic Espionage Investigator',
+    shortName: 'FBI Agent',
+    description: 'Active investigation, requesting coordination',
+    criticality: 'MEDIUM',
+    relatedEntityIds: ['ENT-JSMITH', 'ENT-COMPETITOR'],
+  },
+];
 
 /**
  * Scenario 3: Insider Threat with External Coordination
@@ -599,6 +940,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-JSMITH', 'ENT-JSMITH-WKSTN', 'ENT-DC-ACCESS'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -617,6 +961,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER', 'INTELLIGENCE'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-JSMITH', 'ENT-DC-ACCESS'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -635,6 +982,14 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['INTELLIGENCE'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: [
+        'ENT-JSMITH',
+        'ENT-JSMITH-WKSTN',
+        'ENT-CUSTOMER-DATA',
+        'ENT-NETWORK-CONFIGS',
+      ],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 2 },
     },
     {
       id: generateId('INJ'),
@@ -653,6 +1008,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: [],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-JSMITH'],
+      triagePriority: 'URGENT',
+      resourcesRequired: {},
     },
     {
       id: generateId('INJ'),
@@ -671,6 +1029,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'MEDIUM',
       crossDomainImpact: ['CYBER'],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-JSMITH', 'ENT-COMPETITOR', 'ENT-CUSTOMER-DATA'],
+      triagePriority: 'URGENT',
+      resourcesRequired: { analysts: 1 },
     },
     {
       id: generateId('INJ'),
@@ -689,6 +1050,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: [],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-JSMITH'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { guards: 1 },
     },
     {
       id: generateId('INJ'),
@@ -707,6 +1071,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-JSMITH', 'ENT-BACKUP-SYSTEM', 'ENT-CUSTOMER-DATA'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 1, responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -725,6 +1092,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: [],
       urgencyLevel: 'URGENT',
+      linkedEntityIds: ['ENT-JSMITH', 'ENT-CUSTOMER-DATA'],
+      triagePriority: 'URGENT',
+      resourcesRequired: {},
     },
     {
       id: generateId('INJ'),
@@ -743,6 +1113,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-JSMITH', 'ENT-DC-MANTRAP', 'ENT-DC-ACCESS'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { guards: 2, responders: 1 },
     },
     {
       id: generateId('INJ'),
@@ -761,6 +1134,9 @@ export function createInsiderThreatScenario(): DecisionLog {
       confidenceLevel: 'HIGH',
       crossDomainImpact: ['CYBER', 'PHYSICAL'],
       urgencyLevel: 'IMMEDIATE',
+      linkedEntityIds: ['ENT-FBI-AGENT', 'ENT-JSMITH', 'ENT-COMPETITOR'],
+      triagePriority: 'IMMEDIATE',
+      resourcesRequired: { analysts: 1 },
     },
   ];
 
@@ -780,12 +1156,13 @@ export function createInsiderThreatScenario(): DecisionLog {
     ],
     reportedBy: 'UEBA Platform',
     createdBy: 'GSOC Watch Commander',
-    organization: 'Aegis Command Training',
+    organization: 'Hourglass Command Training',
     exerciseMode: true,
     syntheticScenario: true,
     vendorContext,
     learningObjective,
     injects: injects as ScenarioInject[],
+    linkedEntities: INSIDER_THREAT_ENTITIES,
   });
 
   return log;

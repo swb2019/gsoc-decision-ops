@@ -23,6 +23,7 @@ import type {
   ScenarioInject,
   RPDPrompts,
   ESRMRiskFraming,
+  LinkedEntity,
 } from './types.js';
 import { generateId, now, countWhere } from './utils.js';
 
@@ -42,6 +43,7 @@ export interface CreateDecisionLogConfig {
   vendorContext?: VendorContext;
   learningObjective?: LearningObjective;
   injects?: ScenarioInject[];
+  linkedEntities?: LinkedEntity[];
 }
 
 /**
@@ -70,6 +72,7 @@ export function createDecisionLog(config: CreateDecisionLogConfig): DecisionLog 
     vendorContext: config.vendorContext,
     learningObjective: config.learningObjective,
     injects: config.injects ?? [],
+    linkedEntities: config.linkedEntities,
 
     facts: [],
     assumptions: [],
