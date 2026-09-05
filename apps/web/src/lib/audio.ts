@@ -44,7 +44,7 @@ const getBasePath = (): string => {
 };
 
 // SFX version for cache-busting (update when ElevenLabs regenerates files)
-const SFX_VERSION = '20260905-elevenlabs-v1';
+const SFX_VERSION = '20260905-elevenlabs-sfx';
 
 // Map SFX types to audio file paths with cache-bust query params
 const SFX_FILES: Record<SFXType, string> = {
