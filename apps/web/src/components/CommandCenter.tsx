@@ -263,6 +263,8 @@ import {
   createKRIDashboard,
   createPipelineHealth,
   PIPELINE_STAGE_CONFIG,
+  createInitialRoster,
+  createDefaultStakeholderMap,
   type ProtectedAsset,
   type ScenarioESRMConfig,
   type LinkedEntity,
@@ -275,10 +277,13 @@ import {
   type PipelineHealth,
   type TrafficLightStatus,
   type TrendDirection,
+  type TeamRosterState,
+  type StakeholderMap,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
 import { clsx } from 'clsx';
+import { TeamPanel, StakeholderPanel } from './TeamStakeholderPanel';
 
 type SecurityDomain = 'PHYSICAL' | 'INTELLIGENCE' | 'CYBER';
 type MobileTab = 'intel' | 'decision' | 'cop';
@@ -545,6 +550,10 @@ export default function CommandCenter({
   const [valueMetrics, setValueMetrics] = useState<ESRMValueCreated | null>(null);
   const [kriDashboard, setKRIDashboard] = useState<KRIDashboard | null>(null);
   const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
+  const [teamRoster, setTeamRoster] = useState<TeamRosterState | null>(null);
+  const [stakeholderMap, setStakeholderMap] = useState<StakeholderMap | null>(null);
+  const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
+  const [leadershipTab, setLeadershipTab] = useState<'team' | 'stakeholders'>('team');
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -694,6 +703,19 @@ export default function CommandCenter({
     },
     [mobileTab, tabAnimating, tapFeedback]
   );
+
+  // Initialize leadership roster and stakeholder map
+  useEffect(() => {
+    setTeamRoster(createInitialRoster());
+    setStakeholderMap(createDefaultStakeholderMap(log.id));
+  }, [log.id]);
+
+  // Progressive disclosure - show leadership panel after 2 decisions
+  useEffect(() => {
+    if (log.decisions.length >= 2 && !showLeadershipPanel) {
+      setShowLeadershipPanel(true);
+    }
+  }, [log.decisions.length, showLeadershipPanel]);
 
   // Main game timer
   useEffect(() => {
@@ -2002,6 +2024,53 @@ export default function CommandCenter({
                 />
               </div>
             </div>
+
+            {/* Leadership Panel - Progressive Disclosure */}
+            {showLeadershipPanel && (
+              <div className="border-b border-gray-800/50">
+                <div className="flex border-b border-gray-800/50">
+                  <button
+                    onClick={() => setLeadershipTab('team')}
+                    className={clsx(
+                      'flex-1 py-2.5 text-xs font-medium transition-all',
+                      leadershipTab === 'team'
+                        ? 'text-cyan-400 bg-cyan-500/10 border-b-2 border-cyan-400'
+                        : 'text-gray-500 hover:text-gray-300'
+                    )}
+                  >
+                    Team
+                  </button>
+                  <button
+                    onClick={() => setLeadershipTab('stakeholders')}
+                    className={clsx(
+                      'flex-1 py-2.5 text-xs font-medium transition-all',
+                      leadershipTab === 'stakeholders'
+                        ? 'text-violet-400 bg-violet-500/10 border-b-2 border-violet-400'
+                        : 'text-gray-500 hover:text-gray-300'
+                    )}
+                  >
+                    Stakeholders
+                  </button>
+                </div>
+                <div className="p-3 max-h-64 overflow-y-auto scrollbar-thin">
+                  {leadershipTab === 'team' ? (
+                    <TeamPanel roster={teamRoster} />
+                  ) : (
+                    <StakeholderPanel
+                      stakeholderMap={stakeholderMap}
+                      briefings={[]}
+                      currentEscalationLevel={
+                        escalationLevel === 'INVESTIGATION'
+                          ? 4
+                          : escalationLevel === 'INCIDENT'
+                            ? 3
+                            : 2
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Decision History */}
             <div className="flex-1 p-4 overflow-y-auto">
@@ -4199,6 +4268,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     | 'risks'
     | 'treatments'
     | 'advisor'
+    | 'team'
+    | 'stakeholders'
     | 'response'
     | 'scoring'
     | 'glossary'
@@ -4215,6 +4286,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     { id: 'risks' as const, label: 'Risk Assessment', icon: <AlertTriangle className="w-4 h-4" /> },
     { id: 'treatments' as const, label: 'Treatments', icon: <TrendingUp className="w-4 h-4" /> },
     { id: 'advisor' as const, label: 'Advisor Model', icon: <Users className="w-4 h-4" /> },
+    { id: 'team' as const, label: 'Team Mgmt', icon: <Users className="w-4 h-4" /> },
+    { id: 'stakeholders' as const, label: 'Stakeholders', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'response' as const, label: 'Response & Review', icon: <FileText className="w-4 h-4" /> },
     { id: 'scoring' as const, label: 'Scoring', icon: <Zap className="w-4 h-4" /> },
     { id: 'glossary' as const, label: 'Glossary', icon: <HelpCircle className="w-4 h-4" /> },
@@ -5045,6 +5118,176 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                 <p className="text-sm text-amber-200">
                   <strong>In-Sim:</strong> Click &ldquo;Brief Now&rdquo; to notify the asset owner.
                   This earns +75 ESRM bonus points and demonstrates proper governance.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'team' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Team Management</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Global GSOC/CMIC leadership requires managing operators across regions, ensuring
+                coverage, quality, and effective handoffs.
+              </p>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Follow-the-Sun Model</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { region: 'AMERICAS', short: 'AMER', tz: 'EST/PST', color: 'blue' },
+                    { region: 'EMEA', short: 'EMEA', tz: 'GMT/CET', color: 'violet' },
+                    { region: 'APAC', short: 'APAC', tz: 'SGT/JST', color: 'emerald' },
+                  ].map((r) => (
+                    <div
+                      key={r.region}
+                      className={clsx(
+                        'p-2.5 rounded-lg border text-center',
+                        `bg-${r.color}-500/10 border-${r.color}-500/30`
+                      )}
+                    >
+                      <span className={`text-${r.color}-400 font-bold text-sm`}>{r.short}</span>
+                      <p className="text-2xs text-gray-500 mt-0.5">{r.tz}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/15 to-cyan-600/5 border border-cyan-500/40">
+                <h4 className="text-cyan-400 font-semibold mb-2">Shift Handoff Quality</h4>
+                <p className="text-sm text-gray-300 mb-2">
+                  Quality handoffs ensure continuity. Brief the incoming lead on:
+                </p>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>
+                    • <strong>Open incidents</strong> — current status and next actions
+                  </li>
+                  <li>
+                    • <strong>Active escalations</strong> — who has been notified
+                  </li>
+                  <li>
+                    • <strong>Pending decisions</strong> — awaiting stakeholder input
+                  </li>
+                  <li>
+                    • <strong>Watch items</strong> — emerging situations to monitor
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-gray-300">Coverage Management</h4>
+                <p className="text-xs text-gray-400 mb-2">
+                  Monitor for gaps caused by PTO, sick leave, training, or surge demand. Mitigation
+                  options include overtime, cross-training, or mutual aid.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { type: 'Overtime', desc: 'Extend current shift', cost: 'MEDIUM' },
+                    { type: 'Cross-Train', desc: 'Adjacent region support', cost: 'LOW' },
+                    { type: 'Contractor', desc: 'Surge staffing', cost: 'HIGH' },
+                    { type: 'Defer', desc: 'Non-critical work only', cost: 'LOW' },
+                  ].map((m) => (
+                    <div key={m.type} className="p-2 rounded-lg bg-gray-800/40 text-xs">
+                      <span className="text-gray-300 font-medium">{m.type}</span>
+                      <p className="text-gray-500 text-2xs">{m.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                <p className="text-sm text-violet-200">
+                  <strong>Leadership Moment:</strong> Coaching operators under pressure builds
+                  resilience. Balance immediate incident needs with development.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'stakeholders' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Stakeholder Management</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Effective GSOC leadership requires managing relationships with executives, business
+                units, and cross-functional partners.
+              </p>
+
+              <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/15 to-violet-600/5 border border-violet-500/40">
+                <h4 className="text-violet-400 font-semibold mb-2">Stakeholder Map Quadrant</h4>
+                <p className="text-sm text-gray-300 mb-3">
+                  Prioritize engagement based on power and interest:
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded bg-red-500/10 border border-red-500/30">
+                    <span className="text-red-400 font-bold">High Power / High Interest</span>
+                    <p className="text-gray-500 mt-0.5">Manage closely (CSO, GC, CISO)</p>
+                  </div>
+                  <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30">
+                    <span className="text-amber-400 font-bold">High Power / Low Interest</span>
+                    <p className="text-gray-500 mt-0.5">Keep satisfied (CEO, Board)</p>
+                  </div>
+                  <div className="p-2 rounded bg-cyan-500/10 border border-cyan-500/30">
+                    <span className="text-cyan-400 font-bold">Low Power / High Interest</span>
+                    <p className="text-gray-500 mt-0.5">Keep informed (Site managers)</p>
+                  </div>
+                  <div className="p-2 rounded bg-gray-800 border border-gray-700">
+                    <span className="text-gray-400 font-bold">Low Power / Low Interest</span>
+                    <p className="text-gray-500 mt-0.5">Monitor (General staff)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-gray-300">Escalation Framework</h4>
+                <p className="text-xs text-gray-400 mb-2">
+                  Know who to notify and when. Each level has different authority and response
+                  times.
+                </p>
+                {[
+                  { level: 1, name: 'Watch Desk', notify: 'Watch Commander', time: '60m' },
+                  { level: 2, name: 'Team Lead', notify: 'Regional Lead', time: '30m' },
+                  { level: 3, name: 'Management', notify: 'Director + Legal', time: '15m' },
+                  { level: 4, name: 'Executive', notify: 'CSO + CEO Office', time: '10m' },
+                  { level: 5, name: 'Crisis Team', notify: 'Full CMT + Board', time: '5m' },
+                ].map((esc) => (
+                  <div
+                    key={esc.level}
+                    className={clsx(
+                      'p-2 rounded-lg border flex items-center justify-between',
+                      esc.level >= 4
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : esc.level >= 3
+                          ? 'bg-amber-500/10 border-amber-500/30'
+                          : 'bg-gray-800/40 border-gray-700/40'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={clsx(
+                          'w-5 h-5 rounded flex items-center justify-center text-2xs font-bold',
+                          esc.level >= 4
+                            ? 'bg-red-500/20 text-red-400'
+                            : esc.level >= 3
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-gray-700 text-gray-400'
+                        )}
+                      >
+                        {esc.level}
+                      </span>
+                      <div>
+                        <span className="text-gray-300 text-xs font-medium">{esc.name}</span>
+                        <p className="text-2xs text-gray-500">{esc.notify}</p>
+                      </div>
+                    </div>
+                    <span className="text-2xs text-gray-500">{esc.time}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <p className="text-sm text-amber-200">
+                  <strong>Executive Presence:</strong> When briefing executives, lead with the
+                  bottom line. State the situation, your assessment, and recommendation clearly.
                 </p>
               </div>
             </div>

@@ -120,9 +120,84 @@ export {
   EXECUTIVE_THREAT_ESRM,
   SUPPLY_CHAIN_ESRM,
   INSIDER_THREAT_ESRM,
+  LEADERSHIP_SCENARIOS,
+  createCivilUnrestScenario,
+  createTechOutageScenario,
+  CIVIL_UNREST_ESRM,
+  TECH_OUTAGE_ESRM,
 } from './scenarios/index.js';
 
-export type { ScenarioInfo, FusedInject, SecurityDomain, InjectSource } from './scenarios/index.js';
+export type {
+  ScenarioInfo,
+  FusedInject,
+  SecurityDomain,
+  InjectSource,
+  LeadershipInject,
+  LeadershipScenarioType,
+  LeadershipChallengeType,
+} from './scenarios/index.js';
+
+// Team Management
+export {
+  REGION_CONFIGS,
+  calculateTeamUtilization,
+  identifyCoverageGaps,
+  generateLoadBalanceRecommendations,
+  evaluateHandoffQuality,
+  createInitialRoster,
+} from './team-management.js';
+
+export type {
+  GlobalRegion,
+  RegionConfig,
+  OperatorSkill,
+  PerformanceLevel,
+  CertificationStatus,
+  Operator,
+  RegionalLead,
+  LeadershipDecision,
+  LeadershipDecisionType,
+  ShiftHandoff,
+  CoverageGap,
+  CoverageMitigation,
+  ShiftQuality,
+  LoadBalanceState,
+  LoadBalanceAction,
+  TeamRosterState,
+  CoachingMoment,
+} from './team-management.js';
+
+// Stakeholder Management
+export {
+  DEFAULT_ESCALATION_FRAMEWORK,
+  createDefaultStakeholderMap,
+  categorizeStakeholders,
+  determineEscalationLevel,
+  calculateExecutivePresenceScore,
+  createStakeholderNPCs,
+} from './stakeholder-management.js';
+
+export type {
+  StakeholderCategory,
+  InfluenceLevel,
+  InterestLevel,
+  CommFrequency,
+  MappedStakeholder,
+  StakeholderQuadrant,
+  StakeholderMap,
+  CommunicationPlan,
+  ScheduledBriefing,
+  EscalationLevel,
+  MessageTemplate,
+  ExecutiveBriefing,
+  BriefingOption,
+  CrisisGovernance,
+  MaturityLevel,
+  MaturityDomain,
+  MaturityInitiative,
+  ImprovementConversation,
+  StakeholderNPC,
+} from './stakeholder-management.js';
 
 // Utilities
 export {

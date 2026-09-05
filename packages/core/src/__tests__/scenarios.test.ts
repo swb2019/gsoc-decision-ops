@@ -50,11 +50,14 @@ describe('Scenarios', () => {
     it('should return all available scenarios', () => {
       const scenarios = getAvailableScenarios();
 
-      expect(scenarios).toHaveLength(6);
+      expect(scenarios).toHaveLength(8);
       // Fused GSOC scenarios
       expect(scenarios.map((s) => s.id)).toContain('executive-threat-convergence');
       expect(scenarios.map((s) => s.id)).toContain('supply-chain-intrusion');
       expect(scenarios.map((s) => s.id)).toContain('insider-threat-external');
+      // Leadership scenarios
+      expect(scenarios.map((s) => s.id)).toContain('civil-unrest-downtown');
+      expect(scenarios.map((s) => s.id)).toContain('tech-outage-platform');
       // Legacy scenarios
       expect(scenarios.map((s) => s.id)).toContain('access-control-ransomware');
       expect(scenarios.map((s) => s.id)).toContain('video-system-compromise');
