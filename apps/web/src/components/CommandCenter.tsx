@@ -54,6 +54,9 @@ import {
   Radar,
   ShieldAlert,
   FileQuestion,
+  TrendingDown,
+  Minus,
+  CheckCircle2,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -256,12 +259,22 @@ import {
   getRevealedInjects,
   postureToTreatment,
   INTAKE_CHANNELS,
+  calculateESRMValueCreated,
+  createKRIDashboard,
+  createPipelineHealth,
+  PIPELINE_STAGE_CONFIG,
   type ProtectedAsset,
   type ScenarioESRMConfig,
   type LinkedEntity,
   type EntityType,
   type IntakeMetadata,
   type IntakeChannel,
+  type ESRMValueCreated,
+  type KRIDashboard,
+  type KRIMeasurement,
+  type PipelineHealth,
+  type TrafficLightStatus,
+  type TrendDirection,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -526,6 +539,12 @@ export default function CommandCenter({
   const [resourceContention, setResourceContention] = useState<string | null>(null);
   const [esrmCascadeActive, setEsrmCascadeActive] = useState(false);
   const [cascadeMultiplier, setCascadeMultiplier] = useState(1);
+  const [showValuePanel, setShowValuePanel] = useState(false);
+  const [showKRIPanel, setShowKRIPanel] = useState(false);
+  const [showPipelinePanel, setShowPipelinePanel] = useState(false);
+  const [valueMetrics, setValueMetrics] = useState<ESRMValueCreated | null>(null);
+  const [kriDashboard, setKRIDashboard] = useState<KRIDashboard | null>(null);
+  const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1298,6 +1317,77 @@ export default function CommandCenter({
 
   const assets = esrmConfig?.primaryAssets || [];
 
+  // Update value metrics, KRI dashboard, and pipeline health
+  useEffect(() => {
+    if (!isRunning && !showDebrief) return;
+    
+    const updateMetrics = () => {
+      // Calculate ESRM Value Created
+      const assetOwnersBriefed = log.decisions.filter(d => 
+        d.rationale?.toLowerCase().includes('owner') || 
+        d.rationale?.toLowerCase().includes('briefed')
+      ).length;
+      const crossDomainCount = log.decisions.filter(d => 
+        d.posture === 'PAUSE' || d.esrmFraming?.treatment === 'MITIGATE'
+      ).length;
+      
+      const value = calculateESRMValueCreated(
+        log,
+        assets,
+        elapsedSeconds,
+        assetOwnersBriefed,
+        crossDomainCount
+      );
+      setValueMetrics(value);
+      
+      // Calculate KRI Dashboard
+      const escalationLevel: 'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION' = 
+        log.decisions.some(d => d.posture === 'PAUSE') ? 'INVESTIGATION' :
+        log.decisions.length > 3 ? 'INCIDENT' : 'ACTIVITY';
+      
+      const guardsDeployed = log.decisions.filter(d => d.esrmFraming?.treatment === 'MITIGATE').length;
+      const analystsBusy = Math.min(2, log.decisions.length);
+      const respondersDeployed = log.decisions.filter(d => d.posture === 'PAUSE').length;
+      
+      const resources = {
+        guards: { 
+          available: Math.max(0, 4 - guardsDeployed), 
+          total: 4, 
+          contentionLevel: guardsDeployed > 2 ? 'HIGH' : guardsDeployed > 0 ? 'MEDIUM' : 'LOW' 
+        },
+        analysts: { 
+          available: Math.max(0, 2 - analystsBusy), 
+          total: 2, 
+          contentionLevel: analystsBusy > 1 ? 'HIGH' : analystsBusy > 0 ? 'MEDIUM' : 'LOW' 
+        },
+        responders: { 
+          available: Math.max(0, 3 - respondersDeployed), 
+          total: 3, 
+          contentionLevel: respondersDeployed > 1 ? 'HIGH' : respondersDeployed > 0 ? 'MEDIUM' : 'LOW' 
+        },
+      };
+      
+      const kri = createKRIDashboard(
+        log,
+        revealedInjects,
+        elapsedSeconds,
+        assetOwnersBriefed,
+        escalationLevel,
+        resources,
+        kriDashboard || undefined
+      );
+      setKRIDashboard(kri);
+      
+      // Calculate Pipeline Health
+      const pipeline = createPipelineHealth(log, revealedInjects, elapsedSeconds);
+      setPipelineHealth(pipeline);
+    };
+    
+    updateMetrics();
+    const interval = setInterval(updateMetrics, 5000);
+    return () => clearInterval(interval);
+  }, [log, elapsedSeconds, isRunning, showDebrief, assets, revealedInjects, kriDashboard]);
+
   return (
     <div
       className={clsx(
@@ -1555,6 +1645,67 @@ export default function CommandCenter({
                 )}
               </button>
             )}
+
+            {/* Value Metrics Button */}
+            <button
+              onClick={() => setShowValuePanel(true)}
+              className={clsx(
+                'p-2.5 rounded-xl transition-all touch-target flex items-center justify-center relative',
+                valueMetrics && valueMetrics.compositeValueScore >= 0.7
+                  ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                  : valueMetrics && valueMetrics.compositeValueScore >= 0.4
+                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                    : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+              )}
+              aria-label="View Value Metrics"
+            >
+              <TrendingUp className="w-5 h-5" />
+              {valueMetrics && valueMetrics.compositeValueScore >= 0.7 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+            </button>
+
+            {/* KRI Dashboard Button */}
+            <button
+              onClick={() => setShowKRIPanel(true)}
+              className={clsx(
+                'p-2.5 rounded-xl transition-all touch-target flex items-center justify-center relative',
+                kriDashboard?.overallHealth === 'GREEN'
+                  ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                  : kriDashboard?.overallHealth === 'AMBER'
+                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                    : kriDashboard?.overallHealth === 'RED'
+                      ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+              )}
+              aria-label="View KRI Dashboard"
+            >
+              <BarChart3 className="w-5 h-5" />
+              {kriDashboard && kriDashboard.criticalCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+              )}
+            </button>
+
+            {/* Pipeline Health Button */}
+            <button
+              onClick={() => setShowPipelinePanel(true)}
+              className={clsx(
+                'p-2.5 rounded-xl transition-all touch-target flex items-center justify-center relative',
+                pipelineHealth?.overallStatus === 'HEALTHY'
+                  ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                  : pipelineHealth?.overallStatus === 'DEGRADED'
+                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                    : pipelineHealth?.overallStatus === 'CRITICAL'
+                      ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+              )}
+              aria-label="View Pipeline Health"
+            >
+              <Activity className="w-5 h-5" />
+              {pipelineHealth && pipelineHealth.alerts.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              )}
+            </button>
 
             {/* Field Guide Button */}
             <button
@@ -2114,6 +2265,30 @@ export default function CommandCenter({
 
       {/* Field Guide Modal */}
       {showFieldGuide && <FieldGuideModal onClose={() => setShowFieldGuide(false)} />}
+
+      {/* Value Metrics Panel */}
+      {showValuePanel && valueMetrics && (
+        <ValueMetricsPanel 
+          metrics={valueMetrics} 
+          onClose={() => setShowValuePanel(false)} 
+        />
+      )}
+
+      {/* KRI Dashboard Panel */}
+      {showKRIPanel && kriDashboard && (
+        <KRIDashboardPanel 
+          dashboard={kriDashboard} 
+          onClose={() => setShowKRIPanel(false)} 
+        />
+      )}
+
+      {/* Pipeline Health Panel */}
+      {showPipelinePanel && pipelineHealth && (
+        <PipelineHealthPanel 
+          health={pipelineHealth} 
+          onClose={() => setShowPipelinePanel(false)} 
+        />
+      )}
 
       {/* Coach Marks - First Run Help */}
       {showCoachMarks && !isRunning && revealedInjects.length === 0 && (
@@ -3516,6 +3691,447 @@ function StatCard({
   );
 }
 
+function ValueMetricsPanel({ 
+  metrics, 
+  onClose 
+}: { 
+  metrics: ESRMValueCreated; 
+  onClose: () => void;
+}): JSX.Element {
+  const getScoreColor = (score: number) => {
+    if (score >= 0.8) return 'text-emerald-400';
+    if (score >= 0.6) return 'text-cyan-400';
+    if (score >= 0.4) return 'text-amber-400';
+    return 'text-red-400';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
+        <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">ESRM Value Created</h2>
+              <p className="text-xs text-gray-500">Security&apos;s Business Impact</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-800/50 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+          {/* Composite Score */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-300">Composite Value Score</span>
+              <span className={`text-2xl font-bold ${getScoreColor(metrics.compositeValueScore)}`}>
+                {Math.round(metrics.compositeValueScore * 100)}%
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">{metrics.valueNarrative}</p>
+          </div>
+
+          {/* Mission Continuity */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-semibold text-gray-200">Mission Continuity</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                metrics.missionContinuity.state === 'OPERATIONAL' ? 'bg-emerald-500/20 text-emerald-400' :
+                metrics.missionContinuity.state === 'DEGRADED' ? 'bg-amber-500/20 text-amber-400' :
+                metrics.missionContinuity.state === 'DISRUPTED' ? 'bg-orange-500/20 text-orange-400' :
+                'bg-red-500/20 text-red-400'
+              }`}>
+                {metrics.missionContinuity.state}
+              </span>
+              <span className="text-xs text-gray-500">
+                {metrics.missionContinuity.avoidedDowntimeMinutes}m avoided downtime
+              </span>
+            </div>
+          </div>
+
+          {/* Residual Risk */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-semibold text-gray-200">Residual Risk Management</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-gray-500">Documented</span>
+                <p className="text-lg font-semibold text-white">{metrics.residualRisk.risksWithExplicitResidual}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Explicit Rate</span>
+                <p className={`text-lg font-semibold ${getScoreColor(metrics.residualRisk.residualRiskExplicitnessRate)}`}>
+                  {Math.round(metrics.residualRisk.residualRiskExplicitnessRate * 100)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Owner Affirmation */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4 text-violet-400" />
+              <span className="text-sm font-semibold text-gray-200">Owner Affirmation</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              <div>
+                <span className="text-gray-500">Briefed</span>
+                <p className="text-lg font-semibold text-white">{metrics.ownerAffirmation.decisionsWithOwnerBriefing}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Affirmed</span>
+                <p className="text-lg font-semibold text-emerald-400">{metrics.ownerAffirmation.affirmationsReceived}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Pending</span>
+                <p className="text-lg font-semibold text-amber-400">{metrics.ownerAffirmation.decisionsTotal - metrics.ownerAffirmation.affirmationsReceived}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Avoided Loss */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-semibold text-gray-200">Avoided Loss Proxies</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {metrics.avoidedLoss.proxies.length > 0 ? (
+                metrics.avoidedLoss.proxies.map((proxy, idx) => (
+                  <span 
+                    key={idx}
+                    className={`px-2 py-1 rounded text-xs ${
+                      proxy.estimatedAvoidance === 'HIGH' ? 'bg-emerald-500/20 text-emerald-400' :
+                      proxy.estimatedAvoidance === 'MEDIUM' ? 'bg-amber-500/20 text-amber-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}
+                  >
+                    {proxy.category} ({proxy.estimatedAvoidance})
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-gray-500">No avoided losses tracked yet</span>
+              )}
+            </div>
+          </div>
+
+          {/* Advisor Effectiveness */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-semibold text-gray-200">Advisor Effectiveness</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-gray-500">Recommendations</span>
+                <p className="text-lg font-semibold text-white">{metrics.advisorEffectiveness.recommendationsProvided}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Accepted</span>
+                <p className="text-lg font-semibold text-emerald-400">{metrics.advisorEffectiveness.recommendationsAccepted}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-800/60">
+          <button
+            onClick={onClose}
+            className="w-full px-6 py-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 font-semibold hover:bg-emerald-500/25 transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KRIDashboardPanel({ 
+  dashboard, 
+  onClose 
+}: { 
+  dashboard: KRIDashboard; 
+  onClose: () => void;
+}): JSX.Element {
+  const getStatusColor = (status: TrafficLightStatus) => {
+    switch (status) {
+      case 'GREEN': return 'bg-emerald-400';
+      case 'AMBER': return 'bg-amber-400';
+      case 'RED': return 'bg-red-400';
+    }
+  };
+
+  const getStatusBg = (status: TrafficLightStatus) => {
+    switch (status) {
+      case 'GREEN': return 'bg-emerald-500/10 border-emerald-500/30';
+      case 'AMBER': return 'bg-amber-500/10 border-amber-500/30';
+      case 'RED': return 'bg-red-500/10 border-red-500/30';
+    }
+  };
+
+  const getTrendIcon = (trend: TrendDirection) => {
+    switch (trend) {
+      case 'IMPROVING': return <TrendingUp className="w-3 h-3 text-emerald-400" />;
+      case 'DEGRADING': return <TrendingDown className="w-3 h-3 text-red-400" />;
+      case 'STABLE': return <Minus className="w-3 h-3 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
+        <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              dashboard.overallHealth === 'GREEN' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' :
+              dashboard.overallHealth === 'AMBER' ? 'bg-gradient-to-br from-amber-400 to-amber-600' :
+              'bg-gradient-to-br from-red-400 to-red-600'
+            }`}>
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">KRI Dashboard</h2>
+              <p className="text-xs text-gray-500">Key Risk Indicators</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-800/50 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+          {/* Overall Health */}
+          <div className={`p-4 rounded-2xl border ${getStatusBg(dashboard.overallHealth)}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-300">Overall Health</span>
+              <div className="flex items-center gap-2">
+                <span className={`w-3 h-3 rounded-full ${getStatusColor(dashboard.overallHealth)}`} />
+                <span className="text-sm font-semibold text-white">{dashboard.overallHealth}</span>
+              </div>
+            </div>
+            <div className="flex gap-4 text-xs">
+              <span className="text-emerald-400">{dashboard.healthyCount} healthy</span>
+              <span className="text-amber-400">{dashboard.warningCount} warning</span>
+              <span className="text-red-400">{dashboard.criticalCount} critical</span>
+            </div>
+          </div>
+
+          {/* Individual KRIs */}
+          <div className="space-y-3">
+            {dashboard.indicators.map((kri: KRIMeasurement) => (
+              <div 
+                key={kri.id}
+                className={`p-3 rounded-xl border ${getStatusBg(kri.status)}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${getStatusColor(kri.status)}`} />
+                    <span className="text-sm font-semibold text-gray-200">{kri.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getTrendIcon(kri.trend)}
+                    <span className="text-sm font-mono text-white">
+                      {typeof kri.value === 'number' ? kri.value.toFixed(1) : kri.value}
+                      {kri.unit}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">{kri.category}</span>
+                  <span className="text-gray-500">
+                    Target: {kri.threshold.direction === 'LOWER_BETTER' ? '≤' : '≥'}{kri.threshold.green}{kri.unit}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-800/60">
+          <button
+            onClick={onClose}
+            className="w-full px-6 py-2.5 rounded-xl bg-cyan-500/15 text-cyan-400 font-semibold hover:bg-cyan-500/25 transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PipelineHealthPanel({ 
+  health, 
+  onClose 
+}: { 
+  health: PipelineHealth; 
+  onClose: () => void;
+}): JSX.Element {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'HEALTHY': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+      case 'DEGRADED': return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+      case 'CRITICAL': return 'text-red-400 bg-red-500/10 border-red-500/30';
+      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
+        <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              health.overallStatus === 'HEALTHY' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' :
+              health.overallStatus === 'DEGRADED' ? 'bg-gradient-to-br from-amber-400 to-amber-600' :
+              'bg-gradient-to-br from-red-400 to-red-600'
+            }`}>
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Pipeline Health</h2>
+              <p className="text-xs text-gray-500">Data Flow Status</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-800/50 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+          {/* Overall Status */}
+          <div className={`p-4 rounded-2xl border ${getStatusColor(health.overallStatus)}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Overall Pipeline</span>
+              <span className="text-sm font-semibold">{health.overallStatus}</span>
+            </div>
+          </div>
+
+          {/* Pipeline Flow Visualization */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <h4 className="text-sm font-semibold text-gray-300 mb-3">Pipeline Flow</h4>
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              {Object.entries(PIPELINE_STAGE_CONFIG).map(([stageId, config], idx) => (
+                <span key={stageId} className="contents">
+                  {idx > 0 && <span className="text-gray-600">→</span>}
+                  <span className={`px-2 py-1 rounded ${
+                    health.stages.find(s => s.stage === stageId)?.status === 'HEALTHY' 
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : health.stages.find(s => s.stage === stageId)?.status === 'DEGRADED'
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : 'bg-gray-800 text-gray-400'
+                  }`}>
+                    {config.name.split(' ')[0]}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Stage Details */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-300">Stage Health</h4>
+            {health.stages.map((stage) => (
+              <div 
+                key={stage.stage}
+                className="p-3 rounded-xl bg-gray-800/30 border border-gray-700/40"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-200">
+                    {PIPELINE_STAGE_CONFIG[stage.stage as keyof typeof PIPELINE_STAGE_CONFIG]?.name || stage.stage}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${getStatusColor(stage.status)}`}>
+                    {stage.status}
+                  </span>
+                </div>
+                <div className="flex gap-4 text-xs text-gray-500">
+                  <span>Latency: {stage.latencyMs}ms</span>
+                  <span>Error: {stage.errorRate.toFixed(1)}%</span>
+                  <span>Queue: {stage.queueDepth}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Alerts */}
+          {health.alerts.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-gray-300">Active Alerts</h4>
+              {health.alerts.map((alert, idx) => (
+                <div 
+                  key={idx}
+                  className={`p-3 rounded-xl border ${
+                    alert.severity === 'CRITICAL' ? 'bg-red-500/10 border-red-500/30' :
+                    alert.severity === 'WARNING' ? 'bg-amber-500/10 border-amber-500/30' :
+                    'bg-blue-500/10 border-blue-500/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertTriangle className={`w-3 h-3 ${
+                      alert.severity === 'CRITICAL' ? 'text-red-400' :
+                      alert.severity === 'WARNING' ? 'text-amber-400' :
+                      'text-blue-400'
+                    }`} />
+                    <span className="text-sm font-medium text-gray-200">{alert.message}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{alert.stage}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Metrics Summary */}
+          <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+            <h4 className="text-sm font-semibold text-gray-300 mb-3">Pipeline Metrics</h4>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-lg font-semibold text-white">{health.metrics.totalEventsProcessed}</p>
+                <span className="text-xs text-gray-500">Events</span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-white">{health.metrics.averageLatencyMs}ms</p>
+                <span className="text-xs text-gray-500">Avg Latency</span>
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-white">{(health.metrics.enrichmentSuccessRate * 100).toFixed(0)}%</p>
+                <span className="text-xs text-gray-500">Enriched</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-800/60">
+          <button
+            onClick={onClose}
+            className="w-full px-6 py-2.5 rounded-xl bg-violet-500/15 text-violet-400 font-semibold hover:bg-violet-500/25 transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   const [activeSection, setActiveSection] = useState<
     | 'overview'
@@ -3528,6 +4144,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     | 'response'
     | 'scoring'
     | 'glossary'
+    | 'kri'
+    | 'value'
+    | 'pipeline'
   >('overview');
 
   const sections = [
@@ -3541,6 +4160,9 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     { id: 'response' as const, label: 'Response & Review', icon: <FileText className="w-4 h-4" /> },
     { id: 'scoring' as const, label: 'Scoring', icon: <Zap className="w-4 h-4" /> },
     { id: 'glossary' as const, label: 'Glossary', icon: <HelpCircle className="w-4 h-4" /> },
+    { id: 'kri' as const, label: 'KRIs', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'value' as const, label: 'Value Metrics', icon: <TrendingUp className="w-4 h-4" /> },
+    { id: 'pipeline' as const, label: 'Pipeline', icon: <Activity className="w-4 h-4" /> },
   ];
 
   const glossaryTerms = [
@@ -4561,6 +5183,199 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   <strong>Tip:</strong> Tap any underlined term in the simulation to see its
                   definition. ESRM-specific concepts are explained in context throughout gameplay.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'kri' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Key Risk Indicators (KRIs)</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                KRIs provide glanceable, traffic-light health metrics. Leading indicators predict issues; lagging indicators measure outcomes.
+              </p>
+
+              <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 mb-4">
+                <h4 className="text-cyan-400 font-semibold text-sm mb-2">Traffic Light System</h4>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400" />
+                    <span className="text-xs text-gray-300">GREEN = Within tolerance</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-amber-400" />
+                    <span className="text-xs text-gray-300">AMBER = Warning</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-red-400" />
+                    <span className="text-xs text-gray-300">RED = Critical</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Leading Indicators</h4>
+                {[
+                  { name: 'MTTA', desc: 'Mean Time To Acknowledge — seconds from inject reveal to decision', target: '< 30s' },
+                  { name: 'Open Critical', desc: 'Unhandled IMMEDIATE priority injects', target: '0' },
+                  { name: 'Dispatch Contention', desc: 'Resource strain across guards/analysts/responders', target: '< 25%' },
+                  { name: 'Escalation Level', desc: 'Activity (1) → Incident (2) → Investigation (3)', target: 'Match threat' },
+                  { name: 'Channel Signal', desc: 'Ratio of verified facts to assumptions/unknowns', target: '> 70%' },
+                ].map((kri) => (
+                  <div key={kri.name} className="p-3 rounded-xl bg-gray-800/40 border border-gray-700/40">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-cyan-400">{kri.name}</span>
+                      <span className="text-2xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono">{kri.target}</span>
+                    </div>
+                    <p className="text-xs text-gray-400">{kri.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="text-sm font-semibold text-gray-300">Lagging Indicators</h4>
+                {[
+                  { name: 'MTTR', desc: 'Mean Time To Resolve — seconds from first inject to stability', target: '< 300s' },
+                  { name: 'Residual Rate', desc: 'Decisions with explicit residual risk documentation', target: '> 80%' },
+                  { name: 'Owner Briefing', desc: 'Decisions with asset owner engagement', target: '> 80%' },
+                  { name: 'Treatment Diversity', desc: 'Use of multiple treatment options (accept/mitigate/transfer/avoid)', target: '> 50%' },
+                ].map((kri) => (
+                  <div key={kri.name} className="p-3 rounded-xl bg-gray-800/40 border border-gray-700/40">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-violet-400">{kri.name}</span>
+                      <span className="text-2xs px-2 py-0.5 rounded bg-violet-500/20 text-violet-400 font-mono">{kri.target}</span>
+                    </div>
+                    <p className="text-xs text-gray-400">{kri.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <p className="text-xs text-amber-200">
+                  <strong>Musk 5-Step:</strong> Only metrics that change judgment. KRIs surface decision-useful signals, not vanity dashboards.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'value' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">ESRM Value Metrics</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Track security&apos;s underlying business value created — not vanity SaaS metrics. These show real impact from your decisions.
+              </p>
+
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-4">
+                <h4 className="text-emerald-400 font-semibold text-sm mb-2">Core Value Categories</h4>
+                <p className="text-xs text-gray-300">
+                  Protected mission continuity • Residual risk reduced vs accepted • Owner-affirmed decisions • Avoided loss proxies • Advisor effectiveness
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { 
+                    name: 'Mission Continuity', 
+                    desc: 'Operational state maintained during incident: OPERATIONAL → DEGRADED → DISRUPTED → HALTED',
+                    icon: '🛡️',
+                    color: 'cyan'
+                  },
+                  { 
+                    name: 'Residual Risk', 
+                    desc: 'Explicit documentation of risk remaining after treatment. Shows ESRM discipline.',
+                    icon: '⚠️',
+                    color: 'amber'
+                  },
+                  { 
+                    name: 'Owner Affirmation', 
+                    desc: 'Asset owners briefed and risk acknowledged. Core ESRM governance requirement.',
+                    icon: '👥',
+                    color: 'violet'
+                  },
+                  { 
+                    name: 'Avoided Loss', 
+                    desc: 'Proxy measures of losses prevented: safety incidents, breaches, disruptions.',
+                    icon: '✓',
+                    color: 'emerald'
+                  },
+                  { 
+                    name: 'Advisor Effectiveness', 
+                    desc: 'Recommendations provided, accepted, time to decision, information quality.',
+                    icon: '🧠',
+                    color: 'blue'
+                  },
+                ].map((metric) => (
+                  <div key={metric.name} className={`p-3 rounded-xl bg-${metric.color}-500/10 border border-${metric.color}-500/30`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span>{metric.icon}</span>
+                      <span className={`text-sm font-semibold text-${metric.color}-400`}>{metric.name}</span>
+                    </div>
+                    <p className="text-xs text-gray-400">{metric.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 mt-4">
+                <h4 className="text-violet-400 font-semibold text-sm mb-2">Composite Value Score</h4>
+                <p className="text-xs text-gray-300">
+                  Weighted combination of all value categories. Shows overall security value delivered during the incident response.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'pipeline' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Data Pipeline</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Realistic pipeline stages based on top software providers&apos; designs — generic names, no trademark cosplay.
+              </p>
+
+              <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40 mb-4">
+                <h4 className="text-gray-300 font-semibold text-sm mb-3">Pipeline Flow</h4>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {['Source', '→', 'Normalize', '→', 'Enrich', '→', 'Correlate', '→', 'Triage', '→', 'Case', '→', 'Decision', '→', 'AAR'].map((stage, idx) => (
+                    <span key={idx} className={stage === '→' ? 'text-gray-600' : 'px-2 py-1 rounded bg-gray-800 text-gray-300'}>
+                      {stage}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Stage Definitions</h4>
+                {[
+                  { name: 'Source Intake', desc: 'Raw event ingestion from ACS/VMS/SIEM/alarm/OSINT/tip/dispatch' },
+                  { name: 'Normalize', desc: 'Schema standardization, field mapping to common taxonomy' },
+                  { name: 'Enrich', desc: 'Context addition: asset info, threat intel, geo, identity' },
+                  { name: 'Correlate', desc: 'Cross-source correlation, entity linking, pattern detection' },
+                  { name: 'Triage Queue', desc: 'Priority sorting (IMMEDIATE/URGENT/ROUTINE), analyst routing' },
+                  { name: 'Case/Activity', desc: 'Incident bundling, workflow assignment, status tracking' },
+                  { name: 'COP/Decision', desc: 'Common Operating Picture, ESRM posture decision' },
+                  { name: 'AAR Feedback', desc: 'After-action review, lessons learned, continuous improvement' },
+                ].map((stage) => (
+                  <div key={stage.name} className="p-3 rounded-xl bg-gray-800/40 border border-gray-700/40">
+                    <span className="text-sm font-semibold text-gray-200">{stage.name}</span>
+                    <p className="text-xs text-gray-400 mt-1">{stage.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <h4 className="text-amber-400 font-semibold text-sm mb-2">Health Metrics</h4>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <span className="text-xs text-gray-400">Latency</span>
+                    <p className="text-2xs text-gray-500 mt-0.5">Processing delay (ms)</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400">Drop Rate</span>
+                    <p className="text-2xs text-gray-500 mt-0.5">Events lost (%)</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400">Enrich Miss</span>
+                    <p className="text-2xs text-gray-500 mt-0.5">Context gaps (%)</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
