@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Shield,
   AlertTriangle,
@@ -59,10 +58,20 @@ import {
   CheckCircle2,
   ShieldCheck,
   Crosshair,
+  Music,
 } from 'lucide-react';
 
 // Session storage key for persistence
 const SESSION_STORAGE_KEY = 'hourglass-command-session';
+const MUSIC_PREF_KEY = 'hourglass-command-music-enabled';
+
+// Get basePath for navigation (GitHub Pages compatible)
+const getBasePath = (): string => {
+  if (typeof window !== 'undefined') {
+    return process.env.NEXT_PUBLIC_BASE_PATH || '';
+  }
+  return '';
+};
 
 // Sound effect URLs (Web Audio API compatible)
 const SOUND_EFFECTS = {
@@ -435,6 +444,141 @@ function useSoundEffects(
   return { playSound };
 }
 
+// Custom hook for procedural background music using WebAudio
+function useBackgroundMusic(
+  enabled: boolean,
+  reducedMotion: boolean
+): {
+  unlockAudio: () => void;
+} {
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const oscillatorsRef = useRef<OscillatorNode[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const stopMusic = useCallback(() => {
+    oscillatorsRef.current.forEach((osc) => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch {
+        // Already stopped
+      }
+    });
+    oscillatorsRef.current = [];
+    setIsPlaying(false);
+  }, []);
+
+  const startMusic = useCallback(() => {
+    if (!audioContextRef.current || reducedMotion) return;
+
+    try {
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      // Create master gain for volume control
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = ctx.createGain();
+        gainNodeRef.current.connect(ctx.destination);
+      }
+      gainNodeRef.current.gain.setValueAtTime(0.08, ctx.currentTime);
+
+      // Create ambient drone oscillators (low volume, atmospheric)
+      const frequencies = [55, 82.5, 110, 165]; // A1, E2, A2, E3 - subtle power chord
+      const oscs: OscillatorNode[] = [];
+
+      frequencies.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+
+        osc.type = i === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        // Subtle detuning for warmth
+        osc.detune.setValueAtTime((i - 1.5) * 3, ctx.currentTime);
+
+        // Individual oscillator volumes
+        const vol = i === 0 ? 0.4 : i === 1 ? 0.25 : i === 2 ? 0.2 : 0.15;
+        oscGain.gain.setValueAtTime(vol, ctx.currentTime);
+
+        // Slow LFO modulation for movement
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(0.1 + i * 0.05, ctx.currentTime);
+        lfoGain.gain.setValueAtTime(freq * 0.002, ctx.currentTime);
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start();
+        oscs.push(lfo);
+
+        osc.connect(oscGain);
+        oscGain.connect(gainNodeRef.current!);
+        osc.start();
+        oscs.push(osc);
+      });
+
+      oscillatorsRef.current = oscs;
+      setIsPlaying(true);
+    } catch {
+      // Audio not supported
+    }
+  }, [reducedMotion]);
+
+  // Unlock audio on first user interaction
+  const unlockAudio = useCallback(() => {
+    if (hasInteracted) return;
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        )();
+      }
+
+      // Resume if suspended (browser autoplay policy)
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+
+      setHasInteracted(true);
+
+      // Start music if enabled
+      if (enabled && !reducedMotion) {
+        startMusic();
+      }
+    } catch {
+      // Audio not supported
+    }
+  }, [hasInteracted, enabled, reducedMotion, startMusic]);
+
+  // Handle enable/disable changes
+  useEffect(() => {
+    if (!hasInteracted) return;
+
+    if (enabled && !isPlaying && !reducedMotion) {
+      startMusic();
+    } else if (!enabled && isPlaying) {
+      stopMusic();
+    }
+  }, [enabled, isPlaying, hasInteracted, reducedMotion, startMusic, stopMusic]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopMusic();
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, [stopMusic]);
+
+  return { unlockAudio };
+}
+
 // Custom hook for haptic feedback
 function useHaptics(reducedMotion: boolean): {
   tapFeedback: () => void;
@@ -686,8 +830,6 @@ export default function CommandCenter({
   esrmConfig,
   scenarioId = 'unknown',
 }: CommandCenterProps): JSX.Element {
-  const router = useRouter();
-
   // Session recovery state
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedSession, setSavedSession] = useState<SessionState | null>(null);
@@ -698,6 +840,7 @@ export default function CommandCenter({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(false);
   const [showDebrief, setShowDebrief] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<ScenarioInject | null>(null);
   const [decisionTimer, setDecisionTimer] = useState(0);
@@ -816,6 +959,28 @@ export default function CommandCenter({
   // Sound and haptic hooks
   const { playSound } = useSoundEffects(soundEnabled, reducedMotion);
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
+  const { unlockAudio } = useBackgroundMusic(musicEnabled, reducedMotion);
+
+  // Initialize music preference from localStorage (default OFF)
+  useEffect(() => {
+    try {
+      const savedPref = localStorage.getItem(MUSIC_PREF_KEY);
+      if (savedPref === 'true') {
+        setMusicEnabled(true);
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  // Persist music preference
+  useEffect(() => {
+    try {
+      localStorage.setItem(MUSIC_PREF_KEY, musicEnabled ? 'true' : 'false');
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [musicEnabled]);
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -915,6 +1080,7 @@ export default function CommandCenter({
   // Resume session handler
   const handleResumeSession = useCallback(() => {
     if (savedSession) {
+      unlockAudio();
       setLog(savedSession.log);
       setElapsedSeconds(savedSession.elapsedSeconds);
       setGameState(savedSession.gameState);
@@ -928,7 +1094,7 @@ export default function CommandCenter({
       setShowResumePrompt(false);
       setSavedSession(null);
     }
-  }, [savedSession]);
+  }, [savedSession, unlockAudio]);
 
   // Start fresh handler
   const handleStartFresh = useCallback(() => {
@@ -946,14 +1112,16 @@ export default function CommandCenter({
     if (isRunning || elapsedSeconds > 0) {
       setShowExitConfirm(true);
     } else {
-      router.push('/');
+      const basePath = getBasePath();
+      window.location.href = basePath ? `${basePath}/` : '/';
     }
-  }, [isRunning, elapsedSeconds, router]);
+  }, [isRunning, elapsedSeconds]);
 
   const handleConfirmExit = useCallback(() => {
-    // Session is auto-saved, just exit
-    router.push('/');
-  }, [router]);
+    // Session is auto-saved, navigate home with basePath
+    const basePath = getBasePath();
+    window.location.href = basePath ? `${basePath}/` : '/';
+  }, []);
 
   // Tab change with animation
   const handleTabChange = useCallback(
@@ -1878,9 +2046,9 @@ export default function CommandCenter({
         />
       </div>
 
-      {/* Top Command Bar - Mobile-first responsive with overflow fix */}
+      {/* Top Command Bar - Mobile-first responsive */}
       <header className="relative z-40 flex-none border-b border-gray-800/60 bg-[#08080e]/90 backdrop-blur-2xl safe-area-top header-safe">
-        <div className="flex items-center justify-between px-2 py-2 sm:px-3 lg:px-6 lg:py-3 gap-2 overflow-hidden">
+        <div className="flex items-center justify-between px-2 py-2 sm:px-3 lg:px-6 lg:py-3 gap-2">
           {/* Left: Back & Logo - Compact on mobile */}
           <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4 flex-shrink-0 min-w-0">
             <button
@@ -2066,11 +2234,32 @@ export default function CommandCenter({
 
             {/* Sound toggle - always visible */}
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={() => {
+                setSoundEnabled(!soundEnabled);
+                unlockAudio();
+              }}
               className="flex p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0"
-              aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
+              aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
             >
               {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
+
+            {/* Background music toggle */}
+            <button
+              onClick={() => {
+                unlockAudio();
+                setMusicEnabled(!musicEnabled);
+              }}
+              className={clsx(
+                'flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
+                musicEnabled
+                  ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
+              )}
+              aria-label={musicEnabled ? 'Disable background music' : 'Enable background music'}
+              title={musicEnabled ? 'Music ON' : 'Music OFF'}
+            >
+              <Music className="w-5 h-5" />
             </button>
 
             {/* Escalation Level Indicator - hidden on small mobile */}
@@ -2223,10 +2412,10 @@ export default function CommandCenter({
                 ) : null}
               </button>
 
-              {/* Mobile dropdown menu */}
+              {/* Mobile dropdown menu - z-[100] ensures visibility above all panels */}
               {showMobileMenu && (
                 <div
-                  className="absolute top-full right-0 mt-2 w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-xl backdrop-blur-xl z-50 animate-scale-in-fast"
+                  className="absolute top-full right-0 mt-2 w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[100] animate-scale-in-fast"
                   role="menu"
                 >
                   <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
@@ -2555,7 +2744,10 @@ export default function CommandCenter({
                 isRunning={isRunning}
                 revealedInjects={revealedInjects}
                 decisions={log.decisions}
-                onStart={() => setIsRunning(true)}
+                onStart={() => {
+                  unlockAudio();
+                  setIsRunning(true);
+                }}
                 onSelectInject={(inject) => {
                   setPendingDecision(inject);
                   setSelectedAsset(null);
@@ -2836,7 +3028,10 @@ export default function CommandCenter({
                   isRunning={isRunning}
                   revealedInjects={revealedInjects}
                   decisions={log.decisions}
-                  onStart={() => setIsRunning(true)}
+                  onStart={() => {
+                    unlockAudio();
+                    setIsRunning(true);
+                  }}
                   onSelectInject={(inject) => {
                     setPendingDecision(inject);
                     setSelectedAsset(null);
