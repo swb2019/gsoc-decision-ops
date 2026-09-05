@@ -799,7 +799,6 @@ function useHaptics(reducedMotion: boolean): {
   return { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback };
 }
 
-
 // Session state interface for persistence
 interface SessionState {
   log: DecisionLog;
