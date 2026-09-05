@@ -2,12 +2,12 @@
 
 /**
  * Audio System for Hourglass Command
- * 
+ *
  * Uses high-quality OGG audio files generated with professional synthesis techniques:
  * - Layered tones with ADSR envelopes
  * - Butterworth filtering for warmth
  * - Proper attack/decay for natural sound
- * 
+ *
  * Audio Model: Procedural synthesis using scipy/numpy with professional audio techniques
  * NOT oscillator chirps - these are properly synthesized audio assets.
  */
@@ -33,7 +33,7 @@ interface AudioConfig {
 const STORAGE_KEY = 'hourglass-audio-config';
 
 const DEFAULT_CONFIG: AudioConfig = {
-  enabled: false,  // Default OFF per requirements
+  enabled: false, // Default OFF per requirements
   volume: 0.35,
 };
 
@@ -52,11 +52,11 @@ const SFX_FILES: Record<SFXType, string> = {
   wrongDecision: '/audio/wrongDecision.ogg',
   tacticalDeploy: '/audio/tacticalDeploy.ogg',
   microTask: '/audio/microTask.ogg',
-  warning: '/audio/error.ogg',  // Use error sound for warning
+  warning: '/audio/error.ogg', // Use error sound for warning
   error: '/audio/error.ogg',
   scoreUp: '/audio/scoreUp.ogg',
   streakBonus: '/audio/streakBonus.ogg',
-  timerTick: '/audio/microTask.ogg',  // Subtle tick
+  timerTick: '/audio/microTask.ogg', // Subtle tick
   timerUrgent: '/audio/timerUrgent.ogg',
 };
 
@@ -118,7 +118,7 @@ export function playSFX(sfxType: SFXType): void {
     if (!pool || pool.length === 0) return;
 
     // Find an audio element that's not currently playing
-    const audio = pool.find(a => a.paused || a.ended) || pool[0];
+    const audio = pool.find((a) => a.paused || a.ended) || pool[0];
 
     // Reset and play
     audio.currentTime = 0;
@@ -144,7 +144,7 @@ export function initAudio(): void {
 
   // Pre-load audio files
   const basePath = getBasePath();
-  
+
   Object.entries(SFX_FILES).forEach(([type, path]) => {
     const pool: HTMLAudioElement[] = [];
     // Create pool of 3 for overlapping playback
@@ -173,25 +173,28 @@ export function startAmbientMusic(): void {
     ambientAudio.preload = 'auto';
   }
 
-  ambientAudio.play().then(() => {
-    // Fade in to low volume (0.15)
-    const targetVolume = 0.15;
-    const fadeIn = (): void => {
-      if (!ambientAudio) return;
-      if (ambientAudio.volume < targetVolume - 0.01) {
-        ambientAudio.volume = Math.min(targetVolume, ambientAudio.volume + 0.01);
-      } else {
-        ambientAudio.volume = targetVolume;
-        if (ambientFadeInterval) {
-          clearInterval(ambientFadeInterval);
-          ambientFadeInterval = null;
+  ambientAudio
+    .play()
+    .then(() => {
+      // Fade in to low volume (0.15)
+      const targetVolume = 0.15;
+      const fadeIn = (): void => {
+        if (!ambientAudio) return;
+        if (ambientAudio.volume < targetVolume - 0.01) {
+          ambientAudio.volume = Math.min(targetVolume, ambientAudio.volume + 0.01);
+        } else {
+          ambientAudio.volume = targetVolume;
+          if (ambientFadeInterval) {
+            clearInterval(ambientFadeInterval);
+            ambientFadeInterval = null;
+          }
         }
-      }
-    };
-    ambientFadeInterval = setInterval(fadeIn, 50);
-  }).catch(() => {
-    // Audio blocked
-  });
+      };
+      ambientFadeInterval = setInterval(fadeIn, 50);
+    })
+    .catch(() => {
+      // Audio blocked
+    });
 }
 
 export function stopAmbientMusic(): void {
