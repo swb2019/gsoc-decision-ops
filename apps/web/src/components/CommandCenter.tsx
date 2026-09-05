@@ -30,6 +30,11 @@ import {
   Activity,
   Briefcase,
   BarChart3,
+  HelpCircle,
+  BookOpen,
+  Layers,
+  Link2,
+  Hourglass,
 } from 'lucide-react';
 import {
   recordDecision,
@@ -175,6 +180,14 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   const [reducedMotion, setReducedMotion] = useState(false);
   const [lastInjectTime, setLastInjectTime] = useState(0);
   const [mobileTab, setMobileTab] = useState<MobileTab>('intel');
+  const [showFieldGuide, setShowFieldGuide] = useState(false);
+  const [showCoachMarks, setShowCoachMarks] = useState(true);
+  const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>('ACTIVITY');
+  const [dispatchResources, setDispatchResources] = useState({
+    guards: { available: 3, total: 4, cooldown: 0 },
+    analysts: { available: 2, total: 3, cooldown: 0 },
+    responders: { available: 2, total: 2, cooldown: 0 },
+  });
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -277,6 +290,57 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       }
     }
   }, [elapsedSeconds, isRunning, lastInjectTime, log, pendingDecision]);
+
+  // Escalation level based on game state
+  useEffect(() => {
+    const revealed = getRevealedInjects(log);
+    const urgentCount = revealed.filter(
+      (i) => (i as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE'
+    ).length;
+    const decisionsCount = log.decisions.length;
+
+    if (urgentCount >= 3 || decisionsCount >= 5) {
+      setEscalationLevel('INVESTIGATION');
+    } else if (urgentCount >= 1 || decisionsCount >= 2) {
+      setEscalationLevel('INCIDENT');
+    } else {
+      setEscalationLevel('ACTIVITY');
+    }
+  }, [log]);
+
+  // Dispatch resource cooldown management
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const interval = setInterval(() => {
+      setDispatchResources((prev) => ({
+        guards: {
+          ...prev.guards,
+          cooldown: Math.max(0, prev.guards.cooldown - 1),
+          available: prev.guards.cooldown <= 1 ? Math.min(prev.guards.available + 1, prev.guards.total) : prev.guards.available,
+        },
+        analysts: {
+          ...prev.analysts,
+          cooldown: Math.max(0, prev.analysts.cooldown - 1),
+          available: prev.analysts.cooldown <= 1 ? Math.min(prev.analysts.available + 1, prev.analysts.total) : prev.analysts.available,
+        },
+        responders: {
+          ...prev.responders,
+          cooldown: Math.max(0, prev.responders.cooldown - 1),
+          available: prev.responders.cooldown <= 1 ? Math.min(prev.responders.available + 1, prev.responders.total) : prev.responders.available,
+        },
+      }));
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  // Auto-dismiss coach marks after first decision
+  useEffect(() => {
+    if (log.decisions.length > 0) {
+      setShowCoachMarks(false);
+    }
+  }, [log.decisions.length]);
 
   const triggerInjectAlert = (inject: ScenarioInject) => {
     const urgency = (inject as unknown as { urgencyLevel?: string }).urgencyLevel;
@@ -679,6 +743,31 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
               {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
 
+            {/* Escalation Level Indicator */}
+            <div
+              className={clsx(
+                'hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider',
+                escalationLevel === 'INVESTIGATION'
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                  : escalationLevel === 'INCIDENT'
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                    : 'bg-gray-800/60 text-gray-400 border border-gray-700/50'
+              )}
+              title="Escalation Level"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              {escalationLevel}
+            </div>
+
+            {/* Field Guide Button */}
+            <button
+              onClick={() => setShowFieldGuide(true)}
+              className="p-2.5 rounded-xl text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 active:bg-amber-500/20 transition-all touch-target flex items-center justify-center"
+              aria-label="Open Field Guide"
+            >
+              <BookOpen className="w-5 h-5" />
+            </button>
+
             <button
               onClick={() => setShowDebrief(true)}
               className="p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target flex items-center justify-center"
@@ -890,6 +979,19 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
                 <MiniStat label="Facts" value={stats.totalFacts} color="emerald" />
                 <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" />
                 <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" />
+              </div>
+            </div>
+
+            {/* Dispatch Pressure */}
+            <div className="p-4 border-b border-gray-800/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-blue-400" />
+                <h3 className="text-sm font-semibold text-gray-300">Resources</h3>
+              </div>
+              <div className="space-y-2">
+                <DispatchResource label="Guards" resource={dispatchResources.guards} color="cyan" />
+                <DispatchResource label="Analysts" resource={dispatchResources.analysts} color="violet" />
+                <DispatchResource label="Responders" resource={dispatchResources.responders} color="orange" />
               </div>
             </div>
 
@@ -1146,6 +1248,16 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
           elapsedSeconds={elapsedSeconds}
           onClose={() => setShowDebrief(false)}
         />
+      )}
+
+      {/* Field Guide Modal */}
+      {showFieldGuide && (
+        <FieldGuideModal onClose={() => setShowFieldGuide(false)} />
+      )}
+
+      {/* Coach Marks - First Run Help */}
+      {showCoachMarks && !isRunning && revealedInjects.length === 0 && (
+        <CoachMarks onDismiss={() => setShowCoachMarks(false)} />
       )}
     </div>
   );
@@ -1602,6 +1714,52 @@ function MiniStat({
   );
 }
 
+function DispatchResource({
+  label,
+  resource,
+  color,
+}: {
+  label: string;
+  resource: { available: number; total: number; cooldown: number };
+  color: 'cyan' | 'violet' | 'orange';
+}): JSX.Element {
+  const colorClasses = {
+    cyan: 'bg-cyan-500',
+    violet: 'bg-violet-500',
+    orange: 'bg-orange-500',
+  };
+  
+  const textColors = {
+    cyan: 'text-cyan-400',
+    violet: 'text-violet-400',
+    orange: 'text-orange-400',
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-gray-400">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <div className="flex gap-0.5">
+          {Array.from({ length: resource.total }).map((_, i) => (
+            <div
+              key={i}
+              className={clsx(
+                'w-2 h-2 rounded-full transition-all',
+                i < resource.available
+                  ? colorClasses[color]
+                  : 'bg-gray-700'
+              )}
+            />
+          ))}
+        </div>
+        <span className={clsx('text-xs font-mono', textColors[color])}>
+          {resource.available}/{resource.total}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function DebriefModal({
   log,
   gameState,
@@ -1881,6 +2039,305 @@ function StatCard({
         {value}
       </div>
       <div className="text-xs text-gray-500 mt-1">{label}</div>
+    </div>
+  );
+}
+
+function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
+  const [activeSection, setActiveSection] = useState<'loop' | 'postures' | 'domains' | 'esrm' | 'scoring'>('loop');
+
+  const sections = [
+    { id: 'loop' as const, label: 'Core Loop', icon: <Hourglass className="w-4 h-4" /> },
+    { id: 'postures' as const, label: 'Postures', icon: <Target className="w-4 h-4" /> },
+    { id: 'domains' as const, label: 'Domains', icon: <Layers className="w-4 h-4" /> },
+    { id: 'esrm' as const, label: 'ESRM', icon: <Users className="w-4 h-4" /> },
+    { id: 'scoring' as const, label: 'Scoring', icon: <Zap className="w-4 h-4" /> },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl animate-scale-in">
+        {/* Header */}
+        <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Field Guide</h2>
+              <p className="text-xs text-gray-500">Hourglass Command Operations Manual</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-800/60 overflow-x-auto scrollbar-thin">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-all',
+                activeSection === section.id
+                  ? 'text-amber-400 border-b-2 border-amber-400 bg-amber-500/5'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/30'
+              )}
+            >
+              {section.icon}
+              {section.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="p-5 overflow-y-auto max-h-[60vh]">
+          {activeSection === 'loop' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">The Core Loop</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Hourglass Command simulates the first hour of a security incident. Your job: make fast, 
+                defensible decisions under pressure with incomplete information.
+              </p>
+              <div className="grid grid-cols-5 gap-2 py-4">
+                {['Intel', 'Triage', 'Decide', 'Execute', 'Debrief'].map((step, i) => (
+                  <div key={step} className="text-center">
+                    <div className={clsx(
+                      'w-10 h-10 mx-auto rounded-xl flex items-center justify-center font-bold text-lg mb-1',
+                      i === 2 ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-800 text-gray-400'
+                    )}>
+                      {i + 1}
+                    </div>
+                    <span className="text-2xs text-gray-500">{step}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <p className="text-sm text-amber-200">
+                  <strong>Fast-paced:</strong> Intel arrives every 15-45 seconds. No time to overthink—trust your training.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'postures' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Decision Postures</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Every decision maps to one of three postures. These translate directly to ESRM risk treatments.
+              </p>
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-emerald-400 font-bold">CONTINUE</span>
+                    <span className="text-xs text-gray-500">→ ACCEPT risk</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    Risk is within tolerance. Proceed with normal operations and monitoring.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-amber-400 font-bold">DEGRADE</span>
+                    <span className="text-xs text-gray-500">→ MITIGATE risk</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    Apply compensating controls. Operate with reduced capability to manage exposure.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-red-400 font-bold">PAUSE</span>
+                    <span className="text-xs text-gray-500">→ AVOID risk</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    Stop operations to eliminate exposure. Use when risk exceeds tolerance.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'domains' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Security Domains</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Modern incidents span multiple domains. Fused GSOC operations require cross-domain awareness.
+              </p>
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                  <div className="flex items-center gap-3 mb-2">
+                    <DoorOpen className="w-5 h-5 text-cyan-400" />
+                    <span className="text-cyan-400 font-bold">PHYSICAL</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    Access control, surveillance, guards, site security, badge systems, mantraps.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Brain className="w-5 h-5 text-violet-400" />
+                    <span className="text-violet-400 font-bold">INTELLIGENCE</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    Threat intel, OSINT, law enforcement liaison, source handling, risk assessment.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Cpu className="w-5 h-5 text-orange-400" />
+                    <span className="text-orange-400 font-bold">CYBER</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    Network security, endpoint, SOC coordination, malware, C2 detection, DLP.
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 mt-4">
+                <div className="flex items-center gap-2 text-gray-300 text-sm">
+                  <Link2 className="w-4 h-4 text-gray-500" />
+                  <span>Cross-domain injects link entities across all three domains.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'esrm' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">ESRM Framework</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Enterprise Security Risk Management (ESRM) principles govern all decisions.
+              </p>
+              <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 mb-4">
+                <h4 className="text-violet-400 font-semibold mb-2">Key Principle</h4>
+                <p className="text-sm text-gray-300">
+                  <strong>Security advises; asset owners own the risk.</strong> GSOC provides risk-informed 
+                  recommendations. The asset owner makes the final call and accepts residual risk.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
+                  <Target className="w-5 h-5 text-amber-400 mt-0.5" />
+                  <div>
+                    <span className="text-white font-medium">1. Identify Asset</span>
+                    <p className="text-xs text-gray-400 mt-0.5">What&apos;s at risk? Who owns it?</p>
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-violet-400 mt-0.5" />
+                  <div>
+                    <span className="text-white font-medium">2. Brief Owner</span>
+                    <p className="text-xs text-gray-400 mt-0.5">Communicate risk clearly. Get acknowledgment.</p>
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
+                  <TrendingUp className="w-5 h-5 text-emerald-400 mt-0.5" />
+                  <div>
+                    <span className="text-white font-medium">3. Document Residual Risk</span>
+                    <p className="text-xs text-gray-400 mt-0.5">What risk remains after your decision?</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'scoring' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">How Scoring Works</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Your score reflects decision quality, speed, and ESRM discipline.
+              </p>
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-gray-300">Correct posture decision</span>
+                  <span className="text-emerald-400 font-mono">+150 base</span>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-gray-300">Time bonus (faster = more)</span>
+                  <span className="text-amber-400 font-mono">+2/sec remaining</span>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-gray-300">Asset owner briefed</span>
+                  <span className="text-violet-400 font-mono">+75</span>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-gray-300">Residual risk documented</span>
+                  <span className="text-blue-400 font-mono">+50</span>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-gray-300">Decision streak multiplier</span>
+                  <span className="text-orange-400 font-mono">up to 2.5x</span>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-gray-300">Decision timeout</span>
+                  <span className="text-red-400 font-mono">-50</span>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
+                <p className="text-sm text-emerald-200">
+                  <strong>Grades:</strong> S (Legend), A (Commander), B (Operator), C (Learning), D (Needs Work), F (Mission Failed)
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-800/60 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-xl bg-amber-500/15 text-amber-400 font-semibold hover:bg-amber-500/25 transition-all"
+          >
+            Got It
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CoachMarks({ onDismiss }: { onDismiss: () => void }): JSX.Element {
+  return (
+    <div className="fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-80 z-40 animate-slide-in">
+      <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-xl">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <HelpCircle className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-amber-400 font-semibold mb-1">Quick Start</h4>
+            <p className="text-sm text-gray-300 leading-relaxed">
+              Press <strong>Play</strong> to start. Intel arrives fast—select an item to make a posture decision.
+            </p>
+            <div className="flex items-center gap-3 mt-3">
+              <button
+                onClick={onDismiss}
+                className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                Dismiss
+              </button>
+              <button
+                onClick={onDismiss}
+                className="text-xs text-amber-400 font-medium hover:text-amber-300 transition-colors flex items-center gap-1"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                Open Field Guide
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={onDismiss}
+            className="p-1 rounded-lg hover:bg-gray-800/50 transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
