@@ -1,471 +1,530 @@
 # GSOC Decision Ops — PRD 1.1 (Foolproof)
 
-**Version:** 1.1 (Locked with Shannon, Chief of Staff approved)
-**Status:** Release-gated
-**Last Updated:** September 2026
+---
+
+## Document Control
+
+| Field              | Value                   |
+| ------------------ | ----------------------- |
+| **Document ID**    | PRD-GSOC-DO-1.1         |
+| **Version**        | 1.1 (Foolproof)         |
+| **Status**         | Locked                  |
+| **Owner**          | Shannon Brown           |
+| **Approved By**    | Chief of Staff          |
+| **Effective Date** | September 2026          |
+| **Review Cycle**   | On material change only |
+
+### Change History
+
+| Version | Date     | Author        | Changes                                                                       |
+| ------- | -------- | ------------- | ----------------------------------------------------------------------------- |
+| 1.0     | Aug 2026 | Shannon Brown | Initial PRD                                                                   |
+| 1.1     | Sep 2026 | Shannon Brown | Foolproof edition: 12 invariants, honesty threat model, closed defaults, RACI |
+
+### Distribution
+
+This PRD is public (MIT-licensed repository). No confidential information.
 
 ---
 
-## 1. Product Wedge
+## §1 Executive Summary
+
+**GSOC Decision Ops** is a first-hour decision-quality training tool for corporate security operations leaders. It teaches structured judgment under incomplete information through synthetic vendor compromise scenarios.
+
+| Attribute      | Value                                                                              |
+| -------------- | ---------------------------------------------------------------------------------- |
+| **Single Job** | Train first-hour decision quality                                                  |
+| **Core Loop**  | Scenario → Facts/Assumptions/Unknowns → CONTINUE/DEGRADE/PAUSE → Playbook → Export |
+| **Deployment** | Static site on GitHub Pages                                                        |
+| **Auth**       | None (instant demo access)                                                         |
+| **Data**       | Client-side only, no persistence                                                   |
+
+---
+
+## §2 Product Wedge
 
 ### What This Is
 
-GSOC Decision Ops is a **first-hour decision-quality training tool** for corporate security operations leaders. It trains structured judgment under incomplete information through synthetic vendor compromise scenarios.
+A **training wedge** that sits beside Resolver-class ESRM platforms:
 
-**Single Job:** Build muscle memory for making defensible decisions in the critical first hour of a vendor-adjacent security incident.
+```
+┌────────────────────────────────────────────────────────┐
+│            Enterprise Security Stack                   │
+├──────────────┬──────────────────┬─────────────────────┤
+│ SIEM/SOAR    │ ESRM (Resolver)  │ GRC Tools           │
+│ (Detection)  │ (Case Mgmt)      │ (Compliance)        │
+├──────────────┴──────────────────┴─────────────────────┤
+│  ┌──────────────────────────────────────────┐         │
+│  │  GSOC Decision Ops                       │ ◄ WEDGE │
+│  │  (First-Hour Decision TRAINING)          │         │
+│  └──────────────────────────────────────────┘         │
+└────────────────────────────────────────────────────────┘
+```
 
 ### What This Is NOT
 
-| This Product                  | Is NOT                         |
-| ----------------------------- | ------------------------------ |
-| Training wedge                | Resolver-class ESRM platform   |
-| Skill-building tool           | Production incident management |
-| Synthetic scenarios           | Live threat intelligence       |
-| Decision methodology practice | SIEM/SOAR replacement          |
-| Portfolio demonstration       | Enterprise SaaS product        |
+| NOT This        | Because                                           |
+| --------------- | ------------------------------------------------- |
+| Resolver killer | Complements, does not replace incident management |
+| Production SIEM | No log ingestion, no threat detection             |
+| Enterprise SaaS | No auth, no billing, no multi-tenant              |
+| Job application | Portfolio demo, not "hire me" plea                |
 
-**Explicit positioning:** This sits BESIDE enterprise security tools (Resolver, ServiceNow SecOps, Splunk SOAR) as a training complement. It does not compete with, replace, or claim equivalence to production security platforms.
+---
 
-### The Gap It Fills
+## §3 Users & JTBD
 
-GSOC leaders learn first-hour judgment through:
+### Primary User
 
-1. **On-the-job exposure** — High stakes, no practice reps
-2. **Tabletop exercises** — $5K–$50K per session, quarterly at best
-3. **Compliance training** — Checkbox content, not skill-building
+**GSOC Manager / Security Operations Lead**
 
-**This tool provides:** Zero-cost, on-demand, repeatable practice of the core skill — separating facts from assumptions and documenting CONTINUE/DEGRADE/PAUSE posture decisions.
+- Manages 24/7 security operations center
+- 5–15 years security experience
+- Reports to CISO or VP Security
 
-### Core Loop (Immutable)
+### Jobs to Be Done
+
+| JTBD                            | Success Criteria                             |
+| ------------------------------- | -------------------------------------------- |
+| Practice first-hour judgment    | Complete scenario in < 5 min                 |
+| Separate facts from assumptions | Document both with metadata                  |
+| Make defensible posture calls   | Record CONTINUE/DEGRADE/PAUSE with rationale |
+| Follow structured playbook      | Complete checklist phases                    |
+| Generate after-action docs      | Export in < 2 min                            |
+
+---
+
+## §4 Core Loop (Immutable)
 
 ```
-SELECT scenario → DOCUMENT facts/assumptions/unknowns →
-DECIDE posture (CONTINUE/DEGRADE/PAUSE) → FOLLOW playbook → EXPORT report
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│ SELECT  │───▶│ ASSESS  │───▶│ DECIDE  │───▶│ FOLLOW  │───▶│ EXPORT  │
+│Scenario │    │Facts/   │    │Posture  │    │Playbook │    │Report   │
+│         │    │Assumps  │    │         │    │         │    │         │
+└─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘
 ```
 
-This loop is the product. Everything else is UI around this loop.
+This loop is the product. The loop must not be broken.
 
 ---
 
-## 2. Invariants
+## §5 Information Architecture (Locked)
 
-The following must **always** hold. Any PR that violates an invariant must be rejected.
+```
+/ (Home)
+└── Scenario List
+    └── /scenarios/[id]
+        ├── Overview    (Facts, Assumptions, Unknowns, Actions, Timeline)
+        ├── Decisions   (CONTINUE/DEGRADE/PAUSE with rationale)
+        ├── Playbook    (60-min phases with checklists)
+        └── Export      (Markdown/JSON download)
+```
 
-### 2.1 Truthfulness Invariants
+**IA Constraints:**
 
-| ID  | Invariant                                    | Violation Example                |
-| --- | -------------------------------------------- | -------------------------------- |
-| T1  | All scenarios are explicitly synthetic       | Implying real vendor data        |
-| T2  | "Portfolio Demo" badge visible on all pages  | Hiding demo nature               |
-| T3  | Training mode banner on scenario workspace   | Implying production use          |
-| T4  | No production security claims in UI or docs  | "Enterprise-grade security"      |
-| T5  | Export watermark indicates training exercise | Clean exports that look official |
-
-### 2.2 Honesty Invariants
-
-| ID  | Invariant                                | Violation Example                        |
-| --- | ---------------------------------------- | ---------------------------------------- |
-| H1  | Zero job-hunt framing in product UI      | "Hire me" buttons, LinkedIn links in app |
-| H2  | Zero "open to work" language in product  | "Looking for opportunities" text         |
-| H3  | No inflated metrics or vanity dashboards | "10,000 decisions logged" counters       |
-| H4  | No fake social proof                     | "Trusted by Fortune 500" claims          |
-| H5  | Author credit is factual only            | Overclaiming SOC/SIEM tenure             |
-
-### 2.3 Architecture Invariants
-
-| ID  | Invariant               | Violation Example                      |
-| --- | ----------------------- | -------------------------------------- |
-| A1  | No authentication gates | Sign-in/sign-up flows                  |
-| A2  | No server-side code     | API routes, database calls             |
-| A3  | Static export must work | Features requiring SSR                 |
-| A4  | GitHub Pages deployment | Platform-specific hosting              |
-| A5  | Core loop preserved     | Removing scenario/decision/export flow |
-
-### 2.4 Anti-Theater Invariants
-
-| ID  | Invariant              | Violation Example                      |
-| --- | ---------------------- | -------------------------------------- |
-| S1  | No pricing pages       | Tier comparison tables                 |
-| S2  | No billing UI          | Payment forms, subscription management |
-| S3  | No team management     | Invite flows, role assignment          |
-| S4  | No settings dashboards | SSO config, API key panels             |
-| S5  | No fake multi-org      | Workspace switchers, org dropdowns     |
+- No auth wall
+- No sidebar navigation
+- No dashboard
+- No settings
+- No multi-org
 
 ---
 
-## 3. Release Gates
+## §20 Invariants (12 Locks)
 
-Before any merge to `main` or deploy to Pages, **all** gates must pass:
+The following 12 invariants must **always** hold. Any PR violating an invariant must be rejected.
 
-### 3.1 CI Gates (Automated)
+### Truthfulness Locks
 
-| Gate       | Command                | Pass Criteria            |
-| ---------- | ---------------------- | ------------------------ |
-| TypeScript | `npm run typecheck`    | Exit code 0, no errors   |
-| ESLint     | `npm run lint`         | Exit code 0, no errors   |
-| Prettier   | `npm run format:check` | Exit code 0, no warnings |
-| Tests      | `npm test`             | 109 tests passing        |
-| Build      | `npm run build`        | Static export succeeds   |
+| ID         | Invariant                              | Violation Example                |
+| ---------- | -------------------------------------- | -------------------------------- |
+| **INV-01** | All scenarios are explicitly synthetic | Implying real vendor data        |
+| **INV-02** | Demo badge visible on home page        | Hiding portfolio nature          |
+| **INV-03** | Training banner on scenario workspace  | Implying production use          |
+| **INV-04** | Export includes training watermark     | Clean exports that look official |
 
-### 3.2 PRD Gates (Manual)
+### Anti-Theater Locks
 
-| Gate              | Verification                                   |
-| ----------------- | ---------------------------------------------- |
-| PRD present       | `docs/PRD.md` exists and is linked from README |
-| PRD version       | Header shows "PRD 1.1" or higher               |
-| Invariants listed | Section 2 present with all invariant tables    |
+| ID         | Invariant                | Violation Example                      |
+| ---------- | ------------------------ | -------------------------------------- |
+| **INV-05** | No authentication gates  | Sign-in/sign-up flows                  |
+| **INV-06** | No pricing or billing UI | Tier tables, payment forms             |
+| **INV-07** | No team/org management   | Invite flows, RBAC, workspace switcher |
+| **INV-08** | No settings dashboards   | SSO config, API keys, preferences      |
 
-### 3.3 Honesty Gates (Manual)
+### Honesty Locks
 
-| Gate                    | Verification                                |
-| ----------------------- | ------------------------------------------- |
-| No auth added           | No sign-in/sign-up routes or components     |
-| No pricing added        | No `/pricing` route or tier UI              |
-| No SaaS theater         | No team/settings/billing/org-switcher UI    |
-| Demo badge visible      | "Portfolio Demo" or equivalent on home page |
-| Training banner visible | Warning banner on scenario workspace        |
-
-### 3.4 UX Gates (Manual)
-
-| Gate             | Verification                                               |
-| ---------------- | ---------------------------------------------------------- |
-| 2-click decision | Home → Scenario → Record Decision in 2 clicks              |
-| 2-min export     | Complete scenario to export in under 2 minutes             |
-| Mobile works     | Core loop functional on 375px viewport                     |
-| Pages demo loads | `https://swb2019.github.io/gsoc-decision-ops/` returns 200 |
+| ID         | Invariant                       | Violation Example                     |
+| ---------- | ------------------------------- | ------------------------------------- |
+| **INV-09** | Zero job-hunt framing in UI     | "Hire me" buttons, LinkedIn in app    |
+| **INV-10** | No fake metrics or social proof | "10K users", "Trusted by Fortune 500" |
+| **INV-11** | No production security claims   | "Enterprise-grade", "SOC 2 compliant" |
+| **INV-12** | Factual author credentials only | Inflated tenure, fake certifications  |
 
 ---
 
-## 4. Testable P0s
+## §6 P0 Acceptance Tests
 
 Concrete acceptance criteria an engineer can verify:
 
-### P0-1: Scenario Selection
+### P0-01: Scenario List
 
-```
+```gherkin
 GIVEN I am on the home page
 WHEN the page loads
-THEN I see a list of at least 3 synthetic scenarios
-AND each scenario shows name, severity badge, and description
-AND clicking a scenario navigates to /scenarios/[id]
+THEN I see ≥3 synthetic scenarios with name, severity, description
+AND clicking any scenario navigates to /scenarios/[id]
 ```
 
-### P0-2: Facts Documentation
+### P0-02: Facts Entry
 
-```
-GIVEN I am on a scenario's Overview tab
-WHEN I click the "+" button in the Facts section
-THEN a form appears with fields for description and source
-WHEN I fill both fields and click "Add Fact"
-THEN the fact appears in the list with confidence level shown
+```gherkin
+GIVEN I am on Overview tab
+WHEN I click "+" in Facts section and submit description + source
+THEN the fact appears in list with confidence level
 ```
 
-### P0-3: Assumptions Documentation
+### P0-03: Assumptions Entry
 
-```
-GIVEN I am on a scenario's Overview tab
-WHEN I click the "+" button in the Assumptions section
-THEN a form appears with fields for description, basis, and risk-if-wrong
-WHEN I fill all fields and click "Add Assumption"
+```gherkin
+GIVEN I am on Overview tab
+WHEN I click "+" in Assumptions section and submit description + basis + risk-if-wrong
 THEN the assumption appears with risk-if-wrong displayed
 ```
 
-### P0-4: Decision Recording
+### P0-04: Unknowns Entry
 
-```
-GIVEN I am on a scenario's Decisions tab
-WHEN I click "Record Decision"
-THEN a form appears with title, posture selection (CONTINUE/DEGRADE/PAUSE), description, and rationale fields
-WHEN I select DEGRADE posture and fill all fields
-THEN the decision appears in the list with DEGRADE badge and timestamp
-AND the posture summary count for DEGRADE increments by 1
+```gherkin
+GIVEN I am on Overview tab
+WHEN I click "+" in Unknowns section and submit question + priority
+THEN the unknown appears with priority badge
 ```
 
-### P0-5: Playbook Interaction
+### P0-05: Decision Recording
 
-```
-GIVEN I am on a scenario's Playbook tab
-WHEN I click on a collapsed phase
-THEN the phase expands showing objectives, key questions, and checklist
-WHEN I click a checklist item
-THEN it toggles between checked and unchecked state
-AND the progress counter updates accordingly
+```gherkin
+GIVEN I am on Decisions tab
+WHEN I click "Record Decision" and select DEGRADE posture with title/description/rationale
+THEN decision appears in list with DEGRADE badge
+AND posture summary count for DEGRADE increments
 ```
 
-### P0-6: Export Generation
+### P0-06: Playbook Interaction
 
+```gherkin
+GIVEN I am on Playbook tab
+WHEN I expand a phase and click checklist items
+THEN items toggle checked/unchecked
+AND progress counter updates
 ```
-GIVEN I am on a scenario's Export tab
+
+### P0-07: Export Download
+
+```gherkin
+GIVEN I am on Export tab
 WHEN I click "Download Markdown"
-THEN a .md file downloads containing scenario title, decisions, facts, assumptions, and timeline
+THEN .md file downloads with scenario, decisions, facts, assumptions
 WHEN I click "Download JSON"
-THEN a .json file downloads with structured data matching the same content
+THEN .json file downloads with same structured data
 ```
 
-### P0-7: Two-Click Path
+### P0-08: Two-Click Path
 
-```
-GIVEN I am on the home page
-WHEN I click on any scenario (click 1)
-AND I click "Record Decision" button (click 2)
-THEN I can immediately enter a decision
-VERIFY: Total clicks from home to decision form = 2
-```
-
-### P0-8: Mobile Responsiveness
-
-```
-GIVEN viewport width is 375px (iPhone SE)
-WHEN I navigate home → scenario → decisions → record decision
-THEN all UI is usable without horizontal scrolling
-AND tap targets are at least 44x44px
-AND text is readable without zooming
+```gherkin
+GIVEN I am on home page
+WHEN I click scenario (1) then "Record Decision" (2)
+THEN I can enter a decision
+VERIFY: clicks from home to decision form = 2
 ```
 
-### P0-9: Demo Visibility
+### P0-09: Demo Visibility
 
-```
-GIVEN I am on any page of the application
-THEN I can see indication this is a demo/portfolio project
-ON home page: "Portfolio Demo" badge in header
-ON scenario page: "Training Mode" banner below header
+```gherkin
+GIVEN I am on any page
+THEN demo/portfolio indicator is visible
+  - Home: "Portfolio Demo" badge
+  - Scenario: "Training Mode" banner
 ```
 
-### P0-10: Static Export
+### P0-10: Static Build
 
-```
+```gherkin
 GIVEN I run `npm run build`
-WHEN the build completes
-THEN /apps/web/out/ contains static HTML files
-AND the files can be served by any static host without server-side code
-AND all routes are pre-rendered (/, /scenarios/[each-id])
+WHEN build completes
+THEN /apps/web/out/ contains static HTML
+AND all routes pre-rendered without server code
 ```
 
 ---
 
-## 5. Honesty Threat Model
+## §7 Measurable Metrics
 
-Ways this product/docs/UI could mislead employers, and explicit mitigations:
+### Success Metrics (Measure These)
 
-### Threat 5.1: Fake SaaS Product
-
-| Threat             | How It Misleads                      | Mitigation                                 |
-| ------------------ | ------------------------------------ | ------------------------------------------ |
-| Auth flows         | Implies production multi-user system | **Invariant A1:** No auth gates, ever      |
-| Pricing page       | Implies commercial product           | **Invariant S1:** No pricing UI, ever      |
-| Team management    | Implies enterprise deployment        | **Invariant S3:** No team UI, ever         |
-| Settings dashboard | Implies configurable SaaS            | **Invariant S4:** No settings panels, ever |
-
-### Threat 5.2: Fake Metrics / Social Proof
-
-| Threat         | How It Misleads                       | Mitigation                                     |
-| -------------- | ------------------------------------- | ---------------------------------------------- |
-| User counters  | "10K users" implies real adoption     | **Invariant H3:** No vanity metrics in UI      |
-| Company logos  | "Trusted by X" implies enterprise use | **Invariant H4:** No fake social proof         |
-| Activity feeds | Implies real user activity            | **Invariant H3:** No activity/audit dashboards |
-| Star counts    | Implies community validation          | Display only real GitHub stars, unmodified     |
-
-### Threat 5.3: Overclaiming Technical Scope
-
-| Threat                 | How It Misleads                    | Mitigation                                |
-| ---------------------- | ---------------------------------- | ----------------------------------------- |
-| "Enterprise-grade"     | Implies production security review | **Invariant T4:** No production claims    |
-| "SOC 2 compliant"      | Implies audit certification        | Never claim compliance certifications     |
-| "Integrates with SIEM" | Implies production capability      | **Invariant T4:** No integration claims   |
-| "Real-time monitoring" | Implies live threat data           | **Invariant T1:** All scenarios synthetic |
-
-### Threat 5.4: Overclaiming Author Credentials
-
-| Threat              | How It Misleads                        | Mitigation                       |
-| ------------------- | -------------------------------------- | -------------------------------- |
-| Inflated tenure     | "10 years SOC experience" when false   | Factual bio only in README       |
-| Fake certifications | Listing certs not held                 | Only list verifiable credentials |
-| Implied seniority   | "Built enterprise SIEM" when demo only | Clear "Portfolio Demo" framing   |
-
-### Threat 5.5: Job-Hunt Framing in Product
-
-| Threat             | How It Misleads                          | Mitigation                                     |
-| ------------------ | ---------------------------------------- | ---------------------------------------------- |
-| "Hire me" CTAs     | Turns demo into job ad                   | **Invariant H1:** Zero job-hunt UI             |
-| LinkedIn in header | Implies primary purpose is job search    | Contact info in README only, not app           |
-| "Open to work"     | Desperate framing undermines credibility | **Invariant H2:** Zero "open to work" language |
-
-### Threat 5.6: UI That Looks Like Production
-
-| Threat                  | How It Misleads                      | Mitigation                          |
-| ----------------------- | ------------------------------------ | ----------------------------------- |
-| Overly polished UI      | "This must be real software"         | Demo badge always visible           |
-| No training watermark   | Exports look like real incident docs | Export includes training disclaimer |
-| Production-style domain | Custom domain implies real product   | Use github.io subdomain             |
-
----
-
-## 6. Non-Goals
-
-The following are **explicitly out of scope** and must never be added:
-
-### 6.1 Authentication & Identity
-
-- ❌ User registration / sign-up
-- ❌ User authentication / sign-in
-- ❌ Password management
-- ❌ Session handling
-- ❌ OAuth / SSO integration
-- ❌ "Remember me" functionality
-
-**Why:** Authentication adds friction, implies multi-user SaaS, and serves no training purpose.
-
-### 6.2 Pricing & Billing
-
-- ❌ Pricing page or tier comparison
-- ❌ Payment processing
-- ❌ Subscription management
-- ❌ Usage metering
-- ❌ Invoice generation
-- ❌ "Upgrade to Pro" prompts
-
-**Why:** Pricing implies commercial product. This is a portfolio demonstration.
-
-### 6.3 Team & Organization
-
-- ❌ Team invitations
-- ❌ Role-based access control
-- ❌ Organization management
-- ❌ Workspace switching
-- ❌ Permission systems
-- ❌ Admin consoles
-
-**Why:** Team features imply enterprise deployment. Single-user demo only.
-
-### 6.4 Settings & Configuration
-
-- ❌ User preferences panel
-- ❌ Notification settings
-- ❌ Integration configuration
-- ❌ API key management
-- ❌ Webhook setup
-- ❌ Theme customization beyond system default
-
-**Why:** Settings dashboards are enterprise theater with no training value.
-
-### 6.5 Analytics & Dashboards
-
-- ❌ Usage analytics
-- ❌ Decision statistics over time
-- ❌ Leaderboards or comparisons
-- ❌ Activity feeds
-- ❌ Audit logs
-- ❌ "Insights" features
-
-**Why:** Analytics imply production use and create fake engagement metrics.
-
-### 6.6 Production Security Tooling
-
-- ❌ Real threat intelligence feeds
-- ❌ SIEM/SOAR integration
-- ❌ Live vendor status monitoring
-- ❌ Actual incident management
-- ❌ Alert routing
-- ❌ Case management workflows
-
-**Why:** This is training, not production tooling. Claiming otherwise is dishonest.
-
----
-
-## 7. Success Metrics
-
-### Primary Metrics (Measure These)
-
-| Metric                   | Target  | How to Verify                                |
-| ------------------------ | ------- | -------------------------------------------- |
-| Clicks to first decision | ≤ 2     | Manual test: home → scenario → decision form |
-| Time to first posture    | ≤ 2 min | Stopwatch: page load to decision submitted   |
-| Time to export           | ≤ 2 min | Stopwatch: scenario load to file downloaded  |
-| Build success            | 100%    | CI must pass on every merge                  |
-| Test pass rate           | 100%    | All 109 tests green                          |
+| Metric                   | Target  | Measurement                                |
+| ------------------------ | ------- | ------------------------------------------ |
+| Clicks to first decision | ≤ 2     | Manual: home → scenario → decision form    |
+| Time to first posture    | ≤ 2 min | Stopwatch: page load → decision submitted  |
+| Time to export           | ≤ 2 min | Stopwatch: scenario load → file downloaded |
+| CI pass rate             | 100%    | GitHub Actions status                      |
+| Test pass rate           | 100%    | 109/109 tests green                        |
+| Lighthouse Performance   | ≥ 90    | Chrome DevTools audit                      |
+| Lighthouse Accessibility | ≥ 90    | Chrome DevTools audit                      |
 
 ### Anti-Metrics (Do NOT Measure)
 
-| Anti-Metric          | Why Measuring It Is Harmful             |
-| -------------------- | --------------------------------------- |
-| User sign-ups        | Implies auth exists (violates A1)       |
-| Monthly active users | Implies tracking (violates minimalism)  |
-| Session duration     | Optimizing for engagement, not training |
-| Feature count        | Encourages bloat over simplicity        |
-| Lines of code        | Deletion is often better than addition  |
-| Social shares        | Vanity metric with no training value    |
+| Anti-Metric      | Why Harmful                                          |
+| ---------------- | ---------------------------------------------------- |
+| User sign-ups    | Implies auth exists (violates INV-05)                |
+| MAU/DAU          | Implies tracking, optimizes engagement over training |
+| Session duration | Engagement farming, not skill-building               |
+| Feature count    | Encourages bloat over simplicity                     |
+| Lines of code    | Deletion often better than addition                  |
 
 ---
 
-## 8. Architecture Constraints
+## §8 Release Gate Checklist
 
-### Must Be True
+Before merge to `main` or deploy to Pages, **all** gates must pass:
 
-| Constraint                          | Rationale                               |
-| ----------------------------------- | --------------------------------------- |
-| Static files only                   | GitHub Pages hosting, zero ops          |
-| No database                         | No data persistence = no data liability |
-| No API routes                       | Static export compatibility             |
-| No environment variables in runtime | Build-time only, if any                 |
-| Client-side state only              | React state, no server sync             |
+### Automated Gates (CI)
 
-### Build & Deploy
+| Gate         | Command                | Pass Criteria          |
+| ------------ | ---------------------- | ---------------------- |
+| ☐ Format     | `npm run format:check` | Exit 0                 |
+| ☐ Lint       | `npm run lint`         | Exit 0                 |
+| ☐ TypeScript | `npm run typecheck`    | Exit 0                 |
+| ☐ Tests      | `npm test`             | 109 passing            |
+| ☐ Build      | `npm run build`        | Static export succeeds |
 
-| Aspect    | Specification                         |
-| --------- | ------------------------------------- |
-| Framework | Next.js 14 with App Router            |
-| Export    | `output: 'export'` (static)           |
-| Hosting   | GitHub Pages                          |
-| CI        | GitHub Actions                        |
-| Domain    | `swb2019.github.io/gsoc-decision-ops` |
+### Manual Gates (PR Review)
 
----
-
-## 9. UI/UX Principles
-
-### Principle 1: Instant Value
-
-Users see training value within 5 seconds. No registration, no tour, no wizard.
-
-### Principle 2: Two-Click Depth
-
-Any training action reachable in ≤ 2 clicks from home.
-
-### Principle 3: Honest Presentation
-
-Demo nature visible at all times. No pretense of production.
-
-### Principle 4: SOTA on Minimal Surface
-
-State-of-the-art visual design applied only to surfaces that serve the core loop. No surfaces added to showcase design.
-
-### Principle 5: Mobile-First
-
-Core training loop works on phone. Desktop is enhancement, not requirement.
+| Gate                      | Verification                           |
+| ------------------------- | -------------------------------------- |
+| ☐ PRD present             | `docs/PRD.md` exists, version ≥ 1.1    |
+| ☐ PRD linked              | README references PRD                  |
+| ☐ No auth added           | No sign-in/sign-up routes              |
+| ☐ No pricing added        | No /pricing or tier UI                 |
+| ☐ No SaaS theater         | No team/settings/billing/org UI        |
+| ☐ Demo badge visible      | Home page shows portfolio indicator    |
+| ☐ Training banner visible | Scenario page shows training mode      |
+| ☐ 2-click path works      | Home → Scenario → Decision in 2 clicks |
+| ☐ Mobile works            | Core loop on 375px viewport            |
+| ☐ Invariants respected    | All 12 invariants verified             |
 
 ---
 
-## 10. Appendix: Invariant Checklist
+## §9 Honesty Threat Model
 
-Quick checklist for PR review:
+Ways this product could mislead employers, with explicit mitigations:
 
-```
-[ ] No sign-in/sign-up routes added
-[ ] No pricing routes added
-[ ] No team/settings routes added
-[ ] No billing UI added
-[ ] No analytics dashboards added
-[ ] Demo badge visible on home page
-[ ] Training banner visible on scenario page
-[ ] All scenarios marked synthetic
-[ ] Exports include training watermark
-[ ] No job-hunt language in UI
-[ ] No production security claims
-[ ] Static build succeeds
-[ ] All 109 tests pass
-[ ] Prettier/ESLint clean
-```
+### Threat 9.1: Fake SaaS Product
+
+| Attack Vector      | Misleading Because                   | Mitigation                |
+| ------------------ | ------------------------------------ | ------------------------- |
+| Auth flows         | Implies multi-user production system | **INV-05** blocks forever |
+| Pricing page       | Implies commercial product           | **INV-06** blocks forever |
+| Team management    | Implies enterprise deployment        | **INV-07** blocks forever |
+| Settings dashboard | Implies configurable SaaS            | **INV-08** blocks forever |
+
+### Threat 9.2: Fake Metrics
+
+| Attack Vector  | Misleading Because                    | Mitigation        |
+| -------------- | ------------------------------------- | ----------------- |
+| User counters  | "10K users" implies real adoption     | **INV-10** blocks |
+| Company logos  | "Trusted by X" implies enterprise use | **INV-10** blocks |
+| Activity feeds | Implies real user activity            | **INV-10** blocks |
+
+### Threat 9.3: Overclaiming Scope
+
+| Attack Vector          | Misleading Because            | Mitigation        |
+| ---------------------- | ----------------------------- | ----------------- |
+| "Enterprise-grade"     | Implies security audit        | **INV-11** blocks |
+| "SOC 2 compliant"      | Implies certification         | **INV-11** blocks |
+| "Integrates with SIEM" | Implies production capability | **INV-11** blocks |
+| "Real-time monitoring" | Implies live data             | **INV-01** blocks |
+
+### Threat 9.4: Overclaiming Credentials
+
+| Attack Vector           | Misleading Because        | Mitigation                                |
+| ----------------------- | ------------------------- | ----------------------------------------- |
+| Inflated tenure         | "10 years SOC" when false | **INV-12** requires factual only          |
+| Fake certs              | Listing certs not held    | **INV-12** requires factual only          |
+| "Built enterprise SIEM" | Demo ≠ production system  | **INV-02, INV-03** make demo nature clear |
+
+### Threat 9.5: Job-Hunt Pollution
+
+| Attack Vector      | Misleading Because                    | Mitigation        |
+| ------------------ | ------------------------------------- | ----------------- |
+| "Hire me" CTAs     | Turns demo into job ad                | **INV-09** blocks |
+| LinkedIn in header | Primary purpose looks like job search | **INV-09** blocks |
+| "Open to work"     | Desperate framing                     | **INV-09** blocks |
+
+### Threat 9.6: Production-Looking UI
+
+| Attack Vector      | Misleading Because           | Mitigation                                 |
+| ------------------ | ---------------------------- | ------------------------------------------ |
+| Overly polished UI | "This must be real"          | **INV-02, INV-03** always show demo status |
+| Clean exports      | Look like real incident docs | **INV-04** requires training watermark     |
+| Custom domain      | Implies real product         | Use github.io subdomain                    |
 
 ---
 
-_PRD 1.1 — Locked. Changes require version increment and stakeholder sign-off._
+## §10 Closed Defaults
+
+Features that are **closed by default** — require explicit PRD amendment to open:
+
+| Feature                            | Default | Rationale                     | Open Condition                              |
+| ---------------------------------- | ------- | ----------------------------- | ------------------------------------------- |
+| Resolver-class incident management | CLOSED  | Training only, not production | Never (invariant)                           |
+| Phase timer / countdown mode       | CLOSED  | Adds complexity               | PRD 1.2+ with user research                 |
+| "Featured" badge on scenarios      | CLOSED  | Wait until UI SOTA ships      | After UI SOTA merged, demo-appropriate only |
+| Local storage persistence          | CLOSED  | Adds state complexity         | PRD 1.2+ if training value proven           |
+| Custom scenario builder            | CLOSED  | Scope creep risk              | PRD 2.0+                                    |
+| Keyboard shortcuts                 | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
+| Print stylesheet                   | CLOSED  | Nice-to-have                  | PRD 1.2+                                    |
+
+---
+
+## §11 Non-Goals (Permanently Closed)
+
+The following are **permanently out of scope** per invariants:
+
+### Authentication & Identity
+
+- ❌ User registration
+- ❌ Sign-in / sign-out
+- ❌ Password management
+- ❌ OAuth / SSO
+- ❌ Session management
+
+### Pricing & Billing
+
+- ❌ Pricing pages
+- ❌ Payment processing
+- ❌ Subscription management
+- ❌ Usage metering
+
+### Team & Organization
+
+- ❌ Team invitations
+- ❌ RBAC / permissions
+- ❌ Org management
+- ❌ Workspace switching
+
+### Settings & Configuration
+
+- ❌ User preferences
+- ❌ Integration config
+- ❌ API key management
+- ❌ Webhook setup
+
+### Analytics & Dashboards
+
+- ❌ Usage analytics
+- ❌ Decision statistics
+- ❌ Activity feeds
+- ❌ Audit logs
+
+### Production Security
+
+- ❌ Real threat feeds
+- ❌ SIEM integration
+- ❌ Live monitoring
+- ❌ Case management
+
+---
+
+## §12 RACI Matrix
+
+| Activity              | Shannon (Owner)     | Reviewer            | CI                |
+| --------------------- | ------------------- | ------------------- | ----------------- |
+| PRD changes           | **A** (Accountable) | **R** (Responsible) | —                 |
+| Code changes          | **R**               | **A**               | **C** (Consulted) |
+| Invariant enforcement | **A**               | **R**               | **I** (Informed)  |
+| Release approval      | **A**               | **R**               | **C**             |
+| UI/UX decisions       | **A**               | **C**               | —                 |
+| Scenario content      | **A**               | **C**               | —                 |
+
+**Legend:**
+
+- **R** = Responsible (does the work)
+- **A** = Accountable (final decision)
+- **C** = Consulted (input before decision)
+- **I** = Informed (notified after decision)
+
+---
+
+## §13 Roadmap
+
+### Phase 1: Foundation (Complete)
+
+- ✅ Core decision loop
+- ✅ Synthetic scenarios (3)
+- ✅ Playbook framework
+- ✅ Export (Markdown/JSON)
+- ✅ Static deployment
+- ✅ SOTA UI elevation
+- ✅ PRD 1.1 (Foolproof)
+
+### Phase 2: Depth (Closed Until PRD 1.2)
+
+- ⏸️ Additional scenarios
+- ⏸️ Phase timer mode
+- ⏸️ Session persistence
+- ⏸️ Keyboard shortcuts
+
+### Phase 3: Polish (Closed Until PRD 2.0)
+
+- ⏸️ Custom scenario builder
+- ⏸️ Scenario sharing
+- ⏸️ Print optimization
+
+---
+
+## §14 Risks
+
+| Risk                       | Likelihood | Impact | Mitigation                        |
+| -------------------------- | ---------- | ------ | --------------------------------- |
+| Scope creep (SaaS theater) | Medium     | High   | 12 invariants, explicit non-goals |
+| Invariant violation in PR  | Low        | High   | Release gate checklist            |
+| Performance regression     | Low        | Medium | Lighthouse CI integration         |
+| Accessibility regression   | Low        | High   | Manual gate + future automation   |
+
+---
+
+## §15 Glossary
+
+| Term               | Definition                                                           |
+| ------------------ | -------------------------------------------------------------------- |
+| **GSOC**           | Global Security Operations Center                                    |
+| **ESRM**           | Enterprise Security Risk Management                                  |
+| **Posture**        | Operational stance: CONTINUE, DEGRADE, or PAUSE                      |
+| **Wedge**          | Market entry that complements rather than competes                   |
+| **SaaS Theater**   | Non-functional features simulating enterprise software               |
+| **Invariant**      | Rule that must always hold; violation = PR rejection                 |
+| **Closed Default** | Feature disabled until explicit PRD amendment                        |
+| **RACI**           | Responsibility matrix: Responsible, Accountable, Consulted, Informed |
+| **P0**             | Priority 0 (must-have for release)                                   |
+| **SOTA**           | State of the Art                                                     |
+
+---
+
+## §16 References
+
+- Musk's 5-Step Engineering Algorithm (Everyday Astronaut, 2021)
+- NIST Cybersecurity Framework
+- ASIS International ESRM Guidelines
+
+---
+
+## §17 Approval
+
+| Role           | Name          | Date     | Signature         |
+| -------------- | ------------- | -------- | ----------------- |
+| Owner          | Shannon Brown | Sep 2026 | /s/ Shannon Brown |
+| Chief of Staff | —             | Sep 2026 | Approved          |
+
+---
+
+_PRD 1.1 (Foolproof) — Locked. Changes require version increment, invariant review, and stakeholder sign-off._
