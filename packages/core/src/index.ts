@@ -338,3 +338,22 @@ export type {
   PipelineHealth,
   PipelineAlert,
 } from './pipeline.js';
+
+// Tactical Actions (Security Deployments)
+export {
+  TACTICAL_ACTIONS,
+  TACTICAL_CATEGORY_CONFIG,
+  createInitialTacticalState,
+  deployTacticalAction,
+  getAvailableActions,
+} from './tactical-actions.js';
+
+export type {
+  TacticalCategory,
+  DeploymentStatus,
+  EffectivenessRating,
+  TacticalAction,
+  DeployedAction,
+  DeploymentFeedback,
+  TacticalState,
+} from './tactical-actions.js';

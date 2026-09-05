@@ -92,12 +92,42 @@
   .header-safe {
     max-width: 100vw;
     overflow-x: hidden;
+    overflow-y: visible;
   }
 
   .nav-item-compact {
     flex-shrink: 1;
     min-width: 0;
     overflow: hidden;
+  }
+
+  /* Header flex container safeguards */
+  .header-flex-safe {
+    display: flex;
+    align-items: center;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .header-flex-safe > * {
+    flex-shrink: 0;
+  }
+
+  .header-flex-safe > .flex-shrink {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  /* Mobile menu positioning */
+  .mobile-menu-container {
+    position: relative;
+  }
+
+  .mobile-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 50;
   }
 
   /* Safe area insets for notched phones */
