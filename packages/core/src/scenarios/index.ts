@@ -370,6 +370,39 @@ export function createAlarmMonitoringOutageScenario(): DecisionLog {
  */
 import type { ScenarioESRMConfig } from '../esrm.js';
 
+/**
+ * Campaign difficulty levels
+ * Maps to Rookie/Operator/Director but expressed as stars for UI
+ */
+export type CampaignDifficulty = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * Recommended skill level for a scenario
+ */
+export type RecommendedLevel = 'ROOKIE' | 'OPERATOR' | 'DIRECTOR';
+
+/**
+ * Campaign arc definition - a named first-hour scenario with progression
+ */
+export interface CampaignArc {
+  /** Unique campaign arc ID */
+  arcId: string;
+  /** Display title for the campaign arc */
+  arcTitle: string;
+  /** Short description of the arc's focus */
+  arcBrief: string;
+  /** Order in campaign (1 = first) */
+  campaignOrder: number;
+  /** Difficulty rating 1-5 stars */
+  difficulty: CampaignDifficulty;
+  /** Recommended skill level */
+  recommendedLevel: RecommendedLevel;
+  /** Arc IDs that must be completed to unlock this arc (empty = always unlocked) */
+  unlockRequirements: string[];
+  /** Whether this arc is part of the main campaign path */
+  isMainPath: boolean;
+}
+
 export interface ScenarioInfo {
   id: string;
   name: string;
@@ -379,10 +412,98 @@ export interface ScenarioInfo {
   domains?: ('PHYSICAL' | 'INTELLIGENCE' | 'CYBER')[];
   esrmConfig?: ScenarioESRMConfig;
   createFn: () => DecisionLog;
+  /** Campaign arc metadata (if part of campaign) */
+  campaign?: CampaignArc;
 }
 
 import { FUSED_SCENARIOS } from './fused-gsoc.js';
 import { LEADERSHIP_SCENARIOS } from './leadership-scenarios.js';
+
+/**
+ * Campaign arc definitions for the 6 named first-hour arcs
+ */
+const CAMPAIGN_ARCS: Record<string, CampaignArc> = {
+  // Arc 1: Introduction - Always unlocked
+  'access-control-ransomware': {
+    arcId: 'arc-1-foundations',
+    arcTitle: 'Foundations: Vendor Crisis',
+    arcBrief: 'Learn structured decision-making when a critical vendor fails',
+    campaignOrder: 1,
+    difficulty: 2,
+    recommendedLevel: 'ROOKIE',
+    unlockRequirements: [],
+    isMainPath: true,
+  },
+  // Arc 2: Escalation
+  'civil-unrest-downtown': {
+    arcId: 'arc-2-coordination',
+    arcTitle: 'Coordination: Civil Response',
+    arcBrief: 'Master team coordination during regional unrest',
+    campaignOrder: 2,
+    difficulty: 2,
+    recommendedLevel: 'ROOKIE',
+    unlockRequirements: ['arc-1-foundations'],
+    isMainPath: true,
+  },
+  // Arc 3: Technical Integration
+  'video-system-compromise': {
+    arcId: 'arc-3-technical',
+    arcTitle: 'Technical: Supply Chain Risk',
+    arcBrief: 'Navigate IT/GSOC coordination under compromise',
+    campaignOrder: 3,
+    difficulty: 3,
+    recommendedLevel: 'OPERATOR',
+    unlockRequirements: ['arc-2-coordination'],
+    isMainPath: true,
+  },
+  // Arc 4: Multi-Domain Fusion
+  'supply-chain-intrusion': {
+    arcId: 'arc-4-fusion',
+    arcTitle: 'Fusion: Building Systems Attack',
+    arcBrief: 'Integrate physical, cyber, and intel in real-time',
+    campaignOrder: 4,
+    difficulty: 4,
+    recommendedLevel: 'OPERATOR',
+    unlockRequirements: ['arc-3-technical'],
+    isMainPath: true,
+  },
+  // Arc 5: Executive Protection
+  'executive-threat-convergence': {
+    arcId: 'arc-5-executive',
+    arcTitle: 'Executive: Convergent Threat',
+    arcBrief: 'Protect leadership from multi-vector coordinated attack',
+    campaignOrder: 5,
+    difficulty: 5,
+    recommendedLevel: 'DIRECTOR',
+    unlockRequirements: ['arc-4-fusion'],
+    isMainPath: true,
+  },
+  // Arc 6: Insider Investigation
+  'insider-threat-external': {
+    arcId: 'arc-6-insider',
+    arcTitle: 'Insider: Active Investigation',
+    arcBrief: 'Lead real-time insider threat response with subject on-site',
+    campaignOrder: 6,
+    difficulty: 5,
+    recommendedLevel: 'DIRECTOR',
+    unlockRequirements: ['arc-5-executive'],
+    isMainPath: true,
+  },
+};
+
+/**
+ * Get campaign arc metadata for a scenario
+ */
+export function getCampaignArc(scenarioId: string): CampaignArc | undefined {
+  return CAMPAIGN_ARCS[scenarioId];
+}
+
+/**
+ * Get all campaign arcs in order
+ */
+export function getCampaignArcs(): CampaignArc[] {
+  return Object.values(CAMPAIGN_ARCS).sort((a, b) => a.campaignOrder - b.campaignOrder);
+}
 
 export function getAvailableScenarios(): ScenarioInfo[] {
   return [
@@ -395,6 +516,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
       domains: s.domains,
       esrmConfig: s.esrmConfig,
       createFn: s.createFn,
+      campaign: CAMPAIGN_ARCS[s.id],
     })),
     ...LEADERSHIP_SCENARIOS.map((s) => ({
       id: s.id,
@@ -405,6 +527,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
       domains: s.domains,
       esrmConfig: s.esrmConfig,
       createFn: s.createFn,
+      campaign: CAMPAIGN_ARCS[s.id],
     })),
     {
       id: 'access-control-ransomware',
@@ -414,6 +537,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
       severity: 'HIGH',
       vendorType: 'Physical Access Control',
       createFn: createAccessControlVendorScenario,
+      campaign: CAMPAIGN_ARCS['access-control-ransomware'],
     },
     {
       id: 'video-system-compromise',
@@ -423,6 +547,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
       severity: 'HIGH',
       vendorType: 'Video Management System',
       createFn: createVideoSystemCompromiseScenario,
+      campaign: CAMPAIGN_ARCS['video-system-compromise'],
     },
     {
       id: 'alarm-monitoring-outage',

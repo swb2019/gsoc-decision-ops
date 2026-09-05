@@ -1004,6 +1004,7 @@ import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decisio
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { TeamPanel, StakeholderPanel } from './TeamStakeholderPanel';
+import { completeScenario } from '../lib/campaign';
 
 type SecurityDomain = 'PHYSICAL' | 'INTELLIGENCE' | 'CYBER';
 type MobileTab = 'intel' | 'decision' | 'cop';
@@ -1600,6 +1601,10 @@ export default function CommandCenter({
           if (newSeconds >= 3600) {
             setIsRunning(false);
             setShowDebrief(true);
+
+            // Mark campaign arc as complete and unlock next arcs
+            completeScenario(scenarioId);
+
             // Check and save personal best
             const accuracy =
               gameState.decisionsTotal > 0

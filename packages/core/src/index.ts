@@ -113,6 +113,8 @@ export {
   createAlarmMonitoringOutageScenario,
   getAvailableScenarios,
   createScenarioById,
+  getCampaignArc,
+  getCampaignArcs,
   FUSED_SCENARIOS,
   createExecutiveThreatScenario,
   createSupplyChainScenario,
@@ -129,6 +131,9 @@ export {
 
 export type {
   ScenarioInfo,
+  CampaignArc,
+  CampaignDifficulty,
+  RecommendedLevel,
   FusedInject,
   SecurityDomain,
   InjectSource,
