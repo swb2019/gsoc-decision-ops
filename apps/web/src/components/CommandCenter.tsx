@@ -57,6 +57,8 @@ import {
   TrendingDown,
   Minus,
   CheckCircle2,
+  ShieldCheck,
+  Crosshair,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -76,97 +78,318 @@ const SOUND_EFFECTS = {
     'data:audio/wav;base64,UklGRlIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YS4FAACAgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==',
 };
 
-// ESRM Prep Micro-tasks for keeping players engaged during wait gaps
-const ESRM_MICRO_TASKS = [
+// Micro-task challenge types
+type MicroTaskType = 'MULTIPLE_CHOICE' | 'RANKING' | 'TRADEOFF' | 'SCENARIO';
+
+interface MicroTaskChallenge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  duration: number;
+  category: string;
+  type: MicroTaskType;
+  points: number;
+  wrongPenalty: number;
+  question: string;
+  options?: { id: string; text: string; isCorrect?: boolean }[];
+  correctOrder?: string[];
+  tradeoffOptions?: { id: string; text: string; consequence: string; points: number }[];
+  scenarioOutcomes?: { choice: string; result: string; points: number }[];
+  explanation?: string;
+}
+
+// ESRM Prep Micro-tasks with actual challenges requiring real effort
+const ESRM_MICRO_TASKS: MicroTaskChallenge[] = [
   {
-    id: 'asset-priority',
-    title: 'Asset Prioritization Drill',
-    description: 'Rank these 3 assets by business criticality',
+    id: 'asset-priority-mc',
+    title: 'Asset Priority Check',
+    description: 'Which asset class typically has highest business criticality?',
     icon: 'Target',
-    duration: 20,
+    duration: 15,
     category: 'ESRM',
+    type: 'MULTIPLE_CHOICE',
     points: 25,
+    wrongPenalty: -5,
+    question:
+      'During a vendor compromise affecting access control, which asset owner notification takes priority?',
+    options: [
+      { id: 'a', text: 'Marketing team workspace badge access', isCorrect: false },
+      { id: 'b', text: 'Executive floor and data center perimeter', isCorrect: true },
+      { id: 'c', text: 'Cafeteria turnstile systems', isCorrect: false },
+      { id: 'd', text: 'Visitor lobby badge printers', isCorrect: false },
+    ],
+    explanation:
+      'Executive and data center assets have highest criticality due to information sensitivity and physical security of crown jewels.',
   },
   {
-    id: 'risk-rank',
-    title: 'Quick Risk Ranking',
-    description: 'Order threats by likelihood × impact',
+    id: 'risk-rank-order',
+    title: 'Threat Ranking',
+    description: 'Order threats by likelihood × impact score',
     icon: 'AlertTriangle',
-    duration: 15,
+    duration: 20,
     category: 'ESRM',
-    points: 20,
-  },
-  {
-    id: 'residual-draft',
-    title: 'Residual Risk Draft',
-    description: 'Write a 1-sentence residual risk statement',
-    icon: 'FileQuestion',
-    duration: 25,
-    category: 'ESRM',
+    type: 'RANKING',
     points: 30,
+    wrongPenalty: 0,
+    question: 'Rank these threats from HIGHEST to LOWEST risk (likelihood × impact):',
+    options: [
+      { id: 'a', text: 'Active credential theft campaign (HIGH likelihood, HIGH impact)' },
+      { id: 'b', text: 'Physical tailgating attempt (MEDIUM likelihood, LOW impact)' },
+      { id: 'c', text: 'Insider data exfiltration (LOW likelihood, CRITICAL impact)' },
+      { id: 'd', text: 'Social engineering call (HIGH likelihood, MEDIUM impact)' },
+    ],
+    correctOrder: ['a', 'd', 'c', 'b'],
+    explanation:
+      'Active credential theft is highest (H×H), social engineering next (H×M), insider threat (L×C) varies, tailgating lowest (M×L).',
   },
   {
-    id: 'owner-brief-prep',
-    title: 'Owner Brief Prep',
-    description: 'Identify key talking points for asset owner',
-    icon: 'MessageSquare',
-    duration: 20,
-    category: 'COMMUNICATION',
-    points: 25,
-  },
-  {
-    id: 'channel-triage',
-    title: 'Channel Triage Drill',
-    description: 'Assign incoming intel to correct domain',
-    icon: 'Shuffle',
-    duration: 15,
-    category: 'TRIAGE',
-    points: 20,
-  },
-  {
-    id: 'cop-review',
-    title: 'COP Quick Review',
-    description: 'Verify facts vs assumptions accuracy',
-    icon: 'Eye',
-    duration: 15,
-    category: 'AWARENESS',
-    points: 15,
-  },
-  {
-    id: 'stakeholder-map',
-    title: 'Stakeholder Mapping',
-    description: 'Identify who needs notification next',
-    icon: 'Users',
-    duration: 20,
-    category: 'COMMUNICATION',
-    points: 25,
-  },
-  {
-    id: 'treatment-review',
-    title: 'Treatment Options Review',
-    description: 'List pros/cons for each treatment path',
+    id: 'tradeoff-resources',
+    title: 'Resource Tradeoff',
+    description: 'Balance competing security priorities',
     icon: 'ClipboardList',
-    duration: 25,
+    duration: 18,
     category: 'ESRM',
+    type: 'TRADEOFF',
+    points: 35,
+    wrongPenalty: -10,
+    question:
+      'You have ONE guard available. Two simultaneous alerts: suspicious person at loading dock, and executive requesting immediate escort. What do you do?',
+    tradeoffOptions: [
+      {
+        id: 'a',
+        text: 'Deploy to loading dock - physical threat takes priority',
+        consequence: 'Executive complains but dock secured. Good situational awareness.',
+        points: 35,
+      },
+      {
+        id: 'b',
+        text: 'Deploy to executive - VIP protection is paramount',
+        consequence: 'Loading dock unsecured. Potential entry point compromised.',
+        points: 15,
+      },
+      {
+        id: 'c',
+        text: 'Split time between both locations',
+        consequence: 'Neither fully addressed. Guard effectiveness halved.',
+        points: 0,
+      },
+      {
+        id: 'd',
+        text: 'Call for backup and hold both positions remotely via camera',
+        consequence: 'Smart resource management. Both monitored while help arrives.',
+        points: 30,
+      },
+    ],
+    explanation:
+      'Active physical threats generally take priority, but smart resource management (option D) shows tactical thinking.',
+  },
+  {
+    id: 'scenario-escalation',
+    title: 'Escalation Decision',
+    description: 'Determine correct escalation path',
+    icon: 'Layers',
+    duration: 15,
+    category: 'COMMUNICATION',
+    type: 'SCENARIO',
+    points: 25,
+    wrongPenalty: -5,
+    question:
+      'Badge system shows 3 failed attempts from a terminated employee badge. What escalation level?',
+    options: [
+      { id: 'a', text: 'ACTIVITY - Log it, continue monitoring', isCorrect: false },
+      { id: 'b', text: 'INCIDENT - Immediate supervisor notification', isCorrect: true },
+      { id: 'c', text: 'INVESTIGATION - Full forensic response', isCorrect: false },
+      { id: 'd', text: 'No escalation needed - badge is already disabled', isCorrect: false },
+    ],
+    explanation:
+      'Terminated employee attempting access = INCIDENT level. The badge possession alone is a policy violation requiring supervisor notification.',
+  },
+  {
+    id: 'channel-triage-mc',
+    title: 'Intel Source Triage',
+    description: 'Assign intel to correct domain',
+    icon: 'Shuffle',
+    duration: 12,
+    category: 'TRIAGE',
+    type: 'MULTIPLE_CHOICE',
+    points: 20,
+    wrongPenalty: -5,
+    question:
+      '"SIEM alert: Unusual VPN login from overseas for executive during known domestic travel." Which domain owns initial triage?',
+    options: [
+      { id: 'a', text: 'Physical Security - travel-related', isCorrect: false },
+      { id: 'b', text: 'Cyber Security - VPN/identity anomaly', isCorrect: true },
+      { id: 'c', text: 'Executive Protection - involves executive', isCorrect: false },
+      { id: 'd', text: 'Intelligence - requires investigation', isCorrect: false },
+    ],
+    explanation:
+      'SIEM VPN alerts are cyber domain. Physical/EP may be looped in, but cyber owns identity anomaly triage.',
+  },
+  {
+    id: 'cop-accuracy',
+    title: 'Fact vs Assumption',
+    description: 'Identify which is verified vs unverified',
+    icon: 'Eye',
+    duration: 12,
+    category: 'AWARENESS',
+    type: 'MULTIPLE_CHOICE',
+    points: 20,
+    wrongPenalty: -5,
+    question: 'Which statement is a FACT (not an assumption)?',
+    options: [
+      { id: 'a', text: 'The attacker is likely nation-state sponsored', isCorrect: false },
+      { id: 'b', text: 'Badge system logs show 47 denials in the last hour', isCorrect: true },
+      { id: 'c', text: 'The breach probably started with phishing', isCorrect: false },
+      { id: 'd', text: 'Most employees are unaware of the incident', isCorrect: false },
+    ],
+    explanation:
+      'System logs with specific numbers are verifiable facts. The others use "likely," "probably," or assume employee awareness.',
+  },
+  {
+    id: 'stakeholder-notify',
+    title: 'Notification Priority',
+    description: 'Who needs to know first?',
+    icon: 'Users',
+    duration: 15,
+    category: 'COMMUNICATION',
+    type: 'RANKING',
     points: 30,
+    wrongPenalty: 0,
+    question: 'Access control vendor confirmed breach. Rank stakeholder notification order:',
+    options: [
+      { id: 'a', text: 'Legal/Privacy - potential data exposure' },
+      { id: 'b', text: 'CISO - security leadership' },
+      { id: 'c', text: 'Affected asset owners - their systems at risk' },
+      { id: 'd', text: 'PR/Communications - potential media inquiry' },
+    ],
+    correctOrder: ['b', 'c', 'a', 'd'],
+    explanation:
+      'CISO first (security leadership), then asset owners (direct impact), Legal (compliance), PR last (no public exposure yet).',
   },
   {
-    id: 'threat-scan',
-    title: 'Threat Landscape Scan',
-    description: 'Identify potential secondary threats',
-    icon: 'Radar',
-    duration: 20,
-    category: 'INTELLIGENCE',
-    points: 25,
-  },
-  {
-    id: 'control-check',
-    title: 'Control Effectiveness Check',
-    description: 'Assess current mitigations in place',
+    id: 'treatment-choice',
+    title: 'Treatment Selection',
+    description: 'Choose appropriate risk treatment',
     icon: 'ShieldAlert',
-    duration: 20,
+    duration: 15,
     category: 'ESRM',
+    type: 'MULTIPLE_CHOICE',
     points: 25,
+    wrongPenalty: -5,
+    question:
+      'Video analytics flagged a "suspicious package" that security confirmed is a forgotten lunch bag. Correct treatment?',
+    options: [
+      { id: 'a', text: 'AVOID - evacuate the area', isCorrect: false },
+      { id: 'b', text: 'MITIGATE - post a guard nearby', isCorrect: false },
+      { id: 'c', text: 'ACCEPT - log and continue monitoring', isCorrect: true },
+      { id: 'd', text: 'TRANSFER - call local authorities', isCorrect: false },
+    ],
+    explanation:
+      'Confirmed false positive = ACCEPT risk. Document for analytics tuning, no further action needed.',
+  },
+  {
+    id: 'threat-secondary',
+    title: 'Secondary Threat ID',
+    description: 'Identify cascading risk',
+    icon: 'Radar',
+    duration: 18,
+    category: 'INTELLIGENCE',
+    type: 'TRADEOFF',
+    points: 30,
+    wrongPenalty: -10,
+    question:
+      'Access control vendor is compromised. What secondary threat should you monitor for FIRST?',
+    tradeoffOptions: [
+      {
+        id: 'a',
+        text: 'Social engineering calls impersonating the vendor',
+        consequence: 'Good thinking, but not the most immediate risk.',
+        points: 20,
+      },
+      {
+        id: 'b',
+        text: 'Physical intrusion attempts using cloned credentials',
+        consequence: 'Correct! Compromised ACS = credential exposure is immediate.',
+        points: 30,
+      },
+      {
+        id: 'c',
+        text: 'Ransomware deployment through vendor connection',
+        consequence: 'Valid concern but ACS typically air-gapped from IT.',
+        points: 15,
+      },
+      {
+        id: 'd',
+        text: 'Media inquiry about the vendor breach',
+        consequence: 'Reputation risk is real but not a security threat.',
+        points: 5,
+      },
+    ],
+    explanation:
+      'ACS compromise = credential data exposure. Physical intrusion using cloned/stolen credentials is the most direct secondary threat.',
+  },
+  {
+    id: 'control-effectiveness',
+    title: 'Control Gap Analysis',
+    description: 'Identify which control is bypassed',
+    icon: 'ShieldAlert',
+    duration: 15,
+    category: 'ESRM',
+    type: 'MULTIPLE_CHOICE',
+    points: 25,
+    wrongPenalty: -5,
+    question:
+      'Vendor has read access to badge holder photos and names. Which control is MOST compromised?',
+    options: [
+      { id: 'a', text: 'Perimeter access control', isCorrect: false },
+      { id: 'b', text: 'Identity verification at entry points', isCorrect: true },
+      { id: 'c', text: 'Video surveillance coverage', isCorrect: false },
+      { id: 'd', text: 'Visitor management process', isCorrect: false },
+    ],
+    explanation:
+      'Photo + name exposure enables impersonation at manned entry points where guards verify identity visually.',
+  },
+  {
+    id: 'time-pressure',
+    title: 'Urgency Assessment',
+    description: 'Prioritize under time pressure',
+    icon: 'Clock',
+    duration: 12,
+    category: 'TRIAGE',
+    type: 'SCENARIO',
+    points: 25,
+    wrongPenalty: -5,
+    question: 'You have 3 pending items. Bridge call in 5 minutes. Which do you address NOW?',
+    options: [
+      { id: 'a', text: 'Update the COP with latest facts for the bridge', isCorrect: true },
+      { id: 'b', text: 'Draft the after-action report outline', isCorrect: false },
+      { id: 'c', text: "Review yesterday's incident logs", isCorrect: false },
+      { id: 'd', text: 'Organize your notes from earlier', isCorrect: false },
+    ],
+    explanation:
+      'Bridge call preparation (current COP status) is time-critical. AAR and historical review can wait.',
+  },
+  {
+    id: 'posture-recommend',
+    title: 'Posture Recommendation',
+    description: 'Advise on operational posture',
+    icon: 'Activity',
+    duration: 15,
+    category: 'ESRM',
+    type: 'SCENARIO',
+    points: 30,
+    wrongPenalty: -10,
+    question:
+      'Vendor confirms breach contained, no evidence of data access, patch deployed. Asset owner asks your recommendation. What posture?',
+    options: [
+      { id: 'a', text: 'PAUSE - stay locked down until full audit', isCorrect: false },
+      { id: 'b', text: 'DEGRADE - controlled restoration with monitoring', isCorrect: true },
+      { id: 'c', text: 'CONTINUE - breach contained, resume normal ops', isCorrect: false },
+      { id: 'd', text: 'Defer to vendor recommendation only', isCorrect: false },
+    ],
+    explanation:
+      'DEGRADE allows controlled restoration while maintaining heightened monitoring. Full PAUSE is excessive post-containment, full CONTINUE is premature.',
   },
 ];
 
@@ -265,6 +488,11 @@ import {
   PIPELINE_STAGE_CONFIG,
   createInitialRoster,
   createDefaultStakeholderMap,
+  createInitialTacticalState,
+  deployTacticalAction,
+  getAvailableActions,
+  TACTICAL_ACTIONS,
+  TACTICAL_CATEGORY_CONFIG,
   type ProtectedAsset,
   type ScenarioESRMConfig,
   type LinkedEntity,
@@ -279,6 +507,9 @@ import {
   type TrendDirection,
   type TeamRosterState,
   type StakeholderMap,
+  type TacticalState,
+  type TacticalAction,
+  type DeploymentFeedback,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -301,7 +532,15 @@ interface MicroTask {
   icon: string;
   duration: number;
   category: string;
+  type: MicroTaskType;
   points: number;
+  wrongPenalty: number;
+  question: string;
+  options?: { id: string; text: string; isCorrect?: boolean }[];
+  correctOrder?: string[];
+  tradeoffOptions?: { id: string; text: string; consequence: string; points: number }[];
+  scenarioOutcomes?: { choice: string; result: string; points: number }[];
+  explanation?: string;
 }
 
 interface GameState {
@@ -499,6 +738,11 @@ export default function CommandCenter({
   const [completedMicroTasks, setCompletedMicroTasks] = useState<string[]>([]);
   const [lastActivityTime, setLastActivityTime] = useState(0);
   const [microTaskAnimating, setMicroTaskAnimating] = useState(false);
+  const [microTaskAnswer, setMicroTaskAnswer] = useState<string | string[] | null>(null);
+  const [microTaskResult, setMicroTaskResult] = useState<
+    'pending' | 'correct' | 'wrong' | 'partial' | null
+  >(null);
+  const [microTaskExplanationShown, setMicroTaskExplanationShown] = useState(false);
 
   // Animation tracking
   const [tabAnimating, setTabAnimating] = useState(false);
@@ -547,6 +791,7 @@ export default function CommandCenter({
   const [showValuePanel, setShowValuePanel] = useState(false);
   const [showKRIPanel, setShowKRIPanel] = useState(false);
   const [showPipelinePanel, setShowPipelinePanel] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [valueMetrics, setValueMetrics] = useState<ESRMValueCreated | null>(null);
   const [kriDashboard, setKRIDashboard] = useState<KRIDashboard | null>(null);
   const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
@@ -554,6 +799,13 @@ export default function CommandCenter({
   const [stakeholderMap, setStakeholderMap] = useState<StakeholderMap | null>(null);
   const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
   const [leadershipTab, setLeadershipTab] = useState<'team' | 'stakeholders'>('team');
+
+  // Tactical actions state
+  const [tacticalState, setTacticalState] = useState<TacticalState>(createInitialTacticalState());
+  const [showTacticalPanel, setShowTacticalPanel] = useState(false);
+  const [lastDeploymentFeedback, setLastDeploymentFeedback] = useState<DeploymentFeedback | null>(
+    null
+  );
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -573,6 +825,19 @@ export default function CommandCenter({
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (!showMobileMenu) return;
+    const handleClickOutside = (e: MouseEvent): void => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[aria-label="More options"]') && !target.closest('[role="menu"]')) {
+        setShowMobileMenu(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showMobileMenu]);
 
   // Check for saved session on mount
   useEffect(() => {
@@ -822,6 +1087,9 @@ export default function CommandCenter({
         setActiveMicroTask(randomTask);
         setMicroTaskTimer(randomTask.duration);
         setMicroTaskAnimating(true);
+        setMicroTaskAnswer(null);
+        setMicroTaskResult(null);
+        setMicroTaskExplanationShown(false);
         setTimeout(() => setMicroTaskAnimating(false), 500);
         playSound('tick');
       }
@@ -858,32 +1126,194 @@ export default function CommandCenter({
     };
   }, [activeMicroTask, isRunning]);
 
-  // Complete micro-task handler
-  const completeMicroTask = useCallback(() => {
+  // Submit micro-task answer
+  const submitMicroTaskAnswer = useCallback(
+    (answer: string | string[]) => {
+      if (!activeMicroTask || microTaskResult) return;
+
+      let points = 0;
+      let result: 'correct' | 'wrong' | 'partial' = 'wrong';
+
+      if (activeMicroTask.type === 'MULTIPLE_CHOICE' || activeMicroTask.type === 'SCENARIO') {
+        const correctOption = activeMicroTask.options?.find((o) => o.isCorrect);
+        if (correctOption && answer === correctOption.id) {
+          points = activeMicroTask.points;
+          result = 'correct';
+        } else {
+          points = activeMicroTask.wrongPenalty;
+          result = 'wrong';
+        }
+      } else if (activeMicroTask.type === 'RANKING') {
+        const answerArr = answer as string[];
+        const correctOrder = activeMicroTask.correctOrder || [];
+        let correctCount = 0;
+        for (let i = 0; i < Math.min(answerArr.length, correctOrder.length); i++) {
+          if (answerArr[i] === correctOrder[i]) correctCount++;
+        }
+        if (correctCount === correctOrder.length) {
+          points = activeMicroTask.points;
+          result = 'correct';
+        } else if (correctCount > 0) {
+          points = Math.floor((activeMicroTask.points * correctCount) / correctOrder.length);
+          result = 'partial';
+        } else {
+          points = activeMicroTask.wrongPenalty;
+          result = 'wrong';
+        }
+      } else if (activeMicroTask.type === 'TRADEOFF') {
+        const selectedOption = activeMicroTask.tradeoffOptions?.find((o) => o.id === answer);
+        if (selectedOption) {
+          points = selectedOption.points;
+          result =
+            selectedOption.points === activeMicroTask.points
+              ? 'correct'
+              : selectedOption.points > 0
+                ? 'partial'
+                : 'wrong';
+        }
+      }
+
+      setMicroTaskAnswer(answer);
+      setMicroTaskResult(result);
+      setMicroTaskExplanationShown(true);
+
+      if (points !== 0) {
+        setGameState((prev) => ({
+          ...prev,
+          score: Math.max(0, prev.score + points),
+          esrmBonus: prev.esrmBonus + Math.max(0, points),
+        }));
+      }
+
+      if (result === 'correct') {
+        setShowScorePopup({ points, message: 'Correct!' });
+        playSound('microTaskComplete');
+        confirmFeedback();
+      } else if (result === 'partial') {
+        setShowScorePopup({ points, message: 'Partial Credit' });
+        playSound('tick');
+        tapFeedback();
+      } else {
+        setShowScorePopup({ points, message: points < 0 ? 'Wrong Answer' : 'Incorrect' });
+        playSound('error');
+        errorFeedback();
+      }
+      setTimeout(() => setShowScorePopup(null), 2000);
+    },
+    [activeMicroTask, microTaskResult, playSound, confirmFeedback, tapFeedback, errorFeedback]
+  );
+
+  // Dismiss micro-task after answer shown
+  const dismissMicroTask = useCallback(() => {
     if (!activeMicroTask) return;
-
-    const points = activeMicroTask.points;
-    setGameState((prev) => ({
-      ...prev,
-      score: prev.score + points,
-      esrmBonus: prev.esrmBonus + points,
-    }));
-
     setCompletedMicroTasks((prev) => [...prev, activeMicroTask.id]);
-    setShowScorePopup({ points, message: 'ESRM Prep Complete!' });
-    setTimeout(() => setShowScorePopup(null), 2000);
-
-    playSound('microTaskComplete');
-    confirmFeedback();
     setActiveMicroTask(null);
+    setMicroTaskAnswer(null);
+    setMicroTaskResult(null);
+    setMicroTaskExplanationShown(false);
     setLastActivityTime(elapsedSeconds);
-  }, [activeMicroTask, elapsedSeconds, playSound, confirmFeedback]);
+  }, [activeMicroTask, elapsedSeconds]);
 
-  // Skip micro-task handler
+  // Skip micro-task handler (small opportunity cost - counts as seen but no points)
   const skipMicroTask = useCallback(() => {
+    if (!activeMicroTask) return;
+    setCompletedMicroTasks((prev) => [...prev, activeMicroTask.id]);
     setActiveMicroTask(null);
+    setMicroTaskAnswer(null);
+    setMicroTaskResult(null);
+    setMicroTaskExplanationShown(false);
     setLastActivityTime(elapsedSeconds);
-  }, [elapsedSeconds]);
+  }, [activeMicroTask, elapsedSeconds]);
+
+  // Deploy tactical action handler
+  const handleDeployTacticalAction = useCallback(
+    (actionId: string) => {
+      const resources = {
+        guards: dispatchResources.guards.available,
+        analysts: dispatchResources.analysts.available,
+        responders: dispatchResources.responders.available,
+      };
+
+      const { newState, feedback } = deployTacticalAction(tacticalState, actionId, resources);
+      setTacticalState(newState);
+      setLastDeploymentFeedback(feedback);
+
+      if (feedback.success) {
+        const action = TACTICAL_ACTIONS.find((a) => a.id === actionId);
+
+        // Update game score
+        const netPoints = feedback.pointsAwarded - feedback.pointsPenalty;
+        setGameState((prev) => ({
+          ...prev,
+          score: Math.max(0, prev.score + netPoints),
+        }));
+
+        // Show feedback popup
+        if (netPoints > 0) {
+          setShowScorePopup({
+            points: netPoints,
+            message: `${action?.shortName || 'Action'} Deployed`,
+          });
+          playSound('decisionConfirm');
+          confirmFeedback();
+        } else if (netPoints < 0) {
+          setShowScorePopup({ points: netPoints, message: 'Action Backfired!' });
+          playSound('error');
+          errorFeedback();
+        } else {
+          playSound('tick');
+          tapFeedback();
+        }
+        setTimeout(() => setShowScorePopup(null), 2500);
+
+        // Update dispatch resources based on action cost
+        if (action?.resourceCost) {
+          setDispatchResources((prev) => ({
+            ...prev,
+            guards: {
+              ...prev.guards,
+              available: prev.guards.available - (action.resourceCost.guards || 0),
+            },
+            analysts: {
+              ...prev.analysts,
+              available: prev.analysts.available - (action.resourceCost.analysts || 0),
+            },
+            responders: {
+              ...prev.responders,
+              available: prev.responders.available - (action.resourceCost.responders || 0),
+            },
+          }));
+        }
+
+        // Flash screen based on effectiveness
+        if (feedback.effectiveness === 'HIGH' || feedback.effectiveness === 'MEDIUM') {
+          setScreenFlash('green');
+        } else if (feedback.effectiveness === 'LOW' || feedback.effectiveness === 'NEGLIGIBLE') {
+          setScreenFlash('amber');
+        } else {
+          setScreenFlash('red');
+        }
+        setTimeout(() => setScreenFlash(null), 300);
+
+        setLastActivityTime(elapsedSeconds);
+      } else {
+        playSound('error');
+        errorFeedback();
+      }
+
+      // Auto-dismiss feedback after 4 seconds
+      setTimeout(() => setLastDeploymentFeedback(null), 4000);
+    },
+    [
+      tacticalState,
+      dispatchResources,
+      playSound,
+      confirmFeedback,
+      tapFeedback,
+      errorFeedback,
+      elapsedSeconds,
+    ]
+  );
 
   // Update lastActivityTime on user actions
   useEffect(() => {
@@ -1599,11 +2029,11 @@ export default function CommandCenter({
             </div>
           </div>
 
-          {/* Right: Score & Actions - Overflow safe */}
-          <div className="flex items-center gap-1 lg:gap-3 flex-shrink-0">
+          {/* Right: Score & Actions - Overflow safe with mobile menu */}
+          <div className="flex items-center gap-1 lg:gap-2 flex-shrink-0 max-w-[50%] lg:max-w-none">
             {/* Mobile score badge */}
-            <div className="flex lg:hidden items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg bg-gray-800/40">
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+            <div className="flex lg:hidden items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg bg-gray-800/40 flex-shrink-0">
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
               <span className="font-mono text-xs sm:text-sm font-bold text-emerald-400 tabular-nums">
                 {gameState.score >= 1000
                   ? `${(gameState.score / 1000).toFixed(1)}k`
@@ -1612,7 +2042,7 @@ export default function CommandCenter({
             </div>
 
             {/* Desktop score display */}
-            <div className="hidden lg:flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-gray-800/60 to-gray-800/40 border border-gray-700/50">
+            <div className="hidden lg:flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-gray-800/60 to-gray-800/40 border border-gray-700/50 flex-shrink-0">
               <div className="text-center">
                 <div className="font-mono text-2xl font-black text-emerald-400 tracking-tight">
                   {gameState.score.toLocaleString()}
@@ -1634,22 +2064,19 @@ export default function CommandCenter({
               )}
             </div>
 
+            {/* Sound toggle - always visible */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="flex p-2 sm:p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[44px] min-h-[44px]"
+              className="flex p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0"
               aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
             >
-              {soundEnabled ? (
-                <Volume2 className="w-5 h-5 sm:w-5 sm:h-5" />
-              ) : (
-                <VolumeX className="w-5 h-5 sm:w-5 sm:h-5" />
-              )}
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
 
-            {/* Escalation Level Indicator */}
+            {/* Escalation Level Indicator - hidden on small mobile */}
             <div
               className={clsx(
-                'hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider',
+                'hidden md:flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex-shrink-0',
                 escalationLevel === 'INVESTIGATION'
                   ? 'bg-red-500/20 text-red-400 border border-red-500/40'
                   : escalationLevel === 'INCIDENT'
@@ -1658,101 +2085,314 @@ export default function CommandCenter({
               )}
               title="Escalation Level"
             >
-              <Layers className="w-3.5 h-3.5" />
-              {escalationLevel}
+              <Layers className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden lg:inline">{escalationLevel}</span>
             </div>
 
-            {/* Entity Link Button */}
-            {log.linkedEntities && log.linkedEntities.length > 0 && (
+            {/* Desktop-only action buttons */}
+            <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
+              {/* Entity Link Button */}
+              {log.linkedEntities && log.linkedEntities.length > 0 && (
+                <button
+                  onClick={() => setShowEntityPanel(true)}
+                  className="p-2 rounded-xl text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 active:bg-cyan-500/20 transition-all flex items-center justify-center relative"
+                  aria-label="Open Entity Map"
+                >
+                  <Link2 className="w-5 h-5" />
+                  {highlightedEntityId && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  )}
+                </button>
+              )}
+
+              {/* Value Metrics Button */}
               <button
-                onClick={() => setShowEntityPanel(true)}
-                className="p-2.5 rounded-xl text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 active:bg-cyan-500/20 transition-all touch-target flex items-center justify-center relative"
-                aria-label="Open Entity Map"
+                onClick={() => setShowValuePanel(true)}
+                className={clsx(
+                  'p-2 rounded-xl transition-all flex items-center justify-center relative',
+                  valueMetrics && valueMetrics.compositeValueScore >= 0.7
+                    ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                    : valueMetrics && valueMetrics.compositeValueScore >= 0.4
+                      ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+                )}
+                aria-label="View Value Metrics"
               >
-                <Link2 className="w-5 h-5" />
-                {highlightedEntityId && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <TrendingUp className="w-5 h-5" />
+                {valueMetrics && valueMetrics.compositeValueScore >= 0.7 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 )}
               </button>
-            )}
 
-            {/* Value Metrics Button */}
-            <button
-              onClick={() => setShowValuePanel(true)}
-              className={clsx(
-                'p-2.5 rounded-xl transition-all touch-target flex items-center justify-center relative',
-                valueMetrics && valueMetrics.compositeValueScore >= 0.7
-                  ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
-                  : valueMetrics && valueMetrics.compositeValueScore >= 0.4
-                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+              {/* KRI Dashboard Button */}
+              <button
+                onClick={() => setShowKRIPanel(true)}
+                className={clsx(
+                  'p-2 rounded-xl transition-all flex items-center justify-center relative',
+                  kriDashboard?.overallHealth === 'GREEN'
+                    ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                    : kriDashboard?.overallHealth === 'AMBER'
+                      ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                      : kriDashboard?.overallHealth === 'RED'
+                        ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+                )}
+                aria-label="View KRI Dashboard"
+              >
+                <BarChart3 className="w-5 h-5" />
+                {kriDashboard && kriDashboard.criticalCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                )}
+              </button>
+
+              {/* Pipeline Health Button */}
+              <button
+                onClick={() => setShowPipelinePanel(true)}
+                className={clsx(
+                  'p-2 rounded-xl transition-all flex items-center justify-center relative',
+                  pipelineHealth?.overallStatus === 'HEALTHY'
+                    ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                    : pipelineHealth?.overallStatus === 'DEGRADED'
+                      ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                      : pipelineHealth?.overallStatus === 'CRITICAL'
+                        ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                        : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+                )}
+                aria-label="View Pipeline Health"
+              >
+                <Activity className="w-5 h-5" />
+                {pipelineHealth && pipelineHealth.alerts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </button>
+
+              {/* Tactical Actions Button */}
+              <button
+                onClick={() => setShowTacticalPanel(true)}
+                className={clsx(
+                  'p-2 rounded-xl transition-all flex items-center justify-center relative',
+                  tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
+                    ? 'text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10'
                     : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
-              )}
-              aria-label="View Value Metrics"
-            >
-              <TrendingUp className="w-5 h-5" />
-              {valueMetrics && valueMetrics.compositeValueScore >= 0.7 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              )}
-            </button>
+                )}
+                aria-label="Tactical Actions"
+              >
+                <Crosshair className="w-5 h-5" />
+                {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-cyan-500/90 text-2xs font-bold text-white flex items-center justify-center">
+                    {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length}
+                  </span>
+                )}
+              </button>
 
-            {/* KRI Dashboard Button */}
-            <button
-              onClick={() => setShowKRIPanel(true)}
-              className={clsx(
-                'p-2.5 rounded-xl transition-all touch-target flex items-center justify-center relative',
-                kriDashboard?.overallHealth === 'GREEN'
-                  ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
-                  : kriDashboard?.overallHealth === 'AMBER'
-                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
-                    : kriDashboard?.overallHealth === 'RED'
-                      ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
-                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
-              )}
-              aria-label="View KRI Dashboard"
-            >
-              <BarChart3 className="w-5 h-5" />
-              {kriDashboard && kriDashboard.criticalCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-              )}
-            </button>
+              {/* Field Guide Button */}
+              <button
+                onClick={() => setShowFieldGuide(true)}
+                className="p-2 rounded-xl text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 active:bg-amber-500/20 transition-all flex items-center justify-center"
+                aria-label="Open Field Guide"
+              >
+                <BookOpen className="w-5 h-5" />
+              </button>
 
-            {/* Pipeline Health Button */}
-            <button
-              onClick={() => setShowPipelinePanel(true)}
-              className={clsx(
-                'p-2.5 rounded-xl transition-all touch-target flex items-center justify-center relative',
-                pipelineHealth?.overallStatus === 'HEALTHY'
-                  ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
-                  : pipelineHealth?.overallStatus === 'DEGRADED'
-                    ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
-                    : pipelineHealth?.overallStatus === 'CRITICAL'
-                      ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
-                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
-              )}
-              aria-label="View Pipeline Health"
-            >
-              <Activity className="w-5 h-5" />
-              {pipelineHealth && pipelineHealth.alerts.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              )}
-            </button>
+              <button
+                onClick={() => setShowDebrief(true)}
+                className="p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all flex items-center justify-center"
+                aria-label="View debrief"
+              >
+                <FileText className="w-5 h-5" />
+              </button>
+            </div>
 
-            {/* Field Guide Button */}
-            <button
-              onClick={() => setShowFieldGuide(true)}
-              className="p-2.5 rounded-xl text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 active:bg-amber-500/20 transition-all touch-target flex items-center justify-center"
-              aria-label="Open Field Guide"
-            >
-              <BookOpen className="w-5 h-5" />
-            </button>
+            {/* Mobile overflow menu button */}
+            <div className="relative lg:hidden flex-shrink-0">
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className={clsx(
+                  'p-2 rounded-xl transition-all flex items-center justify-center min-w-[40px] min-h-[40px] relative',
+                  showMobileMenu
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/50'
+                )}
+                aria-label="More options"
+                aria-expanded={showMobileMenu}
+              >
+                <Layers className="w-5 h-5" />
+                {(kriDashboard?.criticalCount ?? 0) > 0 ||
+                (pipelineHealth?.alerts?.length ?? 0) > 0 ? (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                ) : null}
+              </button>
 
-            <button
-              onClick={() => setShowDebrief(true)}
-              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target flex items-center justify-center"
-              aria-label="View debrief"
-            >
-              <FileText className="w-5 h-5" />
-            </button>
+              {/* Mobile dropdown menu */}
+              {showMobileMenu && (
+                <div
+                  className="absolute top-full right-0 mt-2 w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-xl backdrop-blur-xl z-50 animate-scale-in-fast"
+                  role="menu"
+                >
+                  <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
+                    Dashboards
+                  </div>
+
+                  {log.linkedEntities && log.linkedEntities.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowEntityPanel(true);
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                      role="menuitem"
+                    >
+                      <Link2 className="w-4 h-4" />
+                      Entity Map
+                      {highlightedEntityId && (
+                        <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowValuePanel(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className={clsx(
+                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                      valueMetrics && valueMetrics.compositeValueScore >= 0.7
+                        ? 'text-emerald-400 hover:bg-emerald-500/10'
+                        : valueMetrics && valueMetrics.compositeValueScore >= 0.4
+                          ? 'text-amber-400 hover:bg-amber-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                    )}
+                    role="menuitem"
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                    Value Metrics
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowKRIPanel(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className={clsx(
+                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                      kriDashboard?.overallHealth === 'GREEN'
+                        ? 'text-emerald-400 hover:bg-emerald-500/10'
+                        : kriDashboard?.overallHealth === 'AMBER'
+                          ? 'text-amber-400 hover:bg-amber-500/10'
+                          : kriDashboard?.overallHealth === 'RED'
+                            ? 'text-red-400 hover:bg-red-500/10'
+                            : 'text-gray-400 hover:bg-gray-800/50'
+                    )}
+                    role="menuitem"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    KRI Dashboard
+                    {kriDashboard && kriDashboard.criticalCount > 0 && (
+                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                        {kriDashboard.criticalCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowPipelinePanel(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className={clsx(
+                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                      pipelineHealth?.overallStatus === 'HEALTHY'
+                        ? 'text-emerald-400 hover:bg-emerald-500/10'
+                        : pipelineHealth?.overallStatus === 'DEGRADED'
+                          ? 'text-amber-400 hover:bg-amber-500/10'
+                          : pipelineHealth?.overallStatus === 'CRITICAL'
+                            ? 'text-red-400 hover:bg-red-500/10'
+                            : 'text-gray-400 hover:bg-gray-800/50'
+                    )}
+                    role="menuitem"
+                  >
+                    <Activity className="w-4 h-4" />
+                    Pipeline Health
+                    {pipelineHealth && pipelineHealth.alerts.length > 0 && (
+                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                        {pipelineHealth.alerts.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <div className="border-t border-gray-800 my-1" />
+
+                  <button
+                    onClick={() => {
+                      setShowTacticalPanel(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className={clsx(
+                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                      tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
+                        ? 'text-cyan-400 hover:bg-cyan-500/10'
+                        : 'text-gray-400 hover:bg-gray-800/50'
+                    )}
+                    role="menuitem"
+                  >
+                    <Crosshair className="w-4 h-4" />
+                    Tactical Actions
+                    {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
+                      0 && (
+                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                        {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length}{' '}
+                        active
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowFieldGuide(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
+                    role="menuitem"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Field Guide
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowDebrief(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
+                    role="menuitem"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Debrief
+                  </button>
+
+                  <div className="border-t border-gray-800 my-1" />
+
+                  <div className="px-3 py-2 flex items-center justify-between">
+                    <span className="text-2xs text-gray-500 uppercase tracking-wider">
+                      {escalationLevel}
+                    </span>
+                    <span
+                      className={clsx(
+                        'text-2xs px-1.5 py-0.5 rounded font-semibold',
+                        escalationLevel === 'INVESTIGATION'
+                          ? 'bg-red-500/20 text-red-400'
+                          : escalationLevel === 'INCIDENT'
+                            ? 'bg-amber-500/20 text-amber-400'
+                            : 'bg-gray-700 text-gray-400'
+                      )}
+                    >
+                      Level
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2343,6 +2983,22 @@ export default function CommandCenter({
       {/* Field Guide Modal */}
       {showFieldGuide && <FieldGuideModal onClose={() => setShowFieldGuide(false)} />}
 
+      {/* Tactical Actions Panel */}
+      {showTacticalPanel && (
+        <TacticalActionsPanel
+          tacticalState={tacticalState}
+          availableResources={{
+            guards: dispatchResources.guards.available,
+            analysts: dispatchResources.analysts.available,
+            responders: dispatchResources.responders.available,
+          }}
+          onDeploy={handleDeployTacticalAction}
+          onClose={() => setShowTacticalPanel(false)}
+          lastFeedback={lastDeploymentFeedback}
+          reducedMotion={reducedMotion}
+        />
+      )}
+
       {/* Value Metrics Panel */}
       {showValuePanel && valueMetrics && (
         <ValueMetricsPanel metrics={valueMetrics} onClose={() => setShowValuePanel(false)} />
@@ -2474,10 +3130,14 @@ export default function CommandCenter({
         <MicroTaskCard
           task={activeMicroTask}
           timer={microTaskTimer}
-          onComplete={completeMicroTask}
+          onSubmitAnswer={submitMicroTaskAnswer}
+          onDismiss={dismissMicroTask}
           onSkip={skipMicroTask}
           reducedMotion={reducedMotion}
           animating={microTaskAnimating}
+          currentAnswer={microTaskAnswer}
+          result={microTaskResult}
+          showExplanation={microTaskExplanationShown}
         />
       )}
     </div>
@@ -6054,6 +6714,313 @@ function PlaybookPhaseTracker({
   );
 }
 
+function TacticalActionsPanel({
+  tacticalState,
+  availableResources,
+  onDeploy,
+  onClose,
+  lastFeedback,
+  reducedMotion,
+}: {
+  tacticalState: TacticalState;
+  availableResources: { guards: number; analysts: number; responders: number };
+  onDeploy: (actionId: string) => void;
+  onClose: () => void;
+  lastFeedback: DeploymentFeedback | null;
+  reducedMotion: boolean;
+}): JSX.Element {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const availableActions = getAvailableActions(tacticalState);
+
+  const categories = Object.entries(TACTICAL_CATEGORY_CONFIG) as [
+    string,
+    { label: string; color: string; bgColor: string },
+  ][];
+
+  const filteredActions = selectedCategory
+    ? availableActions.filter((a) => a.category === selectedCategory)
+    : availableActions;
+
+  const activeDeployments = tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE');
+
+  const canDeploy = (action: TacticalAction): boolean => {
+    if ((action.resourceCost.guards || 0) > availableResources.guards) return false;
+    if ((action.resourceCost.analysts || 0) > availableResources.analysts) return false;
+    if ((action.resourceCost.responders || 0) > availableResources.responders) return false;
+    return true;
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div
+        className={clsx(
+          'w-full max-w-3xl max-h-[85vh] bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-2xl overflow-hidden shadow-2xl',
+          !reducedMotion && 'animate-scale-in'
+        )}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-800/60">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center">
+              <Crosshair className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Tactical Actions</h2>
+              <p className="text-xs text-gray-500">
+                Deploy security measures • Residual Risk: {tacticalState.residualRisk}%
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-all"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Feedback Banner */}
+        {lastFeedback && (
+          <div
+            className={clsx(
+              'mx-4 mt-4 p-3 rounded-xl border',
+              lastFeedback.success && lastFeedback.effectiveness === 'HIGH'
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+                : lastFeedback.success &&
+                    (lastFeedback.effectiveness === 'MEDIUM' ||
+                      lastFeedback.effectiveness === 'LOW')
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
+                  : 'bg-red-500/15 border-red-500/40 text-red-400'
+            )}
+          >
+            <div className="flex items-start gap-2">
+              {lastFeedback.success ? (
+                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              )}
+              <div>
+                <p className="text-sm font-medium">{lastFeedback.message}</p>
+                {lastFeedback.unintendedEffect && (
+                  <p className="text-xs mt-1 opacity-80">⚠️ {lastFeedback.unintendedEffect}</p>
+                )}
+                <p className="text-2xs mt-1 opacity-60">
+                  {lastFeedback.businessImpactIncurred}
+                  {lastFeedback.pointsAwarded > 0 && ` • +${lastFeedback.pointsAwarded} pts`}
+                  {lastFeedback.pointsPenalty > 0 && ` • -${lastFeedback.pointsPenalty} pts`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Resources Status Bar */}
+        <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-800/40 bg-gray-900/30">
+          <span className="text-2xs text-gray-500 uppercase tracking-wider">Available:</span>
+          <div className="flex items-center gap-1">
+            <Shield className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-sm font-mono text-amber-400">{availableResources.guards}</span>
+            <span className="text-2xs text-gray-600">guards</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Brain className="w-3.5 h-3.5 text-violet-400" />
+            <span className="text-sm font-mono text-violet-400">{availableResources.analysts}</span>
+            <span className="text-2xs text-gray-600">analysts</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Users className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-sm font-mono text-cyan-400">{availableResources.responders}</span>
+            <span className="text-2xs text-gray-600">responders</span>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
+            <span className="text-2xs text-gray-500">Score:</span>
+            <span className="text-sm font-mono text-emerald-400">
+              +{tacticalState.tacticalScore}
+            </span>
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-thin border-b border-gray-800/40">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={clsx(
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0',
+              selectedCategory === null
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+            )}
+          >
+            All ({availableActions.length})
+          </button>
+          {categories.map(([key, config]) => {
+            const count = availableActions.filter((a) => a.category === key).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={key}
+                onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0',
+                  selectedCategory === key
+                    ? `${config.bgColor} ${config.color}`
+                    : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+                )}
+              >
+                {config.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Active Deployments */}
+        {activeDeployments.length > 0 && (
+          <div className="px-4 py-3 border-b border-gray-800/40 bg-cyan-500/5">
+            <p className="text-2xs text-cyan-400 uppercase tracking-wider mb-2">
+              Active Deployments
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {activeDeployments.map((deployment) => {
+                const action = TACTICAL_ACTIONS.find((a) => a.id === deployment.actionId);
+                if (!action) return null;
+                const catConfig = TACTICAL_CATEGORY_CONFIG[action.category];
+                return (
+                  <div
+                    key={deployment.actionId}
+                    className={clsx(
+                      'px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1.5',
+                      catConfig.bgColor,
+                      catConfig.color
+                    )}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                    {action.shortName}
+                    <span className="opacity-60">-{deployment.riskReductionApplied}%</span>
+                    {deployment.effectiveness !== 'HIGH' && (
+                      <span className="opacity-60">({deployment.effectiveness})</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Actions List */}
+        <div className="p-4 overflow-y-auto max-h-[45vh] scrollbar-thin">
+          {filteredActions.length === 0 ? (
+            <div className="text-center py-8">
+              <ShieldCheck className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">No actions available in this category</p>
+              <p className="text-gray-600 text-xs mt-1">
+                Actions may have prerequisites or be on cooldown
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredActions.map((action) => {
+                const catConfig = TACTICAL_CATEGORY_CONFIG[action.category];
+                const deployable = canDeploy(action);
+
+                return (
+                  <div
+                    key={action.id}
+                    className={clsx(
+                      'p-4 rounded-xl border-2 transition-all',
+                      deployable
+                        ? 'bg-gray-800/40 border-gray-700/50 hover:border-gray-600'
+                        : 'bg-gray-900/30 border-gray-800/30 opacity-60'
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={clsx(
+                              'text-2xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider',
+                              catConfig.bgColor,
+                              catConfig.color
+                            )}
+                          >
+                            {catConfig.label}
+                          </span>
+                          <span className="text-sm font-semibold text-white">{action.name}</span>
+                        </div>
+                        <p className="text-xs text-gray-400 mb-2">{action.description}</p>
+
+                        <div className="flex flex-wrap items-center gap-3 text-2xs">
+                          <span className="text-emerald-400">-{action.riskReduction}% risk</span>
+                          {action.businessImpact !== 'NONE' && (
+                            <span
+                              className={clsx(
+                                action.businessImpact === 'CRITICAL'
+                                  ? 'text-red-400'
+                                  : action.businessImpact === 'HIGH'
+                                    ? 'text-orange-400'
+                                    : action.businessImpact === 'MEDIUM'
+                                      ? 'text-amber-400'
+                                      : 'text-gray-500'
+                              )}
+                            >
+                              {action.businessImpact} business impact
+                            </span>
+                          )}
+                          {action.duration > 0 && (
+                            <span className="text-gray-500">{action.duration}m duration</span>
+                          )}
+                          {(action.resourceCost.guards ||
+                            action.resourceCost.analysts ||
+                            action.resourceCost.responders) && (
+                            <span className="text-gray-500">
+                              Needs:
+                              {action.resourceCost.guards && ` ${action.resourceCost.guards}G`}
+                              {action.resourceCost.analysts && ` ${action.resourceCost.analysts}A`}
+                              {action.resourceCost.responders &&
+                                ` ${action.resourceCost.responders}R`}
+                            </span>
+                          )}
+                        </div>
+
+                        {action.unintendedConsequences &&
+                          action.unintendedConsequences.length > 0 && (
+                            <p className="text-2xs text-amber-400/70 mt-1">
+                              ⚠️ May cause: {action.unintendedConsequences[0].description}
+                            </p>
+                          )}
+                      </div>
+
+                      <button
+                        onClick={() => onDeploy(action.id)}
+                        disabled={!deployable}
+                        className={clsx(
+                          'px-4 py-2 rounded-xl text-sm font-semibold transition-all flex-shrink-0',
+                          deployable
+                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30'
+                            : 'bg-gray-800/30 text-gray-600 border border-gray-700/30 cursor-not-allowed'
+                        )}
+                      >
+                        Deploy
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-gray-800/40 bg-gray-900/30">
+          <p className="text-2xs text-gray-600 text-center">
+            Tactical actions reduce residual risk but may have business impact and unintended
+            consequences. Choose wisely based on threat severity.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResourceContentionWarning({ message }: { message: string }): JSX.Element {
   return (
     <div className="fixed top-1/4 left-1/2 -translate-x-1/2 z-50 animate-slide-in">
@@ -6073,18 +7040,41 @@ function ResourceContentionWarning({ message }: { message: string }): JSX.Elemen
 function MicroTaskCard({
   task,
   timer,
-  onComplete,
+  onSubmitAnswer,
+  onDismiss,
   onSkip,
   reducedMotion,
   animating,
+  currentAnswer,
+  result,
+  showExplanation,
 }: {
   task: MicroTask;
   timer: number;
-  onComplete: () => void;
+  onSubmitAnswer: (answer: string | string[]) => void;
+  onDismiss: () => void;
   onSkip: () => void;
   reducedMotion: boolean;
   animating: boolean;
+  currentAnswer: string | string[] | null;
+  result: 'pending' | 'correct' | 'wrong' | 'partial' | null;
+  showExplanation: boolean;
 }): JSX.Element {
+  const [localSelection, setLocalSelection] = useState<string | null>(
+    typeof currentAnswer === 'string' ? currentAnswer : null
+  );
+  const [rankingOrder, setRankingOrder] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (task.type === 'RANKING' && task.options) {
+      if (Array.isArray(currentAnswer) && currentAnswer.length > 0) {
+        setRankingOrder(currentAnswer);
+      } else {
+        setRankingOrder(task.options.map((o) => o.id));
+      }
+    }
+  }, [task, currentAnswer]);
+
   const getIcon = (): JSX.Element => {
     switch (task.icon) {
       case 'Target':
@@ -6107,6 +7097,12 @@ function MicroTaskCard({
         return <Radar className="w-5 h-5" />;
       case 'ShieldAlert':
         return <ShieldAlert className="w-5 h-5" />;
+      case 'Layers':
+        return <Layers className="w-5 h-5" />;
+      case 'Clock':
+        return <Clock className="w-5 h-5" />;
+      case 'Activity':
+        return <Activity className="w-5 h-5" />;
       default:
         return <ListChecks className="w-5 h-5" />;
     }
@@ -6121,93 +7117,352 @@ function MicroTaskCard({
   };
 
   const isUrgent = timer <= 5;
+  const hasAnswered = result !== null;
+
+  const moveRankItem = (index: number, direction: 'up' | 'down'): void => {
+    if (hasAnswered) return;
+    const newOrder = [...rankingOrder];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
+    setRankingOrder(newOrder);
+  };
+
+  const handleSubmit = (): void => {
+    if (task.type === 'RANKING') {
+      onSubmitAnswer(rankingOrder);
+    } else if (localSelection) {
+      onSubmitAnswer(localSelection);
+    }
+  };
+
+  const canSubmit =
+    !hasAnswered &&
+    ((task.type === 'RANKING' && rankingOrder.length > 0) ||
+      ((task.type === 'MULTIPLE_CHOICE' || task.type === 'SCENARIO' || task.type === 'TRADEOFF') &&
+        localSelection !== null));
+
+  const resultColors = {
+    correct: 'border-emerald-500/60 bg-emerald-500/10',
+    partial: 'border-amber-500/60 bg-amber-500/10',
+    wrong: 'border-red-500/60 bg-red-500/10',
+    pending: 'border-gray-700/60 bg-gray-800/90',
+  };
 
   return (
     <div
       className={clsx(
-        'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-96 z-40',
+        'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-[420px] z-40',
         !reducedMotion && animating && 'animate-microtask-enter'
       )}
     >
       <div
         className={clsx(
-          'p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all',
-          isUrgent
-            ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/50'
-            : 'bg-gradient-to-br from-gray-800/90 to-gray-900/80 border-gray-700/60'
+          'p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all max-h-[70vh] overflow-y-auto scrollbar-thin',
+          hasAnswered
+            ? resultColors[result || 'pending']
+            : isUrgent
+              ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-amber-500/50'
+              : 'bg-gradient-to-br from-gray-800/90 to-gray-900/80 border-gray-700/60'
         )}
       >
-        {/* Header with category */}
+        {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div
               className={clsx(
-                'w-10 h-10 rounded-xl flex items-center justify-center',
+                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
                 categoryColors[task.category] || 'bg-gray-700 text-gray-400'
               )}
             >
               {getIcon()}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={clsx(
-                    'text-2xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider',
+                    'text-2xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider flex-shrink-0',
                     categoryColors[task.category] || 'bg-gray-700 text-gray-400'
                   )}
                 >
                   {task.category}
                 </span>
-                <span className="text-2xs text-emerald-400 font-semibold">+{task.points} pts</span>
+                <span className="text-2xs text-emerald-400 font-semibold flex-shrink-0">
+                  +{task.points} pts
+                </span>
+                {task.wrongPenalty < 0 && (
+                  <span className="text-2xs text-red-400/70 font-medium flex-shrink-0">
+                    {task.wrongPenalty} wrong
+                  </span>
+                )}
               </div>
-              <h4 className="text-sm font-semibold text-white mt-0.5">{task.title}</h4>
+              <h4 className="text-sm font-semibold text-white mt-0.5 truncate">{task.title}</h4>
             </div>
           </div>
 
-          {/* Timer */}
-          <div
-            className={clsx(
-              'text-lg font-mono font-bold tabular-nums',
-              isUrgent ? 'text-amber-400 animate-pulse' : 'text-gray-400'
-            )}
-          >
-            {timer}s
+          {!hasAnswered && (
+            <div
+              className={clsx(
+                'text-lg font-mono font-bold tabular-nums flex-shrink-0',
+                isUrgent ? 'text-amber-400 animate-pulse' : 'text-gray-400'
+              )}
+            >
+              {timer}s
+            </div>
+          )}
+          {hasAnswered && (
+            <div
+              className={clsx(
+                'text-sm font-bold px-2 py-1 rounded-lg flex-shrink-0',
+                result === 'correct'
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : result === 'partial'
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-red-500/20 text-red-400'
+              )}
+            >
+              {result === 'correct' ? '✓ Correct' : result === 'partial' ? '~ Partial' : '✗ Wrong'}
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar (only when not answered) */}
+        {!hasAnswered && (
+          <div className="h-1 bg-gray-800 rounded-full mb-3 overflow-hidden">
+            <div
+              className={clsx(
+                'h-full transition-all duration-1000 rounded-full',
+                isUrgent ? 'bg-amber-500' : 'bg-emerald-500'
+              )}
+              style={{ width: `${(timer / task.duration) * 100}%` }}
+            />
           </div>
-        </div>
+        )}
 
-        <p className="text-xs text-gray-400 mb-4">{task.description}</p>
+        {/* Question */}
+        <p className="text-sm text-gray-200 mb-4 leading-relaxed">{task.question}</p>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-gray-800 rounded-full mb-4 overflow-hidden">
-          <div
-            className={clsx(
-              'h-full transition-all duration-1000 rounded-full',
-              isUrgent ? 'bg-amber-500' : 'bg-emerald-500'
-            )}
-            style={{ width: `${(timer / task.duration) * 100}%` }}
-          />
-        </div>
+        {/* Challenge Content based on type */}
+        {(task.type === 'MULTIPLE_CHOICE' || task.type === 'SCENARIO') && task.options && (
+          <div className="space-y-2 mb-4">
+            {task.options.map((option) => {
+              const isSelected = localSelection === option.id;
+              const isCorrect = option.isCorrect;
+              const showCorrectWrong = hasAnswered;
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => !hasAnswered && setLocalSelection(option.id)}
+                  disabled={hasAnswered}
+                  className={clsx(
+                    'w-full p-3 rounded-xl text-left text-sm transition-all border-2',
+                    hasAnswered
+                      ? isCorrect
+                        ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
+                        : isSelected && !isCorrect
+                          ? 'border-red-500/60 bg-red-500/15 text-red-300'
+                          : 'border-gray-700/40 bg-gray-800/30 text-gray-500'
+                      : isSelected
+                        ? 'border-emerald-500/50 bg-emerald-500/15 text-white'
+                        : 'border-gray-700/50 bg-gray-800/40 text-gray-300 hover:border-gray-600 hover:bg-gray-800/60'
+                  )}
+                >
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={clsx(
+                        'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5',
+                        hasAnswered && isCorrect
+                          ? 'bg-emerald-500/30 text-emerald-400'
+                          : hasAnswered && isSelected && !isCorrect
+                            ? 'bg-red-500/30 text-red-400'
+                            : isSelected
+                              ? 'bg-emerald-500/30 text-emerald-400'
+                              : 'bg-gray-700/50 text-gray-500'
+                      )}
+                    >
+                      {showCorrectWrong && isCorrect
+                        ? '✓'
+                        : showCorrectWrong && isSelected && !isCorrect
+                          ? '✗'
+                          : option.id.toUpperCase()}
+                    </span>
+                    <span className="flex-1">{option.text}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {task.type === 'RANKING' && task.options && (
+          <div className="space-y-2 mb-4">
+            <p className="text-2xs text-gray-500 uppercase tracking-wider mb-2">
+              Drag or use arrows to reorder (1 = highest)
+            </p>
+            {rankingOrder.map((optionId, index) => {
+              const option = task.options?.find((o) => o.id === optionId);
+              if (!option) return null;
+              const correctIndex = task.correctOrder?.indexOf(optionId) ?? -1;
+              const isCorrectPosition = hasAnswered && correctIndex === index;
+
+              return (
+                <div
+                  key={optionId}
+                  className={clsx(
+                    'flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all',
+                    hasAnswered
+                      ? isCorrectPosition
+                        ? 'border-emerald-500/50 bg-emerald-500/10'
+                        : 'border-red-500/40 bg-red-500/5'
+                      : 'border-gray-700/50 bg-gray-800/40'
+                  )}
+                >
+                  <span
+                    className={clsx(
+                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
+                      hasAnswered && isCorrectPosition
+                        ? 'bg-emerald-500/30 text-emerald-400'
+                        : hasAnswered
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-gray-700 text-gray-400'
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="flex-1 text-sm text-gray-200 truncate">{option.text}</span>
+                  {!hasAnswered && (
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        onClick={() => moveRankItem(index, 'up')}
+                        disabled={index === 0}
+                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-4 h-4 -rotate-90 text-gray-400" />
+                      </button>
+                      <button
+                        onClick={() => moveRankItem(index, 'down')}
+                        disabled={index === rankingOrder.length - 1}
+                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-4 h-4 rotate-90 text-gray-400" />
+                      </button>
+                    </div>
+                  )}
+                  {hasAnswered && !isCorrectPosition && (
+                    <span className="text-2xs text-amber-400/80">→ #{correctIndex + 1}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {task.type === 'TRADEOFF' && task.tradeoffOptions && (
+          <div className="space-y-2 mb-4">
+            {task.tradeoffOptions.map((option) => {
+              const isSelected = localSelection === option.id;
+              const isBest = option.points === task.points;
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => !hasAnswered && setLocalSelection(option.id)}
+                  disabled={hasAnswered}
+                  className={clsx(
+                    'w-full p-3 rounded-xl text-left transition-all border-2',
+                    hasAnswered && isSelected
+                      ? isBest
+                        ? 'border-emerald-500/60 bg-emerald-500/15'
+                        : option.points > 0
+                          ? 'border-amber-500/60 bg-amber-500/15'
+                          : 'border-red-500/60 bg-red-500/15'
+                      : hasAnswered && isBest
+                        ? 'border-emerald-500/40 bg-emerald-500/5'
+                        : hasAnswered
+                          ? 'border-gray-700/30 bg-gray-800/20'
+                          : isSelected
+                            ? 'border-emerald-500/50 bg-emerald-500/15'
+                            : 'border-gray-700/50 bg-gray-800/40 hover:border-gray-600'
+                  )}
+                >
+                  <div className="text-sm text-gray-200 mb-1">{option.text}</div>
+                  {hasAnswered && isSelected && (
+                    <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-700/50">
+                      <span className="text-gray-500">Consequence:</span> {option.consequence}
+                    </div>
+                  )}
+                  {hasAnswered && (
+                    <div
+                      className={clsx(
+                        'text-2xs mt-1 font-semibold',
+                        isBest
+                          ? 'text-emerald-400'
+                          : option.points > 0
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                      )}
+                    >
+                      {option.points > 0 ? `+${option.points}` : option.points} pts
+                      {isBest && ' (best)'}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Explanation (after answering) */}
+        {showExplanation && task.explanation && (
+          <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <HelpCircle className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">
+                Explanation
+              </span>
+            </div>
+            <p className="text-xs text-gray-300 leading-relaxed">{task.explanation}</p>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-2">
-          <button
-            onClick={onComplete}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold text-sm border border-emerald-500/40 hover:bg-emerald-500/30 transition-all animate-press flex items-center justify-center gap-2"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Complete
-          </button>
-          <button
-            onClick={onSkip}
-            className="px-4 py-2.5 rounded-xl bg-gray-800/60 text-gray-400 font-medium text-sm border border-gray-700/50 hover:bg-gray-800 transition-all animate-press"
-          >
-            Skip
-          </button>
+          {!hasAnswered ? (
+            <>
+              <button
+                onClick={handleSubmit}
+                disabled={!canSubmit}
+                className={clsx(
+                  'flex-1 py-2.5 rounded-xl font-semibold text-sm border transition-all animate-press flex items-center justify-center gap-2',
+                  canSubmit
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
+                    : 'bg-gray-800/40 text-gray-600 border-gray-700/40 cursor-not-allowed'
+                )}
+              >
+                <CheckCircle className="w-4 h-4" />
+                Submit Answer
+              </button>
+              <button
+                onClick={onSkip}
+                className="px-4 py-2.5 rounded-xl bg-gray-800/60 text-gray-400 font-medium text-sm border border-gray-700/50 hover:bg-gray-800 transition-all animate-press"
+              >
+                Skip
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onDismiss}
+              className="flex-1 py-2.5 rounded-xl bg-gray-700/50 text-gray-300 font-semibold text-sm border border-gray-600/50 hover:bg-gray-700 transition-all animate-press"
+            >
+              Continue
+            </button>
+          )}
         </div>
 
         {/* Label */}
         <p className="text-2xs text-gray-600 text-center mt-3">
-          ESRM Prep • Stay sharp while waiting for intel
+          {hasAnswered ? 'Review your answer above' : 'Select an answer to continue'}
         </p>
       </div>
     </div>
