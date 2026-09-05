@@ -32,7 +32,7 @@ export function formatDuration(startTime: string, endTime?: string): string {
   const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
   if (hours === 0) {
-    return `${minutes} minutes`;
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
   }
   return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
 }

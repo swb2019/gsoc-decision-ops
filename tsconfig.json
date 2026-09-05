@@ -16,5 +16,9 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
-  }
+  },
+  "references": [
+    { "path": "packages/core" }
+  ],
+  "files": []
 }
