@@ -1,4 +1,4 @@
-# GSOC Decision Ops — PRD 1.1 (Foolproof)
+# Hourglass Command — PRD 1.1 (Foolproof)
 
 ---
 
@@ -6,7 +6,7 @@
 
 | Field              | Value                   |
 | ------------------ | ----------------------- |
-| **Document ID**    | PRD-GSOC-DO-1.1         |
+| **Document ID**    | PRD-HC-1.1              |
 | **Version**        | 1.1 (Foolproof)         |
 | **Status**         | Locked                  |
 | **Owner**          | Shannon Brown           |
@@ -29,7 +29,7 @@ This PRD is public (MIT-licensed repository). No confidential information.
 
 ## §1 Executive Summary
 
-**GSOC Decision Ops** is a first-hour decision-quality training tool for corporate security operations leaders. It teaches structured judgment under incomplete information through synthetic vendor compromise scenarios.
+**Hourglass Command** is a first-hour decision-quality training tool for corporate security operations leaders. It teaches structured judgment under incomplete information through synthetic vendor compromise scenarios.
 
 | Attribute      | Value                                                                              |
 | -------------- | ---------------------------------------------------------------------------------- |
@@ -64,7 +64,7 @@ A **simulation game** for practicing first-hour decision-making under pressure:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│             GSOC Decision Ops Simulation               │
+│             Hourglass Command Simulation               │
 ├────────────────────────────────────────────────────────┤
 │  Briefing → Live Inject Clock → Decision Under         │
 │  Pressure → Consequence Feedback → Debrief/AAR         │

@@ -85,7 +85,7 @@ export default function HomePage(): JSX.Element {
             </div>
             <div>
               <span className="font-bold text-gray-100 text-lg sm:text-xl tracking-tight">
-                Aegis Command
+                Hourglass Command
               </span>
               <div className="text-2xs sm:text-xs text-gray-500 mt-0.5">
                 Fused GSOC Operations Training

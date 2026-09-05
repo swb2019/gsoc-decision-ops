@@ -1,6 +1,6 @@
-# Contributing to GSOC Decision Ops
+# Contributing to Hourglass Command
 
-Thank you for your interest in contributing to GSOC Decision Ops. This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to Hourglass Command. This document provides guidelines for contributing to the project.
 
 ## Code of Conduct
 
@@ -116,4 +116,4 @@ If you have questions about contributing, please open an issue with the `questio
 
 ---
 
-Thank you for contributing to GSOC Decision Ops!
+Thank you for contributing to Hourglass Command!
