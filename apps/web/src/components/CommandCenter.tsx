@@ -799,156 +799,6 @@ function useHaptics(reducedMotion: boolean): {
   return { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback };
 }
 
-// Custom hook for ambient music - pleasant procedural loop, not a drone hum
-function useAmbientMusic(
-  enabled: boolean,
-  reducedMotion: boolean
-): {
-  startMusic: () => void;
-  stopMusic: () => void;
-  isPlaying: boolean;
-} {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
-  const lfoRef = useRef<OscillatorNode | null>(null);
-  const filterRef = useRef<BiquadFilterNode | null>(null);
-  const isPlayingRef = useRef(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const stopMusic = useCallback(() => {
-    if (!audioContextRef.current || !isPlayingRef.current) return;
-
-    try {
-      const now = audioContextRef.current.currentTime;
-      if (gainNodeRef.current) {
-        gainNodeRef.current.gain.linearRampToValueAtTime(0, now + 0.5);
-      }
-
-      setTimeout(() => {
-        oscillatorsRef.current.forEach((osc) => {
-          try {
-            osc.stop();
-            osc.disconnect();
-          } catch {
-            /* Oscillator already stopped */
-          }
-        });
-        if (lfoRef.current) {
-          try {
-            lfoRef.current.stop();
-            lfoRef.current.disconnect();
-          } catch {
-            /* LFO already stopped */
-          }
-        }
-        oscillatorsRef.current = [];
-        lfoRef.current = null;
-        isPlayingRef.current = false;
-        setIsPlaying(false);
-      }, 600);
-    } catch {
-      /* Audio context error */
-    }
-  }, []);
-
-  const startMusic = useCallback(() => {
-    if (reducedMotion || isPlayingRef.current) return;
-
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-        )();
-      }
-
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = 0;
-      masterGain.connect(ctx.destination);
-      gainNodeRef.current = masterGain;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 800;
-      filter.Q.value = 0.5;
-      filter.connect(masterGain);
-      filterRef.current = filter;
-
-      const lfo = ctx.createOscillator();
-      lfo.type = 'sine';
-      lfo.frequency.value = 0.08;
-      const lfoGain = ctx.createGain();
-      lfoGain.gain.value = 200;
-      lfo.connect(lfoGain);
-      lfoGain.connect(filter.frequency);
-      lfo.start();
-      lfoRef.current = lfo;
-
-      const chordNotes = [
-        { freq: 130.81, type: 'sine' as OscillatorType },
-        { freq: 164.81, type: 'sine' as OscillatorType },
-        { freq: 196.0, type: 'triangle' as OscillatorType },
-        { freq: 261.63, type: 'sine' as OscillatorType },
-      ];
-
-      const oscs: OscillatorNode[] = [];
-      chordNotes.forEach(({ freq, type }, i) => {
-        const osc = ctx.createOscillator();
-        osc.type = type;
-        osc.frequency.value = freq;
-
-        const oscGain = ctx.createGain();
-        oscGain.gain.value = 0.04 - i * 0.008;
-
-        const detune = ctx.createOscillator();
-        detune.type = 'sine';
-        detune.frequency.value = 0.1 + i * 0.02;
-        const detuneGain = ctx.createGain();
-        detuneGain.gain.value = 3;
-        detune.connect(detuneGain);
-        detuneGain.connect(osc.detune);
-        detune.start();
-
-        osc.connect(oscGain);
-        oscGain.connect(filter);
-        osc.start();
-        oscs.push(osc, detune);
-      });
-
-      oscillatorsRef.current = oscs;
-
-      masterGain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2);
-
-      isPlayingRef.current = true;
-      setIsPlaying(true);
-    } catch {
-      /* Audio not supported */
-    }
-  }, [reducedMotion]);
-
-  useEffect(() => {
-    if (!enabled && isPlayingRef.current) {
-      stopMusic();
-    }
-  }, [enabled, stopMusic]);
-
-  useEffect(() => {
-    return () => {
-      stopMusic();
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, [stopMusic]);
-
-  return { startMusic, stopMusic, isPlaying };
-}
 
 // Session state interface for persistence
 interface SessionState {
@@ -1012,7 +862,15 @@ import { TeamPanel, StakeholderPanel } from './TeamStakeholderPanel';
 import { completeScenario } from '../lib/campaign';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { playSFX, initAudio, loadAudioConfig, saveAudioConfig } from '../lib/audio';
+import {
+  playSFX,
+  initAudio,
+  loadAudioConfig,
+  saveAudioConfig,
+  startAmbientMusic,
+  stopAmbientMusic,
+  isAmbientMusicPlaying,
+} from '../lib/audio';
 import {
   loadFieldGuideConfig,
   saveSeenTip,
@@ -1410,11 +1268,9 @@ export default function CommandCenter({
   // Sound and haptic hooks
   const { playSound } = useSoundEffects(soundEnabled, reducedMotion);
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
-  const {
-    startMusic,
-    stopMusic,
-    isPlaying: isMusicPlaying,
-  } = useAmbientMusic(ambientMusicEnabled, reducedMotion);
+
+  // Track ambient music playing state (synced with audio.ts)
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
   // Load ambient music preference from localStorage
   useEffect(() => {
@@ -1437,20 +1293,48 @@ export default function CommandCenter({
     }
   }, [ambientMusicEnabled]);
 
+  // Stop ambient music when disabled or reducedMotion is enabled
+  useEffect(() => {
+    if (!ambientMusicEnabled || reducedMotion) {
+      stopAmbientMusic();
+      setIsMusicPlaying(false);
+    }
+  }, [ambientMusicEnabled, reducedMotion]);
+
+  // Cleanup ambient music on unmount
+  useEffect(() => {
+    return () => {
+      stopAmbientMusic();
+    };
+  }, []);
+
+  // Sync isMusicPlaying state with actual playing state
+  useEffect(() => {
+    const syncPlayingState = (): void => {
+      const playing = isAmbientMusicPlaying();
+      setIsMusicPlaying(playing);
+    };
+    const interval = setInterval(syncPlayingState, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   // Handle ambient music toggle - requires user gesture to unlock
   const handleAmbientMusicToggle = useCallback(() => {
     if (!ambientMusicUnlocked) {
       setAmbientMusicUnlocked(true);
       setAmbientMusicEnabled(true);
-      startMusic();
+      startAmbientMusic();
+      setIsMusicPlaying(true);
     } else if (ambientMusicEnabled) {
       setAmbientMusicEnabled(false);
-      stopMusic();
+      stopAmbientMusic();
+      setIsMusicPlaying(false);
     } else {
       setAmbientMusicEnabled(true);
-      startMusic();
+      startAmbientMusic();
+      setIsMusicPlaying(true);
     }
-  }, [ambientMusicEnabled, ambientMusicUnlocked, startMusic, stopMusic]);
+  }, [ambientMusicEnabled, ambientMusicUnlocked]);
 
   // Check for reduced motion preference
   useEffect(() => {
