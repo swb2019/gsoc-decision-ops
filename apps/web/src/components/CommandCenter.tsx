@@ -1112,7 +1112,9 @@ export default function CommandCenter({
     (category: 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | null) => {
       setSelectedTreatmentCategory(category);
       if (category && !treatmentBonusGiven && pendingDecision) {
-        setDecisionTimer((t) => Math.min(t + DECISION_TIMER_CONFIG.TREATMENT_STEP_BONUS, DECISION_TIMER_CONFIG.BASE_TIMER));
+        setDecisionTimer((t) =>
+          Math.min(t + DECISION_TIMER_CONFIG.TREATMENT_STEP_BONUS, DECISION_TIMER_CONFIG.BASE_TIMER)
+        );
         setTreatmentBonusGiven(true);
       }
     },
@@ -3181,9 +3183,24 @@ export default function CommandCenter({
                 <h3 className="text-sm font-semibold text-gray-300">Situation Board</h3>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <MiniStat label="Facts" value={stats.totalFacts} color="emerald" icon={CheckCircle} />
-                <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" icon={HelpCircle} />
-                <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" icon={AlertCircle} />
+                <MiniStat
+                  label="Facts"
+                  value={stats.totalFacts}
+                  color="emerald"
+                  icon={CheckCircle}
+                />
+                <MiniStat
+                  label="Assumed"
+                  value={stats.totalAssumptions}
+                  color="amber"
+                  icon={HelpCircle}
+                />
+                <MiniStat
+                  label="Unknown"
+                  value={stats.totalUnknowns}
+                  color="red"
+                  icon={AlertCircle}
+                />
               </div>
               {/* Triage Queue Status */}
               {triageQueue.length > 0 && (
@@ -3430,9 +3447,24 @@ export default function CommandCenter({
                   <h3 className="text-sm font-semibold text-gray-300">Situation Board</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <MiniStat label="Facts" value={stats.totalFacts} color="emerald" icon={CheckCircle} />
-                  <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" icon={HelpCircle} />
-                  <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" icon={AlertCircle} />
+                  <MiniStat
+                    label="Facts"
+                    value={stats.totalFacts}
+                    color="emerald"
+                    icon={CheckCircle}
+                  />
+                  <MiniStat
+                    label="Assumed"
+                    value={stats.totalAssumptions}
+                    color="amber"
+                    icon={HelpCircle}
+                  />
+                  <MiniStat
+                    label="Unknown"
+                    value={stats.totalUnknowns}
+                    color="red"
+                    icon={AlertCircle}
+                  />
                 </div>
               </div>
 
@@ -4562,7 +4594,9 @@ function DecisionConsole({
                   </div>
                   <div className="space-y-2">
                     {RESIDUAL_RISK_OPTIONS.map((opt) => {
-                      const LevelIcon = RESIDUAL_LEVEL_ICONS[opt.level as keyof typeof RESIDUAL_LEVEL_ICONS] || Gauge;
+                      const LevelIcon =
+                        RESIDUAL_LEVEL_ICONS[opt.level as keyof typeof RESIDUAL_LEVEL_ICONS] ||
+                        Gauge;
                       return (
                         <button
                           key={opt.id}
@@ -4600,7 +4634,9 @@ function DecisionConsole({
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium text-gray-200">{opt.label}</span>
+                                <span className="text-sm font-medium text-gray-200">
+                                  {opt.label}
+                                </span>
                                 <span
                                   className={clsx(
                                     'text-2xs px-1.5 py-0.5 rounded font-semibold',
@@ -4613,7 +4649,9 @@ function DecisionConsole({
                                   {opt.level}
                                 </span>
                               </div>
-                              <div className="text-2xs text-gray-500 mt-0.5 line-clamp-1">{opt.rationale}</div>
+                              <div className="text-2xs text-gray-500 mt-0.5 line-clamp-1">
+                                {opt.rationale}
+                              </div>
                             </div>
                             {selectedResidualRisk === opt.id && (
                               <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
@@ -4756,9 +4794,7 @@ function MiniStat({
 
   return (
     <div className={clsx('p-2.5 rounded-xl border text-center', colorClasses[color])}>
-      {Icon && (
-        <Icon className={clsx('w-4 h-4 mx-auto mb-1', colorClasses[color].split(' ')[0])} />
-      )}
+      {Icon && <Icon className={clsx('w-4 h-4 mx-auto mb-1', colorClasses[color].split(' ')[0])} />}
       <div className={clsx('text-xl font-bold font-mono', colorClasses[color].split(' ')[0])}>
         {value}
       </div>
