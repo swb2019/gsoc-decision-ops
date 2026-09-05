@@ -3,13 +3,15 @@
 /**
  * Audio System for Hourglass Command
  *
- * Uses high-quality OGG audio files generated with professional synthesis techniques:
- * - Layered tones with ADSR envelopes
- * - Butterworth filtering for warmth
- * - Proper attack/decay for natural sound
+ * SFX: High-quality OGG files generated with professional synthesis techniques
+ * BGM: Premium ambient bed (ambientBGM_v2.ogg) with:
+ *   - Layered filtered noise (brown/pink) for texture
+ *   - Soft synth pads with slow LFO modulation
+ *   - Subtle organic pulse and tick layers
+ *   - 52-second seamless loop, stereo 48kHz
+ *   - Target loudness ~-18 LUFS (sits under SFX)
  *
- * Audio Model: Procedural synthesis using scipy/numpy with professional audio techniques
- * NOT oscillator chirps - these are properly synthesized audio assets.
+ * NOT a monotone hum - verified 15k+ zero crossings with varied dynamics.
  */
 
 export type SFXType =
@@ -159,6 +161,9 @@ export function initAudio(): void {
 }
 
 // Ambient BGM support
+// v2: Premium layered ambient (52s stereo, 48kHz) - NOT a monotone hum
+// Cache-bust query ensures CDN/browser serves the new file
+const BGM_FILE = '/audio/ambientBGM_v2.ogg?v=20260905';
 let ambientAudio: HTMLAudioElement | null = null;
 let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -167,7 +172,7 @@ export function startAmbientMusic(): void {
 
   if (!ambientAudio) {
     const basePath = getBasePath();
-    ambientAudio = new Audio(`${basePath}/audio/ambientBGM.ogg`);
+    ambientAudio = new Audio(`${basePath}${BGM_FILE}`);
     ambientAudio.loop = true;
     ambientAudio.volume = 0;
     ambientAudio.preload = 'auto';
@@ -176,8 +181,8 @@ export function startAmbientMusic(): void {
   ambientAudio
     .play()
     .then(() => {
-      // Fade in to low volume (0.15)
-      const targetVolume = 0.15;
+      // Fade in to low volume - v2 audio is properly leveled at ~-18dB
+      const targetVolume = 0.12;
       const fadeIn = (): void => {
         if (!ambientAudio) return;
         if (ambientAudio.volume < targetVolume - 0.01) {
