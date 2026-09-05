@@ -9,7 +9,9 @@
 
 [**Live Demo**](https://swb2019.github.io/gsoc-decision-ops/) | [Documentation](#architecture) | [Contributing](CONTRIBUTING.md)
 
-![GSOC Decision Ops Demo](docs/images/demo-scenario.png)
+![GSOC Decision Ops Demo - Scenario Interface](docs/images/demo-scenario.png)
+
+*Scenario decision log interface showing facts, assumptions, and action tracking*
 
 ---
 
@@ -169,6 +171,30 @@ interface DecisionLog {
 | **CONTINUE** | Proceed with normal operations | No immediate impact identified |
 | **DEGRADE** | Operate with reduced capability | Partial impact, compensating controls in place |
 | **PAUSE** | Halt affected operations | Critical impact, unacceptable risk |
+
+---
+
+## Screenshots
+
+<details>
+<summary>View Application Screenshots</summary>
+
+### Home Page
+![Home Page](docs/images/demo-home.png)
+
+### Scenario Selection
+![Scenario Selection](docs/images/demo-scenarios.png)
+
+### Decision Log Interface
+![Decision Log](docs/images/demo-scenario.png)
+
+### Decision Recording
+![Decisions Tab](docs/images/demo-decisions.png)
+
+### Playbook Checklist
+![Playbook Tab](docs/images/demo-playbook.png)
+
+</details>
 
 ---
 
