@@ -10,6 +10,24 @@
 
 > **Portfolio Demo** — All scenarios are synthetic. This demonstrates decision-making methodology, not a production security platform.
 
+**[Product Requirements Document (PRD 1.1)](docs/PRD.md)** — Locked product definition including invariants, release gates, and honesty threat model.
+
+---
+
+## SOTA UI on a First-Principles Product
+
+This project demonstrates that exceptional UI/UX can coexist with radical simplicity. After applying Musk's 5-step engineering algorithm to eliminate complexity, the remaining surfaces were elevated to state-of-the-art 2026 visual design:
+
+- **Refined dark ops aesthetic** — Custom color system with intentional green/amber/red semantic hierarchy
+- **Premium glass morphism** — Layered transparency with subtle backdrop blur and noise texture
+- **Micro-interactions** — Smooth 200-300ms transitions, scale feedback on buttons, animated gradient borders
+- **Typography hierarchy** — Inter + JetBrains Mono with proper tracking, weight, and spacing rhythm
+- **Mobile-first responsive** — Touch-friendly targets, adaptive layouts, horizontal scroll on tabs
+- **Accessibility** — WCAG contrast compliance, visible focus states, keyboard navigation, reduced motion support
+- **Designed states** — Loading spinners, empty states, error handling that feels intentional
+
+The result: a product that looks like it came from a well-funded design team, built on a foundation of zero unnecessary complexity. Two clicks to first decision, beautiful every step of the way.
+
 ---
 
 ## What This Does
