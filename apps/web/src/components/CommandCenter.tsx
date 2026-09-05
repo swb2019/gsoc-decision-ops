@@ -956,7 +956,6 @@ interface SessionState {
 import {
   recordDecision,
   calculateStats,
-  generateAfterActionReport,
   revealInject,
   getRevealedInjects,
   postureToTreatment,
@@ -1005,6 +1004,8 @@ import Link from 'next/link';
 import { clsx } from 'clsx';
 import { TeamPanel, StakeholderPanel } from './TeamStakeholderPanel';
 import { completeScenario } from '../lib/campaign';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 type SecurityDomain = 'PHYSICAL' | 'INTELLIGENCE' | 'CYBER';
 type MobileTab = 'intel' | 'decision' | 'cop';
@@ -3998,6 +3999,8 @@ export default function CommandCenter({
           personalBest={personalBest}
           isNewPersonalBest={isNewPersonalBest}
           difficulty={difficulty}
+          calcTrails={calcTrails}
+          scenarioId={scenarioId}
           onRematch={() => {
             setShowDebrief(false);
             setIsNewPersonalBest(false);
@@ -5729,6 +5732,8 @@ function DebriefModal({
   personalBest,
   isNewPersonalBest,
   difficulty,
+  calcTrails,
+  scenarioId,
   onRematch,
 }: {
   log: DecisionLog;
@@ -5739,8 +5744,15 @@ function DebriefModal({
   personalBest: PersonalBest | null;
   isNewPersonalBest: boolean;
   difficulty: DifficultyLevel;
+  calcTrails: CalcTrail[];
+  scenarioId: string;
   onRematch: () => void;
 }): JSX.Element {
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'png'>('pdf');
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+
   const minutes = Math.floor(elapsedSeconds / 60);
   const accuracy =
     gameState.decisionsTotal > 0
@@ -5752,99 +5764,85 @@ function DebriefModal({
       : 0;
   const diffConfig = DIFFICULTY_CONFIGS[difficulty];
 
-  const handleExport = (): void => {
-    generateAfterActionReport(log, [], []);
+  // Calculate session value totals from calc trails
+  const sessionTotals = useMemo(() => {
+    if (calcTrails.length === 0) return null;
+    return {
+      totalAvoidedLoss: calcTrails.reduce((sum, t) => sum + t.finalResult.avoidedLoss, 0),
+      totalTreatmentCost: calcTrails.reduce((sum, t) => sum + t.finalResult.treatmentCost, 0),
+      totalNetValue: calcTrails.reduce((sum, t) => sum + t.finalResult.netValue, 0),
+      averageROI: Math.round(
+        calcTrails.reduce((sum, t) => sum + t.finalResult.roi, 0) / calcTrails.length
+      ),
+    };
+  }, [calcTrails]);
 
-    const enhancedMarkdown = `# After-Action Report: ${log.incident.title}
+  // Export to PDF
+  const handleExportPDF = async (): Promise<void> => {
+    if (!exportRef.current) return;
+    setIsExporting(true);
 
-## Executive Summary
+    try {
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        backgroundColor: '#0d0d14',
+        logging: false,
+        useCORS: true,
+      });
 
-**Mission Duration:** ${minutes} minutes  
-**Final Grade:** ${grade.grade} — ${grade.title}  
-**Total Score:** ${gameState.score.toLocaleString()} points  
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-### Performance Metrics
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
 
-| Metric | Value |
-|--------|-------|
-| Decisions Made | ${gameState.decisionsTotal} |
-| Decision Accuracy | ${accuracy}% |
-| ESRM Discipline (Owner Briefings) | ${esrmRate}% |
-| Max Decision Streak | ${gameState.maxStreak} |
-| Time Bonus Earned | +${gameState.timeBonus} |
-| ESRM Bonus Earned | +${gameState.esrmBonus} |
+      pdf.addImage(imgData, 'PNG', imgX, 10, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`hourglass-aar-${scenarioId}-${Date.now()}.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
-## Incident Overview
+  // Export to PNG
+  const handleExportPNG = async (): Promise<void> => {
+    if (!exportRef.current) return;
+    setIsExporting(true);
 
-**Severity:** ${log.incident.severity}  
-**Description:** ${log.incident.description}
+    try {
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        backgroundColor: '#0d0d14',
+        logging: false,
+        useCORS: true,
+      });
 
-## Decision Timeline
+      const link = document.createElement('a');
+      link.download = `hourglass-aar-${scenarioId}-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('PNG export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
-${log.decisions
-  .map(
-    (d, i) => `
-### Decision ${i + 1}: ${d.title}
-
-**Posture:** ${d.posture}  
-**Risk Treatment:** ${d.esrmFraming?.treatment || 'Not specified'}  
-**Asset Owner:** ${d.esrmFraming?.assetOwner || 'Not documented'}  
-**Residual Risk:** ${d.esrmFraming?.residualRisk || 'Not documented'}  
-**Rationale:** ${d.rationale}
-`
-  )
-  .join('\n')}
-
-## ESRM Analysis
-
-This simulation applied Enterprise Security Risk Management (ESRM) principles throughout:
-
-- **Asset Identification:** ${gameState.assetsProtected} assets addressed
-- **Owner Engagement:** ${gameState.assetOwnersBriefed} asset owner briefings conducted
-- **Risk Treatment Alignment:** Posture decisions mapped to ACCEPT/MITIGATE/AVOID framework
-- **Residual Risk Documentation:** Explicit residual risk captured per decision
-
-## Key Takeaways
-
-${
-  gameState.decisionsCorrect === gameState.decisionsTotal
-    ? '✓ All posture decisions aligned with expected outcomes'
-    : `• ${gameState.decisionsTotal - gameState.decisionsCorrect} decision(s) diverged from expected posture — review cross-domain impacts`
-}
-${
-  esrmRate >= 80
-    ? '✓ Strong ESRM discipline — consistent asset owner engagement'
-    : '• Opportunity: Increase asset owner briefings before posture commits'
-}
-${
-  gameState.maxStreak >= 5
-    ? '✓ Sustained decision quality under pressure'
-    : '• Focus: Build consistent decision rhythm across injects'
-}
-
----
-
-## About This Simulation
-
-**Aegis Command** is a fused GSOC first-hour decision simulation integrating Physical Security, Intelligence, and Cybersecurity domains. Built on ESRM principles where security serves as trusted advisor to asset owners who own the risk.
-
-**Designed by Shannon Brown**  
-GSOC Leadership • Crisis Management • Security Intelligence
-
-[View Portfolio](https://github.com/swb2019/gsoc-decision-ops)
-
----
-
-*Training simulation export • ${new Date().toISOString().split('T')[0]}*
-`;
-
-    const blob = new Blob([enhancedMarkdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `aegis-aar-${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExportClick = async (): Promise<void> => {
+    if (exportFormat === 'pdf') {
+      await handleExportPDF();
+    } else {
+      await handleExportPNG();
+    }
   };
 
   return (
@@ -6082,11 +6080,11 @@ GSOC Leadership • Crisis Management • Security Intelligence
             Rematch
           </button>
           <button
-            onClick={handleExport}
-            className="flex-1 py-4 rounded-2xl bg-gray-800 text-gray-200 font-semibold border border-gray-700 hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+            onClick={() => setShowExportPanel(true)}
+            className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
           >
             <Download className="w-5 h-5" />
-            Export Report
+            Export AAR
           </button>
           <Link
             href="/"
@@ -6105,6 +6103,336 @@ GSOC Leadership • Crisis Management • Security Intelligence
           </p>
         </div>
       </div>
+
+      {/* AAR Export Panel */}
+      {showExportPanel && (
+        <div className="fixed inset-0 bg-black/98 z-[60] flex flex-col overflow-hidden">
+          {/* Export Controls Header */}
+          <div className="flex-shrink-0 px-6 py-4 border-b border-gray-800/60 flex items-center justify-between bg-[#0d0d14]">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowExportPanel(false)}
+                className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+              <h2 className="text-lg font-semibold text-white">Export After-Action Report</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-xl overflow-hidden border border-gray-700">
+                <button
+                  onClick={() => setExportFormat('pdf')}
+                  className={clsx(
+                    'px-4 py-2 text-sm font-medium transition-colors',
+                    exportFormat === 'pdf'
+                      ? 'bg-cyan-500/20 text-cyan-400'
+                      : 'text-gray-400 hover:text-gray-200'
+                  )}
+                >
+                  PDF
+                </button>
+                <button
+                  onClick={() => setExportFormat('png')}
+                  className={clsx(
+                    'px-4 py-2 text-sm font-medium transition-colors',
+                    exportFormat === 'png'
+                      ? 'bg-cyan-500/20 text-cyan-400'
+                      : 'text-gray-400 hover:text-gray-200'
+                  )}
+                >
+                  PNG
+                </button>
+              </div>
+              <button
+                onClick={handleExportClick}
+                disabled={isExporting}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isExporting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Export {exportFormat.toUpperCase()}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Export Preview (Scrollable) */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              {/* The AAR Export Document */}
+              <div
+                ref={exportRef}
+                className="bg-[#0d0d14] p-8 rounded-2xl border border-gray-800/60"
+                style={{ minWidth: '800px' }}
+              >
+                {/* Header with Branding */}
+                <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-800/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <Shield className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold text-white">After-Action Report</h1>
+                      <p className="text-sm text-gray-500">Hourglass Command Training</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">{log.incident.title}</p>
+                    <p className="text-xs text-gray-600">{new Date().toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                {/* Executive Summary */}
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-cyan-400" />
+                    Executive Summary
+                  </h2>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+                      <div className="text-3xl font-bold text-emerald-400">{grade.grade}</div>
+                      <div className="text-xs text-gray-400 mt-1">{grade.title}</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-center">
+                      <div className="text-3xl font-bold text-cyan-400">
+                        {gameState.score.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">Total Score</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+                      <div className="text-3xl font-bold text-amber-400">{accuracy}%</div>
+                      <div className="text-xs text-gray-400 mt-1">Accuracy</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 text-center">
+                      <div className="text-3xl font-bold text-violet-400">{esrmRate}%</div>
+                      <div className="text-xs text-gray-400 mt-1">ESRM Rate</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decision Timeline */}
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-400" />
+                    Decision Timeline
+                  </h2>
+                  <div className="space-y-3">
+                    {log.decisions.slice(0, 6).map((decision, idx) => (
+                      <div
+                        key={decision.id}
+                        className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-8 h-8 rounded-lg bg-gray-700/50 flex items-center justify-center text-sm font-bold text-gray-300">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-gray-200">{decision.title}</span>
+                              <span
+                                className={clsx(
+                                  'px-2 py-0.5 text-2xs font-bold rounded',
+                                  decision.posture === 'PAUSE'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : decision.posture === 'DEGRADE'
+                                      ? 'bg-amber-500/20 text-amber-400'
+                                      : 'bg-emerald-500/20 text-emerald-400'
+                                )}
+                              >
+                                {decision.posture}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500 line-clamp-2">
+                              {decision.rationale}
+                            </p>
+                            {decision.esrmFraming && (
+                              <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                                <span>Treatment: {decision.esrmFraming.treatment}</span>
+                                <span>Residual: {decision.esrmFraming.residualRisk}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {log.decisions.length > 6 && (
+                      <p className="text-sm text-gray-500 text-center">
+                        + {log.decisions.length - 6} more decisions
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Value/KRI Calc Trail */}
+                {sessionTotals && calcTrails.length > 0 && (
+                  <div className="mb-8">
+                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Calculator className="w-5 h-5 text-blue-400" />
+                      Value Calculation Trail
+                    </h2>
+                    <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <span className="text-xs text-gray-500 uppercase tracking-wider">
+                            Total Avoided Loss
+                          </span>
+                          <div className="text-xl font-bold text-emerald-400">
+                            ${sessionTotals.totalAvoidedLoss.toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 uppercase tracking-wider">
+                            Treatment Cost
+                          </span>
+                          <div className="text-xl font-bold text-amber-400">
+                            ${sessionTotals.totalTreatmentCost.toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 uppercase tracking-wider">
+                            Net Value Created
+                          </span>
+                          <div className="text-xl font-bold text-cyan-400">
+                            ${sessionTotals.totalNetValue.toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs text-gray-500 uppercase tracking-wider">
+                            Average ROI
+                          </span>
+                          <div className="text-xl font-bold text-violet-400">
+                            {sessionTotals.averageROI}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sample Calc Trail */}
+                      {calcTrails.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-700/40">
+                          <h4 className="text-sm font-medium text-gray-300 mb-3">
+                            Sample Calculation (Decision 1)
+                          </h4>
+                          <div className="space-y-2 text-xs">
+                            {calcTrails[0].steps.slice(0, 5).map((step, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-3 p-2 rounded-lg bg-gray-800/50"
+                              >
+                                <div className="w-6 h-6 rounded bg-gray-700/50 flex items-center justify-center text-gray-400">
+                                  {idx + 1}
+                                </div>
+                                <div className="flex-1">
+                                  <span className="text-gray-400">{step.operation}: </span>
+                                  <span className="text-gray-300 font-mono">{step.formula}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-emerald-400 font-mono">
+                                    {typeof step.result === 'number'
+                                      ? step.result.toLocaleString()
+                                      : step.result}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                            {calcTrails[0].steps.length > 5 && (
+                              <p className="text-gray-500 text-center py-1">
+                                + {calcTrails[0].steps.length - 5} more steps
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ESRM Coverage */}
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-violet-400" />
+                    ESRM Coverage
+                  </h2>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40 text-center">
+                      <div className="text-2xl font-bold text-gray-200">
+                        {gameState.assetsProtected}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">Assets Addressed</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40 text-center">
+                      <div className="text-2xl font-bold text-gray-200">
+                        {gameState.assetOwnersBriefed}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">Owner Briefings</div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40 text-center">
+                      <div className="text-2xl font-bold text-gray-200">{gameState.maxStreak}x</div>
+                      <div className="text-xs text-gray-500 mt-1">Max Streak</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Leadership Moves */}
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-400" />
+                    Leadership Moves
+                  </h2>
+                  <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <span className="text-gray-300">
+                          {gameState.injectsHandled} injects triaged
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <span className="text-gray-300">
+                          {gameState.decisionsCorrect} correct postures
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <span className="text-gray-300">
+                          {diffConfig.label} difficulty mastered
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <span className="text-gray-300">{minutes}m mission duration</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Training Watermark Footer */}
+                <div className="pt-6 border-t border-gray-800/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Hourglass className="w-5 h-5 text-gray-600" />
+                      <span className="text-sm text-gray-600">
+                        Hourglass Command Training Simulation
+                      </span>
+                    </div>
+                    <div className="text-right text-xs text-gray-600">
+                      <p>Built on ESRM principles</p>
+                      <p className="text-gray-700">{new Date().toISOString().split('T')[0]}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
