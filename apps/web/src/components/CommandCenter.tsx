@@ -66,10 +66,17 @@ import {
   Ban,
   Gauge,
   AlertOctagon,
+  Trophy,
+  Repeat,
+  Settings,
+  GraduationCap,
+  Sparkles,
 } from 'lucide-react';
 
 // Session storage key for persistence
 const SESSION_STORAGE_KEY = 'hourglass-command-session';
+const PERSONAL_BEST_KEY = 'hourglass-personal-bests';
+const DIFFICULTY_KEY = 'hourglass-difficulty';
 
 // Get basePath for navigation (GitHub Pages compatible)
 const getBasePath = (): string => {
@@ -77,6 +84,123 @@ const getBasePath = (): string => {
     return process.env.NEXT_PUBLIC_BASE_PATH || '';
   }
   return '';
+};
+
+/**
+ * DIFFICULTY CONFIGURATION
+ *
+ * Three tiers designed for progressive mastery:
+ * - Rookie: Learning mode with extended timers, coach marks, less noise
+ * - Operator: Standard challenge for trained responders
+ * - Director: Expert mode with compressed timers, no hand-holding
+ */
+type DifficultyLevel = 'ROOKIE' | 'OPERATOR' | 'DIRECTOR';
+
+interface DifficultyConfig {
+  id: DifficultyLevel;
+  label: string;
+  description: string;
+  timerMultiplier: number;
+  showCoachMarks: boolean;
+  injectNoiseLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  microTaskFrequency: number;
+  pointMultiplier: number;
+  color: string;
+  icon: string;
+}
+
+const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
+  ROOKIE: {
+    id: 'ROOKIE',
+    label: 'Rookie',
+    description: 'Extended timers, coach marks, fewer distractions',
+    timerMultiplier: 1.5,
+    showCoachMarks: true,
+    injectNoiseLevel: 'LOW',
+    microTaskFrequency: 0.3,
+    pointMultiplier: 0.8,
+    color: 'emerald',
+    icon: '🎓',
+  },
+  OPERATOR: {
+    id: 'OPERATOR',
+    label: 'Operator',
+    description: 'Standard challenge for GSOC responders',
+    timerMultiplier: 1.0,
+    showCoachMarks: false,
+    injectNoiseLevel: 'MEDIUM',
+    microTaskFrequency: 0.5,
+    pointMultiplier: 1.0,
+    color: 'amber',
+    icon: '⚡',
+  },
+  DIRECTOR: {
+    id: 'DIRECTOR',
+    label: 'Director',
+    description: 'Compressed timers, high noise, no safety net',
+    timerMultiplier: 0.7,
+    showCoachMarks: false,
+    injectNoiseLevel: 'HIGH',
+    microTaskFrequency: 0.8,
+    pointMultiplier: 1.5,
+    color: 'red',
+    icon: '🔥',
+  },
+};
+
+interface PersonalBest {
+  score: number;
+  grade: string;
+  accuracy: number;
+  maxStreak: number;
+  difficulty: DifficultyLevel;
+  timestamp: number;
+}
+
+const getPersonalBests = (): Record<string, PersonalBest> => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const stored = localStorage.getItem(PERSONAL_BEST_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+const savePersonalBest = (scenarioId: string, best: PersonalBest): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const bests = getPersonalBests();
+    const existing = bests[scenarioId];
+    if (!existing || best.score > existing.score) {
+      bests[scenarioId] = best;
+      localStorage.setItem(PERSONAL_BEST_KEY, JSON.stringify(bests));
+    }
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+const getSavedDifficulty = (): DifficultyLevel => {
+  if (typeof window === 'undefined') return 'OPERATOR';
+  try {
+    const stored = localStorage.getItem(DIFFICULTY_KEY);
+    if (stored && stored in DIFFICULTY_CONFIGS) {
+      return stored as DifficultyLevel;
+    }
+  } catch {
+    // Ignore
+  }
+  return 'OPERATOR';
+};
+
+const saveDifficulty = (difficulty: DifficultyLevel): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(DIFFICULTY_KEY, difficulty);
+  } catch {
+    // Ignore
+  }
 };
 
 // Sound effect URLs (Web Audio API compatible)
@@ -1099,6 +1223,26 @@ export default function CommandCenter({
   const [ambientMusicEnabled, setAmbientMusicEnabled] = useState(false);
   const [ambientMusicUnlocked, setAmbientMusicUnlocked] = useState(false);
 
+  // Difficulty and personal best tracking
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>(() => getSavedDifficulty());
+  const [showDifficultyPicker, setShowDifficultyPicker] = useState(false);
+  const [personalBest, setPersonalBest] = useState<PersonalBest | null>(null);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const difficultyConfig = DIFFICULTY_CONFIGS[difficulty];
+
+  // Load personal best on mount
+  useEffect(() => {
+    const bests = getPersonalBests();
+    if (bests[scenarioId]) {
+      setPersonalBest(bests[scenarioId]);
+    }
+  }, [scenarioId]);
+
+  // Update coach marks based on difficulty
+  useEffect(() => {
+    setShowCoachMarks(difficultyConfig.showCoachMarks);
+  }, [difficultyConfig.showCoachMarks]);
+
   // Structured risk treatment selection
   const [selectedTreatmentCategory, setSelectedTreatmentCategory] = useState<
     'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | null
@@ -1418,6 +1562,24 @@ export default function CommandCenter({
           if (newSeconds >= 3600) {
             setIsRunning(false);
             setShowDebrief(true);
+            // Check and save personal best
+            const accuracy =
+              gameState.decisionsTotal > 0
+                ? Math.round((gameState.decisionsCorrect / gameState.decisionsTotal) * 100)
+                : 0;
+            const currentBest: PersonalBest = {
+              score: gameState.score,
+              grade: calculateGrade().grade,
+              accuracy,
+              maxStreak: gameState.maxStreak,
+              difficulty,
+              timestamp: Date.now(),
+            };
+            if (!personalBest || gameState.score > personalBest.score) {
+              setIsNewPersonalBest(true);
+              savePersonalBest(scenarioId, currentBest);
+              setPersonalBest(currentBest);
+            }
           }
           return newSeconds;
         });
@@ -1428,12 +1590,15 @@ export default function CommandCenter({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning]);
+  }, [isRunning, gameState, personalBest, difficulty, scenarioId]);
 
-  // Decision pressure timer - adaptive based on complexity
+  // Decision pressure timer - adaptive based on complexity and difficulty
   useEffect(() => {
     if (pendingDecision && isRunning) {
-      setDecisionTimer(DECISION_TIMER_CONFIG.BASE_TIMER);
+      const adjustedTimer = Math.floor(
+        DECISION_TIMER_CONFIG.BASE_TIMER * difficultyConfig.timerMultiplier
+      );
+      setDecisionTimer(adjustedTimer);
       decisionTimerRef.current = setInterval(() => {
         setDecisionTimer((t) => {
           if (t <= 1) {
@@ -2093,7 +2258,7 @@ export default function CommandCenter({
         (pendingDecision as unknown as { linkedEntityIds?: string[] }).linkedEntityIds || [];
       const entityBonus = linkedEntityIds.length > 2 ? 20 : 0;
 
-      // Apply cascade multiplier from escalation level
+      // Apply cascade multiplier from escalation level and difficulty bonus
       const totalPoints = Math.floor(
         (baseScore +
           timeBonus +
@@ -2103,7 +2268,8 @@ export default function CommandCenter({
           entityBonus +
           contentionPenalty) *
           streakMultiplier *
-          cascadeMultiplier
+          cascadeMultiplier *
+          difficultyConfig.pointMultiplier
       );
 
       // Trigger ESRM cascade effect for PAUSE decisions
@@ -3123,6 +3289,9 @@ export default function CommandCenter({
                   setSelectedAsset(null);
                   setAssetOwnerBriefed(false);
                 }}
+                difficulty={difficulty}
+                onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
+                personalBest={personalBest}
               />
             )}
           </div>
@@ -3432,6 +3601,9 @@ export default function CommandCenter({
                     setSelectedAsset(null);
                     setAssetOwnerBriefed(false);
                   }}
+                  difficulty={difficulty}
+                  onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
+                  personalBest={personalBest}
                 />
               )}
             </div>
@@ -3585,6 +3757,55 @@ export default function CommandCenter({
           grade={calculateGrade()}
           elapsedSeconds={elapsedSeconds}
           onClose={() => setShowDebrief(false)}
+          personalBest={personalBest}
+          isNewPersonalBest={isNewPersonalBest}
+          difficulty={difficulty}
+          onRematch={() => {
+            setShowDebrief(false);
+            setIsNewPersonalBest(false);
+            setLog(initialLog);
+            setElapsedSeconds(0);
+            setGameState({
+              score: 0,
+              streak: 0,
+              maxStreak: 0,
+              decisionsCorrect: 0,
+              decisionsTotal: 0,
+              injectsHandled: 0,
+              assetsProtected: 0,
+              assetOwnersBriefed: 0,
+              crossDomainBonus: 0,
+              timeBonus: 0,
+              esrmBonus: 0,
+              comboMultiplier: 1,
+            });
+            processedInjectsRef.current = new Set();
+            setPendingDecision(null);
+            setSelectedAsset(null);
+            setAssetOwnerBriefed(false);
+            setResidualRiskNote('');
+            setSelectedTreatmentCategory(null);
+            setSelectedTreatmentOption(null);
+            setSelectedResidualRisk(null);
+            setTreatmentBonusGiven(false);
+            setActiveMicroTask(null);
+            setCompletedMicroTasks([]);
+            setSkippedMicroTasks([]);
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+          }}
+        />
+      )}
+
+      {/* Difficulty Picker Modal */}
+      {showDifficultyPicker && (
+        <DifficultyPickerModal
+          currentDifficulty={difficulty}
+          onSelect={(d) => {
+            setDifficulty(d);
+            saveDifficulty(d);
+            setShowDifficultyPicker(false);
+          }}
+          onClose={() => setShowDifficultyPicker(false)}
         />
       )}
 
@@ -4698,14 +4919,21 @@ function IdleState({
   decisions,
   onStart,
   onSelectInject,
+  difficulty,
+  onOpenDifficultyPicker,
+  personalBest,
 }: {
   isRunning: boolean;
   revealedInjects: ScenarioInject[];
   decisions: { title: string }[];
   onStart: () => void;
   onSelectInject: (inject: ScenarioInject) => void;
+  difficulty: DifficultyLevel;
+  onOpenDifficultyPicker: () => void;
+  personalBest: PersonalBest | null;
 }): JSX.Element {
   const unhandled = revealedInjects.filter((i) => !decisions.some((d) => d.title === i.title));
+  const diffConfig = DIFFICULTY_CONFIGS[difficulty];
 
   if (!isRunning && revealedInjects.length === 0) {
     return (
@@ -4719,10 +4947,60 @@ function IdleState({
           </div>
 
           <h2 className="text-2xl font-bold text-white mb-3">Command Center Ready</h2>
-          <p className="text-gray-400 mb-8 leading-relaxed">
+          <p className="text-gray-400 mb-6 leading-relaxed">
             You are the GSOC Watch Commander. An incident is developing. Start the clock to begin
             receiving intel and making posture decisions.
           </p>
+
+          {/* Difficulty Selector */}
+          <button
+            onClick={onOpenDifficultyPicker}
+            className={clsx(
+              'mb-6 px-4 py-2 rounded-xl border flex items-center gap-2 mx-auto transition-all hover:scale-105',
+              diffConfig.color === 'emerald' &&
+                'bg-emerald-500/10 border-emerald-500/40 text-emerald-400',
+              diffConfig.color === 'amber' && 'bg-amber-500/10 border-amber-500/40 text-amber-400',
+              diffConfig.color === 'red' && 'bg-red-500/10 border-red-500/40 text-red-400'
+            )}
+          >
+            <Settings className="w-4 h-4" />
+            <span className="font-semibold">
+              {diffConfig.icon} {diffConfig.label}
+            </span>
+            <ChevronRight className="w-4 h-4 opacity-50" />
+          </button>
+
+          {/* Personal Best Display */}
+          {personalBest && (
+            <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Trophy className="w-5 h-5 text-amber-400" />
+                <span className="text-sm font-semibold text-amber-400">Personal Best</span>
+              </div>
+              <div className="flex items-center justify-center gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-mono text-lg font-bold text-amber-300">
+                    {personalBest.score.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-500">Score</div>
+                </div>
+                <div className="w-px h-8 bg-amber-500/30" />
+                <div className="text-center">
+                  <div className="font-mono text-lg font-bold text-amber-300">
+                    {personalBest.grade}
+                  </div>
+                  <div className="text-xs text-gray-500">Grade</div>
+                </div>
+                <div className="w-px h-8 bg-amber-500/30" />
+                <div className="text-center">
+                  <div className="font-mono text-lg font-bold text-amber-300">
+                    {personalBest.maxStreak}x
+                  </div>
+                  <div className="text-xs text-gray-500">Streak</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <button
             onClick={onStart}
@@ -4887,12 +5165,20 @@ function DebriefModal({
   grade,
   elapsedSeconds,
   onClose,
+  personalBest,
+  isNewPersonalBest,
+  difficulty,
+  onRematch,
 }: {
   log: DecisionLog;
   gameState: GameState;
   grade: { grade: string; title: string; color: string };
   elapsedSeconds: number;
   onClose: () => void;
+  personalBest: PersonalBest | null;
+  isNewPersonalBest: boolean;
+  difficulty: DifficultyLevel;
+  onRematch: () => void;
 }): JSX.Element {
   const minutes = Math.floor(elapsedSeconds / 60);
   const accuracy =
@@ -4903,6 +5189,7 @@ function DebriefModal({
     gameState.decisionsTotal > 0
       ? Math.round((gameState.assetOwnersBriefed / gameState.decisionsTotal) * 100)
       : 0;
+  const diffConfig = DIFFICULTY_CONFIGS[difficulty];
 
   const handleExport = (): void => {
     generateAfterActionReport(log, [], []);
@@ -5016,8 +5303,40 @@ GSOC Leadership • Crisis Management • Security Intelligence
           <h1 className="text-3xl font-bold text-white">{log.incident.title}</h1>
         </div>
 
+        {/* New Personal Best Banner */}
+        {isNewPersonalBest && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 animate-pulse">
+            <div className="flex items-center justify-center gap-3">
+              <Trophy className="w-8 h-8 text-amber-400" />
+              <div className="text-center">
+                <div className="text-xl font-bold text-amber-400">NEW PERSONAL BEST!</div>
+                <div className="text-sm text-amber-300/80">
+                  You beat your previous record of{' '}
+                  {personalBest
+                    ? `${(personalBest.score - gameState.score + personalBest.score).toLocaleString()} pts`
+                    : 'N/A'}
+                </div>
+              </div>
+              <Sparkles className="w-8 h-8 text-amber-400" />
+            </div>
+          </div>
+        )}
+
+        {/* Streak Celebration */}
+        {gameState.maxStreak >= 5 && (
+          <div className="mb-6 p-3 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/30">
+            <div className="flex items-center justify-center gap-2">
+              <Flame className="w-5 h-5 text-violet-400" />
+              <span className="text-violet-400 font-semibold">
+                {gameState.maxStreak}x Streak! Sustained decision excellence.
+              </span>
+              <Flame className="w-5 h-5 text-violet-400" />
+            </div>
+          </div>
+        )}
+
         {/* Grade Display */}
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center mb-6">
           <div className="relative">
             <div
               className={clsx(
@@ -5036,6 +5355,23 @@ GSOC Leadership • Crisis Management • Security Intelligence
               <span className="text-6xl font-black">{grade.grade}</span>
               <span className="text-xs font-medium mt-1 opacity-80">{grade.title}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Difficulty Badge */}
+        <div className="flex justify-center mb-8">
+          <div
+            className={clsx(
+              'px-4 py-2 rounded-xl border flex items-center gap-2',
+              diffConfig.color === 'emerald' &&
+                'bg-emerald-500/10 border-emerald-500/40 text-emerald-400',
+              diffConfig.color === 'amber' && 'bg-amber-500/10 border-amber-500/40 text-amber-400',
+              diffConfig.color === 'red' && 'bg-red-500/10 border-red-500/40 text-red-400'
+            )}
+          >
+            <span>{diffConfig.icon}</span>
+            <span className="text-sm font-semibold">{diffConfig.label} Difficulty</span>
+            <span className="text-xs opacity-70">({diffConfig.pointMultiplier}x pts)</span>
           </div>
         </div>
 
@@ -5178,10 +5514,11 @@ GSOC Leadership • Crisis Management • Security Intelligence
         {/* Actions */}
         <div className="flex gap-4">
           <button
-            onClick={() => window.location.reload()}
-            className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all hover:scale-[1.02]"
+            onClick={onRematch}
+            className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
           >
-            Try Again
+            <Repeat className="w-5 h-5" />
+            Rematch
           </button>
           <button
             onClick={handleExport}
@@ -5741,6 +6078,138 @@ function PipelineHealthPanel({
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DifficultyPickerModal({
+  currentDifficulty,
+  onSelect,
+  onClose,
+}: {
+  currentDifficulty: DifficultyLevel;
+  onSelect: (difficulty: DifficultyLevel) => void;
+  onClose: () => void;
+}): JSX.Element {
+  return (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-scale-in">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Select Difficulty</h2>
+              <p className="text-xs text-gray-500">Choose your challenge level</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-800 transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {(Object.values(DIFFICULTY_CONFIGS) as DifficultyConfig[]).map((config) => (
+            <button
+              key={config.id}
+              onClick={() => onSelect(config.id)}
+              className={clsx(
+                'w-full p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02]',
+                currentDifficulty === config.id
+                  ? config.color === 'emerald'
+                    ? 'border-emerald-500 bg-emerald-500/20 ring-2 ring-emerald-500/50'
+                    : config.color === 'amber'
+                      ? 'border-amber-500 bg-amber-500/20 ring-2 ring-amber-500/50'
+                      : 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50'
+                  : 'border-gray-700/50 bg-gray-800/30 hover:border-gray-600'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{config.icon}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={clsx(
+                        'font-bold',
+                        config.color === 'emerald' && 'text-emerald-400',
+                        config.color === 'amber' && 'text-amber-400',
+                        config.color === 'red' && 'text-red-400'
+                      )}
+                    >
+                      {config.label}
+                    </span>
+                    {currentDifficulty === config.id && (
+                      <CheckCircle2 className="w-4 h-4 text-white" />
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">{config.description}</p>
+                </div>
+                <div className="text-right">
+                  <div
+                    className={clsx(
+                      'text-xs font-mono font-bold',
+                      config.color === 'emerald' && 'text-emerald-400',
+                      config.color === 'amber' && 'text-amber-400',
+                      config.color === 'red' && 'text-red-400'
+                    )}
+                  >
+                    {config.pointMultiplier}x
+                  </div>
+                  <div className="text-2xs text-gray-500">points</div>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-2xs">
+                <div className="p-2 rounded-lg bg-gray-900/50 text-center">
+                  <div className="text-gray-400">Timer</div>
+                  <div
+                    className={clsx(
+                      'font-mono font-bold',
+                      config.color === 'emerald' && 'text-emerald-400',
+                      config.color === 'amber' && 'text-amber-400',
+                      config.color === 'red' && 'text-red-400'
+                    )}
+                  >
+                    {config.timerMultiplier}x
+                  </div>
+                </div>
+                <div className="p-2 rounded-lg bg-gray-900/50 text-center">
+                  <div className="text-gray-400">Coach</div>
+                  <div
+                    className={clsx(
+                      'font-mono font-bold',
+                      config.showCoachMarks ? 'text-emerald-400' : 'text-gray-500'
+                    )}
+                  >
+                    {config.showCoachMarks ? 'ON' : 'OFF'}
+                  </div>
+                </div>
+                <div className="p-2 rounded-lg bg-gray-900/50 text-center">
+                  <div className="text-gray-400">Noise</div>
+                  <div
+                    className={clsx(
+                      'font-mono font-bold',
+                      config.injectNoiseLevel === 'LOW' && 'text-emerald-400',
+                      config.injectNoiseLevel === 'MEDIUM' && 'text-amber-400',
+                      config.injectNoiseLevel === 'HIGH' && 'text-red-400'
+                    )}
+                  >
+                    {config.injectNoiseLevel}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 p-3 rounded-xl bg-gray-800/30 border border-gray-700/40">
+          <p className="text-xs text-gray-400 text-center">
+            <GraduationCap className="w-4 h-4 inline mr-1" />
+            Start with <span className="text-emerald-400">Rookie</span> to learn ESRM fundamentals,
+            then progress to <span className="text-red-400">Director</span> for expert challenge.
+          </p>
         </div>
       </div>
     </div>
