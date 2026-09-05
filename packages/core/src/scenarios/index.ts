@@ -22,6 +22,17 @@ export {
   type InjectSource,
 } from './fused-gsoc.js';
 
+export {
+  LEADERSHIP_SCENARIOS,
+  createCivilUnrestScenario,
+  createTechOutageScenario,
+  CIVIL_UNREST_ESRM,
+  TECH_OUTAGE_ESRM,
+  type LeadershipInject,
+  type LeadershipScenarioType,
+  type LeadershipChallengeType,
+} from './leadership-scenarios.js';
+
 /**
  * Scenario 1: Access Control Vendor Ransomware
  *
@@ -371,10 +382,21 @@ export interface ScenarioInfo {
 }
 
 import { FUSED_SCENARIOS } from './fused-gsoc.js';
+import { LEADERSHIP_SCENARIOS } from './leadership-scenarios.js';
 
 export function getAvailableScenarios(): ScenarioInfo[] {
   return [
     ...FUSED_SCENARIOS.map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      severity: s.severity,
+      vendorType: s.vendorType,
+      domains: s.domains,
+      esrmConfig: s.esrmConfig,
+      createFn: s.createFn,
+    })),
+    ...LEADERSHIP_SCENARIOS.map((s) => ({
       id: s.id,
       name: s.name,
       description: s.description,
