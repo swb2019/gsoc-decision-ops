@@ -426,9 +426,11 @@ export function resetGuidanceState(): void {
 }
 
 export function getTipForSurface(surface: GuidanceSurface): GuidanceTip | null {
-  return GUIDANCE_TIPS.find(
-    (tip) => tip.surface === surface && tip.trigger === 'FIRST_VISIT' && canShowTip(tip)
-  ) || null;
+  return (
+    GUIDANCE_TIPS.find(
+      (tip) => tip.surface === surface && tip.trigger === 'FIRST_VISIT' && canShowTip(tip)
+    ) || null
+  );
 }
 
 export function getAllTips(): GuidanceTip[] {

@@ -1733,42 +1733,85 @@ export default function CommandCenter({
     };
   }, [pendingDecision, isRunning]);
 
-  // Auto-reveal injects based on time - creates compulsion loop
+  // Auto-reveal injects based on time - uses ArcScheduler for coherent randomized timing
   useEffect(() => {
     if (!isRunning) return;
 
-    const currentMinute = Math.floor(elapsedSeconds / 60);
-    const allInjects = log.injects;
+    // Use ArcScheduler if available for randomized coherent timing
+    const scheduler = arcSchedulerRef.current;
+    if (scheduler) {
+      // Tick the scheduler and get newly revealed injects
+      const newlyRevealed = scheduler.tick(elapsedSeconds);
 
-    for (const inject of allInjects) {
-      if (
-        !inject.revealed &&
-        inject.revealAtMinute <= currentMinute &&
-        !processedInjectsRef.current.has(inject.id)
-      ) {
-        processedInjectsRef.current.add(inject.id);
-        setLog(revealInject(log, inject.id));
-        setLastInjectTime(elapsedSeconds);
+      for (const scheduled of newlyRevealed) {
+        const inject = scheduled.inject;
+        if (!processedInjectsRef.current.has(inject.id)) {
+          processedInjectsRef.current.add(inject.id);
+          setLog(revealInject(log, inject.id));
+          setLastInjectTime(elapsedSeconds);
 
-        // Play inject arrival SFX
-        playSFX('injectArrive');
+          // Play inject arrival SFX
+          playSFX('injectArrive');
 
-        triggerInjectAlert(inject);
+          triggerInjectAlert(inject);
 
-        if (!pendingDecision) {
-          setPendingDecision(inject);
-          setSelectedAsset(null);
-          setAssetOwnerBriefed(false);
-          setResidualRiskNote('');
-          setSelectedTreatmentCategory(null);
-          setSelectedTreatmentOption(null);
-          setSelectedResidualRisk(null);
-          setTreatmentBonusGiven(false);
+          // Trigger guidance for first noise inject
+          if ((inject as unknown as { intake?: { isNoise?: boolean } }).intake?.isNoise) {
+            triggerCondition('FIRST_NOISE_INJECT' as never, 'INTEL_FEED');
+          }
+
+          if (!pendingDecision) {
+            setPendingDecision(inject);
+            setSelectedAsset(null);
+            setAssetOwnerBriefed(false);
+            setResidualRiskNote('');
+            setSelectedTreatmentCategory(null);
+            setSelectedTreatmentOption(null);
+            setSelectedResidualRisk(null);
+            setTreatmentBonusGiven(false);
+          }
+          break;
         }
-        break;
+      }
+
+      // Update zone heat and trust from scheduler state
+      const schedulerHeat = scheduler.getZoneHeat();
+      setZoneHeatLevels(schedulerHeat);
+    } else {
+      // Fallback to original time-based reveal (when scheduler not initialized)
+      const currentMinute = Math.floor(elapsedSeconds / 60);
+      const allInjects = log.injects;
+
+      for (const inject of allInjects) {
+        if (
+          !inject.revealed &&
+          inject.revealAtMinute <= currentMinute &&
+          !processedInjectsRef.current.has(inject.id)
+        ) {
+          processedInjectsRef.current.add(inject.id);
+          setLog(revealInject(log, inject.id));
+          setLastInjectTime(elapsedSeconds);
+
+          // Play inject arrival SFX
+          playSFX('injectArrive');
+
+          triggerInjectAlert(inject);
+
+          if (!pendingDecision) {
+            setPendingDecision(inject);
+            setSelectedAsset(null);
+            setAssetOwnerBriefed(false);
+            setResidualRiskNote('');
+            setSelectedTreatmentCategory(null);
+            setSelectedTreatmentOption(null);
+            setSelectedResidualRisk(null);
+            setTreatmentBonusGiven(false);
+          }
+          break;
+        }
       }
     }
-  }, [elapsedSeconds, isRunning, log, pendingDecision]);
+  }, [elapsedSeconds, isRunning, log, pendingDecision, triggerCondition]);
 
   // Urgency pulse when no action for too long
   useEffect(() => {
@@ -2098,7 +2141,14 @@ export default function CommandCenter({
     ) {
       triggerCondition('RESOURCE_CONTENTION', 'TACTICAL');
     }
-  }, [isRunning, guidanceEnabled, stakeholderTrust, zoneHeatLevels, dispatchResources, triggerCondition]);
+  }, [
+    isRunning,
+    guidanceEnabled,
+    stakeholderTrust,
+    zoneHeatLevels,
+    dispatchResources,
+    triggerCondition,
+  ]);
 
   // Trigger STREAK_LOST guidance when streak resets after being > 2
   const prevStreakRef = useRef(0);
@@ -2528,6 +2578,32 @@ export default function CommandCenter({
           },
         })
       );
+
+      // Record decision in ArcScheduler for coherent consequence tracking
+      const scheduler = arcSchedulerRef.current;
+      if (scheduler) {
+        const consequences = scheduler.recordDecision(pendingDecision.id, posture, pendingDecision);
+
+        // Apply scheduler-computed consequences to game state
+        for (const consequence of consequences) {
+          if (consequence.trustImpact) {
+            setStakeholderTrust((prev) =>
+              Math.max(0, Math.min(100, prev + consequence.trustImpact!))
+            );
+          }
+          if (consequence.zoneHeatImpact) {
+            setZoneHeatLevels((prev) => {
+              const updated = { ...prev };
+              for (const { zone, delta } of consequence.zoneHeatImpact!) {
+                if (updated[zone] !== undefined) {
+                  updated[zone] = Math.max(0, Math.min(100, updated[zone] + delta));
+                }
+              }
+              return updated;
+            });
+          }
+        }
+      }
 
       // Calculate ESRM value for this decision
       const treatmentForCalc = postureToTreatmentCalc(

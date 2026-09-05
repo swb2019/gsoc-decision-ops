@@ -180,10 +180,7 @@ export class ArcScheduler {
 
       const originalMinute = inject.revealAtMinute;
       const baseSecond = originalMinute * 60;
-      const adjustedSecond = Math.max(
-        currentSecond,
-        baseSecond + jitter
-      );
+      const adjustedSecond = Math.max(currentSecond, baseSecond + jitter);
 
       this.state.scheduledInjects.push({
         inject: { ...inject, revealAtMinute: adjustedSecond / 60 },
@@ -226,10 +223,7 @@ export class ArcScheduler {
       const beforeTime = coreInjects[insertIdx].actualRevealSecond;
       const afterTime = coreInjects[insertIdx + 1].actualRevealSecond;
 
-      const noiseTime = this.rng.int(
-        Math.floor(beforeTime + 10),
-        Math.floor(afterTime - 10)
-      );
+      const noiseTime = this.rng.int(Math.floor(beforeTime + 10), Math.floor(afterTime - 10));
 
       if (noiseTime > beforeTime && noiseTime < afterTime) {
         this.state.scheduledInjects.push({
@@ -373,12 +367,8 @@ export class ArcScheduler {
         type: 'ESCALATE',
         description: 'Operational halt triggers executive attention',
         trustImpact: isCorrect ? 5 : -10,
-        kriImpact: [
-          { id: 'response-time', delta: isCorrect ? -5 : 15 },
-        ],
-        zoneHeatImpact: [
-          { zone: 'operations', delta: isCorrect ? -15 : 20 },
-        ],
+        kriImpact: [{ id: 'response-time', delta: isCorrect ? -5 : 15 }],
+        zoneHeatImpact: [{ zone: 'operations', delta: isCorrect ? -15 : 20 }],
       });
     } else if (posture === 'DEGRADE') {
       consequences.push({
@@ -386,12 +376,8 @@ export class ArcScheduler {
         type: 'RIPPLE',
         description: 'Reduced operations affect adjacent systems',
         trustImpact: isCorrect ? 3 : -5,
-        kriImpact: [
-          { id: 'coverage', delta: isCorrect ? -3 : 10 },
-        ],
-        zoneHeatImpact: [
-          { zone: 'operations', delta: isCorrect ? -5 : 10 },
-        ],
+        kriImpact: [{ id: 'coverage', delta: isCorrect ? -3 : 10 }],
+        zoneHeatImpact: [{ zone: 'operations', delta: isCorrect ? -5 : 10 }],
       });
     } else {
       consequences.push({
@@ -399,12 +385,8 @@ export class ArcScheduler {
         type: 'STAKEHOLDER',
         description: 'Business continuity maintained',
         trustImpact: isCorrect ? 2 : -15,
-        kriImpact: [
-          { id: 'availability', delta: isCorrect ? -2 : 20 },
-        ],
-        zoneHeatImpact: [
-          { zone: 'operations', delta: isCorrect ? 0 : 25 },
-        ],
+        kriImpact: [{ id: 'availability', delta: isCorrect ? -2 : 20 }],
+        zoneHeatImpact: [{ zone: 'operations', delta: isCorrect ? 0 : 25 }],
       });
     }
 
@@ -427,8 +409,7 @@ export class ArcScheduler {
   getRevealableInjects(currentSeconds: number): ScheduledInject[] {
     return this.state.scheduledInjects.filter(
       (s) =>
-        s.actualRevealSecond <= currentSeconds &&
-        !this.state.revealedInjectIds.has(s.inject.id)
+        s.actualRevealSecond <= currentSeconds && !this.state.revealedInjectIds.has(s.inject.id)
     );
   }
 

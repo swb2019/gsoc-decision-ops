@@ -72,12 +72,15 @@ export default function GuidancePopup({
       if (!activeTip) return;
 
       setIsExiting(true);
-      setTimeout(() => {
-        dismissActiveTip(permanent);
-        setActiveTip(null);
-        setIsVisible(false);
-        setIsExiting(false);
-      }, reducedMotion ? 0 : 200);
+      setTimeout(
+        () => {
+          dismissActiveTip(permanent);
+          setActiveTip(null);
+          setIsVisible(false);
+          setIsExiting(false);
+        },
+        reducedMotion ? 0 : 200
+      );
     },
     [activeTip, reducedMotion]
   );
@@ -143,10 +146,7 @@ export default function GuidancePopup({
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <h3
-                  id="guidance-title"
-                  className="text-sm font-semibold text-amber-100 truncate"
-                >
+                <h3 id="guidance-title" className="text-sm font-semibold text-amber-100 truncate">
                   {activeTip.title}
                 </h3>
                 <button
@@ -164,17 +164,12 @@ export default function GuidancePopup({
                 </button>
               </div>
 
-              <p
-                id="guidance-content"
-                className="mt-1.5 text-xs text-slate-300 leading-relaxed"
-              >
+              <p id="guidance-content" className="mt-1.5 text-xs text-slate-300 leading-relaxed">
                 {activeTip.content}
               </p>
 
               {activeTip.actionHint && (
-                <p className="mt-2 text-xs text-amber-400/80 font-medium">
-                  {activeTip.actionHint}
-                </p>
+                <p className="mt-2 text-xs text-amber-400/80 font-medium">{activeTip.actionHint}</p>
               )}
 
               {activeTip.relatedSurfaces && activeTip.relatedSurfaces.length > 0 && (

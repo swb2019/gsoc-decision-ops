@@ -96,9 +96,7 @@ describe('ArcScheduler', () => {
       scheduler.tick(firstInject.actualRevealSecond + 1);
       const secondReveal = scheduler.tick(firstInject.actualRevealSecond + 2);
 
-      const alreadyRevealed = secondReveal.find(
-        (r) => r.inject.id === firstInject.inject.id
-      );
+      const alreadyRevealed = secondReveal.find((r) => r.inject.id === firstInject.inject.id);
       expect(alreadyRevealed).toBeUndefined();
     });
   });
