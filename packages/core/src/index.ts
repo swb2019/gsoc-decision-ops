@@ -373,3 +373,13 @@ export {
 } from './value-calculation.js';
 
 export type { CalcStep, CalcTrail } from './value-calculation.js';
+
+// Decision Scoring Engine (Mathematically Sound)
+export {
+  scoreDecision,
+  formatScoringBreakdown,
+  validateScoringFairness,
+  SCORING_CONFIG,
+} from './decision-scoring.js';
+
+export type { DecisionScoringInput, DecisionScoringResult } from './decision-scoring.js';

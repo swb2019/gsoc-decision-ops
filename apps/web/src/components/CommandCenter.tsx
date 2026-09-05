@@ -971,6 +971,9 @@ import {
   calculateDecisionValue,
   postureToTreatmentCalc,
   VALUE_ASSUMPTIONS,
+  scoreDecision,
+  type DecisionScoringInput,
+  type DecisionScoringResult,
   type ProtectedAsset,
   type ScenarioESRMConfig,
   type LinkedEntity,
@@ -2164,17 +2167,44 @@ export default function CommandCenter({
   const handleTimeoutDecision = useCallback((): void => {
     if (!pendingDecision) return;
 
+    // Score the timeout using the scoring engine (0 points, streak reset)
+    const timeoutResult = scoreDecision({
+      chosenPosture: 'CONTINUE',
+      expectedPosture:
+        (pendingDecision as unknown as { expectedPostureImpact?: DecisionPosture })
+          .expectedPostureImpact || null,
+      chosenTreatment: null,
+      expectedTreatment: null,
+      assetCriticality: 'MEDIUM',
+      ownerBriefed: false,
+      residualRiskSelected: false,
+      treatmentCategorySelected: false,
+      rationaleProvided: false,
+      decisionTimeSeconds: 0,
+      timerLimitSeconds: 75,
+      wasTimeout: true,
+      wasSkip: false,
+      injectConfidence: 'MEDIUM',
+      resourceContentionOccurred: false,
+      currentStreak: gameState.streak,
+      difficulty: difficulty as 'ROOKIE' | 'OPERATOR' | 'DIRECTOR',
+    });
+
     setGameState((prev) => ({
       ...prev,
-      score: Math.max(0, prev.score - 50),
-      streak: 0,
+      score: prev.score, // No change - timeout gives 0 points
+      streak: 0, // Streak resets on timeout
+      decisionsTotal: prev.decisionsTotal + 1,
       comboMultiplier: 1,
     }));
 
     playSound('error');
     errorFeedback();
 
-    setShowScorePopup({ points: -50, message: 'Decision timeout!' });
+    setShowScorePopup({
+      points: timeoutResult.totalPoints,
+      message: 'Decision timeout - no points!',
+    });
     setTimeout(() => setShowScorePopup(null), 2000);
 
     setPendingDecision(null);
@@ -2184,7 +2214,7 @@ export default function CommandCenter({
     setSelectedTreatmentOption(null);
     setSelectedResidualRisk(null);
     setTreatmentBonusGiven(false);
-  }, [pendingDecision, playSound, errorFeedback]);
+  }, [pendingDecision, playSound, errorFeedback, gameState.streak, difficulty]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -2247,41 +2277,55 @@ export default function CommandCenter({
       const expectedPosture = (
         pendingDecision as unknown as { expectedPostureImpact?: DecisionPosture }
       ).expectedPostureImpact;
-      const isCorrect = expectedPosture === posture;
 
-      // Calculate score components with deepened mechanics
-      const baseScore = isCorrect ? 150 : 50;
-      const timeBonus = Math.floor(decisionTimer * 2);
-      const esrmBonus = assetOwnerBriefed ? 75 : 0;
-      // Residual risk bonus now based on structured selection (not free text)
-      const residualBonus = selectedResidualRisk ? 50 : 0;
-      const newStreak = isCorrect ? gameState.streak + 1 : 0;
-      const streakMultiplier = Math.min(1 + newStreak * 0.1, 2.5);
+      // Get inject confidence from metadata
+      const injectIntake = (pendingDecision as unknown as { intake?: { confidence?: string } })
+        .intake;
+      const injectConfidence = (injectIntake?.confidence || 'MEDIUM') as
+        'VERIFIED' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED';
 
-      // Phase bonus for completing decisions within the right playbook phase
-      const phaseBonus = currentPlaybookPhase < 3 ? 25 : 0;
+      // Map posture to expected treatment
+      const expectedTreatmentMap: Record<DecisionPosture, 'ACCEPT' | 'MITIGATE' | 'AVOID'> = {
+        CONTINUE: 'ACCEPT',
+        DEGRADE: 'MITIGATE',
+        PAUSE: 'AVOID',
+      };
+      const expectedTreatment = expectedPosture ? expectedTreatmentMap[expectedPosture] : null;
 
-      // Resource contention penalty
-      const contentionPenalty = resourceCheck.canProceed ? 0 : -30;
-
-      // Entity linking bonus - if player identified linked entities
-      const linkedEntityIds =
-        (pendingDecision as unknown as { linkedEntityIds?: string[] }).linkedEntityIds || [];
-      const entityBonus = linkedEntityIds.length > 2 ? 20 : 0;
-
-      // Apply cascade multiplier from escalation level and difficulty bonus
-      const totalPoints = Math.floor(
-        (baseScore +
-          timeBonus +
-          esrmBonus +
-          residualBonus +
-          phaseBonus +
-          entityBonus +
-          contentionPenalty) *
-          streakMultiplier *
-          cascadeMultiplier *
-          difficultyConfig.pointMultiplier
+      // Calculate time used for decision
+      const decisionTimeUsed = Math.max(
+        1,
+        difficultyConfig.timerMultiplier * DECISION_TIMER_CONFIG.BASE_TIMER - decisionTimer
       );
+
+      // Build scoring input for the new mathematically sound scoring engine
+      const scoringInput: DecisionScoringInput = {
+        chosenPosture: posture,
+        expectedPosture: expectedPosture || null,
+        chosenTreatment:
+          (selectedTreatmentCategory as 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID') ||
+          expectedTreatmentMap[posture],
+        expectedTreatment,
+        assetCriticality: selectedAsset.criticality as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW',
+        ownerBriefed: assetOwnerBriefed,
+        residualRiskSelected: !!selectedResidualRisk,
+        treatmentCategorySelected: !!selectedTreatmentCategory,
+        rationaleProvided: !!residualRiskNote,
+        decisionTimeSeconds: decisionTimeUsed,
+        timerLimitSeconds: difficultyConfig.timerMultiplier * DECISION_TIMER_CONFIG.BASE_TIMER,
+        wasTimeout: false,
+        wasSkip: false,
+        injectConfidence,
+        resourceContentionOccurred: !resourceCheck.canProceed,
+        currentStreak: gameState.streak,
+        difficulty: difficulty as 'ROOKIE' | 'OPERATOR' | 'DIRECTOR',
+      };
+
+      // Score the decision using the new engine
+      const scoringResult: DecisionScoringResult = scoreDecision(scoringInput);
+      const totalPoints = scoringResult.totalPoints;
+      const newStreak = scoringResult.newStreak;
+      const isCorrect = scoringResult.isCorrect;
 
       // Trigger ESRM cascade effect for PAUSE decisions
       if (posture === 'PAUSE') {
@@ -2310,10 +2354,6 @@ export default function CommandCenter({
       const treatmentForCalc = postureToTreatmentCalc(
         posture,
         selectedTreatmentCategory as 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | undefined
-      );
-      const decisionTimeUsed = Math.max(
-        1,
-        difficultyConfig.timerMultiplier * DECISION_TIMER_CONFIG.BASE_TIMER - decisionTimer
       );
       const criticality = selectedAsset.criticality as AssetCriticality;
       const likelihood: RiskLikelihood =
@@ -2346,55 +2386,34 @@ export default function CommandCenter({
         injectsHandled: prev.injectsHandled + 1,
         assetOwnersBriefed: prev.assetOwnersBriefed + (assetOwnerBriefed ? 1 : 0),
         assetsProtected: prev.assetsProtected + 1,
-        timeBonus: prev.timeBonus + timeBonus,
-        esrmBonus: prev.esrmBonus + esrmBonus + residualBonus,
-        comboMultiplier: streakMultiplier,
+        timeBonus: prev.timeBonus + Math.round(scoringResult.breakdown.timeBonus),
+        esrmBonus: prev.esrmBonus + scoringResult.breakdown.esrmBonuses.total,
+        comboMultiplier: scoringResult.breakdown.streakMultiplier,
       }));
 
       // Visual and audio feedback
       setScreenFlash(isCorrect ? 'green' : 'amber');
       setTimeout(() => setScreenFlash(null), 200);
 
-      // Determine correct treatment for feedback
-      const correctTreatmentMap: Record<DecisionPosture, string> = {
-        CONTINUE: 'ACCEPT',
-        DEGRADE: 'MITIGATE',
-        PAUSE: 'AVOID',
-      };
-      const correctTreatment = expectedPosture ? correctTreatmentMap[expectedPosture] : null;
-      const playerTreatment = selectedTreatmentCategory || correctTreatmentMap[posture];
-
       // Play sound and haptic with enhanced feedback
       playSound('decisionConfirm');
       if (isCorrect) {
         confirmFeedback();
-        setShowScorePopup({
-          points: totalPoints,
-          message: `Correct! ${playerTreatment} was right.`,
-        });
       } else {
         tapFeedback();
-        setShowScorePopup({
-          points: totalPoints,
-          message: correctTreatment
-            ? `${playerTreatment} chosen. Best: ${correctTreatment}`
-            : `${playerTreatment} decision logged`,
-        });
       }
-      setTimeout(() => setShowScorePopup(null), 3000);
 
       // Rotate decision prompt variation for next decision
       setDecisionPromptIndex((prev) => (prev + 1) % DECISION_PROMPT_VARIATIONS.length);
 
+      // Show score popup with feedback from scoring engine
+      const scoreMessage =
+        newStreak > 2 ? `${newStreak}x STREAK! ${scoringResult.feedback}` : scoringResult.feedback;
       setShowScorePopup({
         points: totalPoints,
-        message: isCorrect
-          ? newStreak > 2
-            ? `${newStreak}x STREAK!`
-            : 'Solid call!'
-          : 'Documented',
+        message: scoreMessage,
       });
-      setTimeout(() => setShowScorePopup(null), 2000);
+      setTimeout(() => setShowScorePopup(null), 2500);
 
       // Update activity time
       setLastActivityTime(elapsedSeconds);
