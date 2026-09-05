@@ -45,6 +45,8 @@ import {
   postureToTreatment,
   type ProtectedAsset,
   type ScenarioESRMConfig,
+  type LinkedEntity,
+  type EntityType,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -109,6 +111,55 @@ const DOMAIN_CONFIG: Record<
     gradient: 'from-orange-500 to-orange-600',
   },
 };
+
+const ENTITY_TYPE_CONFIG: Record<
+  EntityType,
+  {
+    icon: typeof Users;
+    label: string;
+    color: string;
+    bgColor: string;
+  }
+> = {
+  PERSON: {
+    icon: Users,
+    label: 'Person',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+  },
+  PLACE: {
+    icon: DoorOpen,
+    label: 'Location',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+  },
+  ASSET: {
+    icon: Briefcase,
+    label: 'Asset',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/10',
+  },
+  ORGANIZATION: {
+    icon: Target,
+    label: 'Org',
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-500/10',
+  },
+  SYSTEM: {
+    icon: Cpu,
+    label: 'System',
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/10',
+  },
+};
+
+const PLAYBOOK_PHASES = [
+  { name: 'Assessment', duration: 10, icon: Target },
+  { name: 'Bridge', duration: 10, icon: Phone },
+  { name: 'Continuity', duration: 15, icon: Activity },
+  { name: 'Information', duration: 15, icon: FileText },
+  { name: 'Checkpoint', duration: 10, icon: CheckCircle },
+];
 
 const POSTURE_CONFIG: Record<
   DecisionPosture,
@@ -185,11 +236,44 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   const [escalationLevel, setEscalationLevel] = useState<'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION'>(
     'ACTIVITY'
   );
-  const [dispatchResources, setDispatchResources] = useState({
-    guards: { available: 3, total: 4, cooldown: 0 },
-    analysts: { available: 2, total: 3, cooldown: 0 },
-    responders: { available: 2, total: 2, cooldown: 0 },
+  const [dispatchResources, setDispatchResources] = useState<{
+    guards: {
+      available: number;
+      total: number;
+      cooldown: number;
+      contentionLevel: 'NORMAL' | 'STRAINED' | 'CRITICAL';
+    };
+    analysts: {
+      available: number;
+      total: number;
+      cooldown: number;
+      contentionLevel: 'NORMAL' | 'STRAINED' | 'CRITICAL';
+    };
+    responders: {
+      available: number;
+      total: number;
+      cooldown: number;
+      contentionLevel: 'NORMAL' | 'STRAINED' | 'CRITICAL';
+    };
+  }>({
+    guards: { available: 3, total: 4, cooldown: 0, contentionLevel: 'NORMAL' },
+    analysts: { available: 2, total: 3, cooldown: 0, contentionLevel: 'NORMAL' },
+    responders: { available: 2, total: 2, cooldown: 0, contentionLevel: 'NORMAL' },
   });
+  const [currentPlaybookPhase, setCurrentPlaybookPhase] = useState(0);
+  const [phaseProgress, setPhaseProgress] = useState<Record<number, number>>({
+    0: 0,
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+  });
+  const [highlightedEntityId, setHighlightedEntityId] = useState<string | null>(null);
+  const [showEntityPanel, setShowEntityPanel] = useState(false);
+  const [triageQueue, setTriageQueue] = useState<string[]>([]);
+  const [resourceContention, setResourceContention] = useState<string | null>(null);
+  const [esrmCascadeActive, setEsrmCascadeActive] = useState(false);
+  const [cascadeMultiplier, setCascadeMultiplier] = useState(1);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -293,7 +377,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     }
   }, [elapsedSeconds, isRunning, lastInjectTime, log, pendingDecision]);
 
-  // Escalation level based on game state
+  // Escalation level based on game state - with cascade multiplier effects
   useEffect(() => {
     const revealed = getRevealedInjects(log);
     const urgentCount = revealed.filter(
@@ -301,50 +385,178 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     ).length;
     const decisionsCount = log.decisions.length;
 
+    let newLevel: 'ACTIVITY' | 'INCIDENT' | 'INVESTIGATION' = 'ACTIVITY';
+    let newMultiplier = 1;
+
     if (urgentCount >= 3 || decisionsCount >= 5) {
-      setEscalationLevel('INVESTIGATION');
+      newLevel = 'INVESTIGATION';
+      newMultiplier = 1.5;
     } else if (urgentCount >= 1 || decisionsCount >= 2) {
-      setEscalationLevel('INCIDENT');
-    } else {
-      setEscalationLevel('ACTIVITY');
+      newLevel = 'INCIDENT';
+      newMultiplier = 1.25;
     }
+
+    setEscalationLevel(newLevel);
+    setCascadeMultiplier(newMultiplier);
   }, [log]);
 
-  // Dispatch resource cooldown management
+  // Playbook phase progression based on elapsed time
+  useEffect(() => {
+    if (!isRunning) return;
+
+    const currentElapsedMinutes = Math.floor(elapsedSeconds / 60);
+    const phaseMinutes = [10, 20, 35, 50, 60];
+    const currentPhase = phaseMinutes.findIndex((m) => currentElapsedMinutes < m);
+    const newPhase = currentPhase === -1 ? 4 : currentPhase;
+
+    if (newPhase !== currentPlaybookPhase) {
+      setCurrentPlaybookPhase(newPhase);
+      if (newPhase > 0) {
+        setScreenFlash('green');
+        setTimeout(() => setScreenFlash(null), 300);
+      }
+    }
+
+    // Calculate progress within current phase
+    const phaseStarts = [0, 10, 20, 35, 50];
+    const phaseEnds = [10, 20, 35, 50, 60];
+    const phaseStart = phaseStarts[newPhase];
+    const phaseEnd = phaseEnds[newPhase];
+    const progress = Math.min(
+      100,
+      ((currentElapsedMinutes - phaseStart) / (phaseEnd - phaseStart)) * 100
+    );
+    setPhaseProgress((prev) => ({ ...prev, [newPhase]: progress }));
+  }, [elapsedSeconds, isRunning, currentPlaybookPhase]);
+
+  // Triage queue management - queue unhandled injects by priority
+  useEffect(() => {
+    const revealed = getRevealedInjects(log);
+    const unhandled = revealed.filter((i) => !log.decisions.some((d) => d.title === i.title));
+    const sorted = [...unhandled].sort((a, b) => {
+      const priorityOrder = { IMMEDIATE: 0, URGENT: 1, ROUTINE: 2 };
+      const aPriority = (a as unknown as { triagePriority?: string }).triagePriority || 'ROUTINE';
+      const bPriority = (b as unknown as { triagePriority?: string }).triagePriority || 'ROUTINE';
+      return (
+        (priorityOrder[aPriority as keyof typeof priorityOrder] || 2) -
+        (priorityOrder[bPriority as keyof typeof priorityOrder] || 2)
+      );
+    });
+    setTriageQueue(sorted.map((i) => i.id));
+  }, [log]);
+
+  // Dispatch resource cooldown management with contention tracking
   useEffect(() => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
-      setDispatchResources((prev) => ({
-        guards: {
-          ...prev.guards,
-          cooldown: Math.max(0, prev.guards.cooldown - 1),
-          available:
-            prev.guards.cooldown <= 1
-              ? Math.min(prev.guards.available + 1, prev.guards.total)
-              : prev.guards.available,
-        },
-        analysts: {
-          ...prev.analysts,
-          cooldown: Math.max(0, prev.analysts.cooldown - 1),
-          available:
-            prev.analysts.cooldown <= 1
-              ? Math.min(prev.analysts.available + 1, prev.analysts.total)
-              : prev.analysts.available,
-        },
-        responders: {
-          ...prev.responders,
-          cooldown: Math.max(0, prev.responders.cooldown - 1),
-          available:
-            prev.responders.cooldown <= 1
-              ? Math.min(prev.responders.available + 1, prev.responders.total)
-              : prev.responders.available,
-        },
-      }));
+      setDispatchResources((prev) => {
+        const updateResource = (r: typeof prev.guards) => {
+          const newAvailable = r.cooldown <= 1 ? Math.min(r.available + 1, r.total) : r.available;
+          const ratio = newAvailable / r.total;
+          const contentionLevel =
+            ratio <= 0.25
+              ? ('CRITICAL' as const)
+              : ratio <= 0.5
+                ? ('STRAINED' as const)
+                : ('NORMAL' as const);
+          return {
+            ...r,
+            cooldown: Math.max(0, r.cooldown - 1),
+            available: newAvailable,
+            contentionLevel,
+          };
+        };
+        return {
+          guards: updateResource(prev.guards),
+          analysts: updateResource(prev.analysts),
+          responders: updateResource(prev.responders),
+        };
+      });
     }, 10000);
 
     return () => clearInterval(interval);
   }, [isRunning]);
+
+  // Check resource availability for current inject
+  const checkResourceAvailability = useCallback(
+    (inject: ScenarioInject): { canProceed: boolean; warning: string | null } => {
+      const required = (
+        inject as unknown as {
+          resourcesRequired?: { guards?: number; analysts?: number; responders?: number };
+        }
+      ).resourcesRequired;
+      if (!required) return { canProceed: true, warning: null };
+
+      const issues: string[] = [];
+      if (required.guards && dispatchResources.guards.available < required.guards) {
+        issues.push(`Guards (need ${required.guards}, have ${dispatchResources.guards.available})`);
+      }
+      if (required.analysts && dispatchResources.analysts.available < required.analysts) {
+        issues.push(
+          `Analysts (need ${required.analysts}, have ${dispatchResources.analysts.available})`
+        );
+      }
+      if (required.responders && dispatchResources.responders.available < required.responders) {
+        issues.push(
+          `Responders (need ${required.responders}, have ${dispatchResources.responders.available})`
+        );
+      }
+
+      if (issues.length > 0) {
+        return { canProceed: false, warning: `Resource contention: ${issues.join(', ')}` };
+      }
+      return { canProceed: true, warning: null };
+    },
+    [dispatchResources]
+  );
+
+  // Deploy resources when making a decision
+  const deployResources = useCallback((inject: ScenarioInject) => {
+    const required = (
+      inject as unknown as {
+        resourcesRequired?: { guards?: number; analysts?: number; responders?: number };
+      }
+    ).resourcesRequired;
+    if (!required) return;
+
+    setDispatchResources((prev) => ({
+      guards: {
+        ...prev.guards,
+        available: Math.max(0, prev.guards.available - (required.guards || 0)),
+        cooldown: required.guards ? 3 : prev.guards.cooldown,
+        contentionLevel:
+          (prev.guards.available - (required.guards || 0)) / prev.guards.total <= 0.25
+            ? 'CRITICAL'
+            : (prev.guards.available - (required.guards || 0)) / prev.guards.total <= 0.5
+              ? 'STRAINED'
+              : 'NORMAL',
+      },
+      analysts: {
+        ...prev.analysts,
+        available: Math.max(0, prev.analysts.available - (required.analysts || 0)),
+        cooldown: required.analysts ? 2 : prev.analysts.cooldown,
+        contentionLevel:
+          (prev.analysts.available - (required.analysts || 0)) / prev.analysts.total <= 0.25
+            ? 'CRITICAL'
+            : (prev.analysts.available - (required.analysts || 0)) / prev.analysts.total <= 0.5
+              ? 'STRAINED'
+              : 'NORMAL',
+      },
+      responders: {
+        ...prev.responders,
+        available: Math.max(0, prev.responders.available - (required.responders || 0)),
+        cooldown: required.responders ? 4 : prev.responders.cooldown,
+        contentionLevel:
+          (prev.responders.available - (required.responders || 0)) / prev.responders.total <= 0.25
+            ? 'CRITICAL'
+            : (prev.responders.available - (required.responders || 0)) / prev.responders.total <=
+                0.5
+              ? 'STRAINED'
+              : 'NORMAL',
+      },
+    }));
+  }, []);
 
   // Auto-dismiss coach marks after first decision
   useEffect(() => {
@@ -429,12 +641,22 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
     (posture: DecisionPosture) => {
       if (!pendingDecision || !selectedAsset) return;
 
+      // Check resource availability
+      const resourceCheck = checkResourceAvailability(pendingDecision);
+      if (!resourceCheck.canProceed) {
+        setResourceContention(resourceCheck.warning);
+        setTimeout(() => setResourceContention(null), 3000);
+      }
+
+      // Deploy resources
+      deployResources(pendingDecision);
+
       const expectedPosture = (
         pendingDecision as unknown as { expectedPostureImpact?: DecisionPosture }
       ).expectedPostureImpact;
       const isCorrect = expectedPosture === posture;
 
-      // Calculate score components
+      // Calculate score components with deepened mechanics
       const baseScore = isCorrect ? 150 : 50;
       const timeBonus = Math.floor(decisionTimer * 2);
       const esrmBonus = assetOwnerBriefed ? 75 : 0;
@@ -442,9 +664,35 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       const newStreak = isCorrect ? gameState.streak + 1 : 0;
       const streakMultiplier = Math.min(1 + newStreak * 0.1, 2.5);
 
+      // Phase bonus for completing decisions within the right playbook phase
+      const phaseBonus = currentPlaybookPhase < 3 ? 25 : 0;
+
+      // Resource contention penalty
+      const contentionPenalty = resourceCheck.canProceed ? 0 : -30;
+
+      // Entity linking bonus - if player identified linked entities
+      const linkedEntityIds =
+        (pendingDecision as unknown as { linkedEntityIds?: string[] }).linkedEntityIds || [];
+      const entityBonus = linkedEntityIds.length > 2 ? 20 : 0;
+
+      // Apply cascade multiplier from escalation level
       const totalPoints = Math.floor(
-        (baseScore + timeBonus + esrmBonus + residualBonus) * streakMultiplier
+        (baseScore +
+          timeBonus +
+          esrmBonus +
+          residualBonus +
+          phaseBonus +
+          entityBonus +
+          contentionPenalty) *
+          streakMultiplier *
+          cascadeMultiplier
       );
+
+      // Trigger ESRM cascade effect for PAUSE decisions
+      if (posture === 'PAUSE') {
+        setEsrmCascadeActive(true);
+        setTimeout(() => setEsrmCascadeActive(false), 2000);
+      }
 
       setLog(
         recordDecision(log, {
@@ -517,6 +765,10 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       residualRiskNote,
       decisionTimer,
       revealedInjects,
+      checkResourceAvailability,
+      deployResources,
+      currentPlaybookPhase,
+      cascadeMultiplier,
     ]
   );
 
@@ -770,6 +1022,20 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
               {escalationLevel}
             </div>
 
+            {/* Entity Link Button */}
+            {log.linkedEntities && log.linkedEntities.length > 0 && (
+              <button
+                onClick={() => setShowEntityPanel(true)}
+                className="p-2.5 rounded-xl text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 active:bg-cyan-500/20 transition-all touch-target flex items-center justify-center relative"
+                aria-label="Open Entity Map"
+              >
+                <Link2 className="w-5 h-5" />
+                {highlightedEntityId && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                )}
+              </button>
+            )}
+
             {/* Field Guide Button */}
             <button
               onClick={() => setShowFieldGuide(true)}
@@ -905,6 +1171,8 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
                       }
                     }}
                     reducedMotion={reducedMotion}
+                    linkedEntities={log.linkedEntities}
+                    highlightedEntityId={highlightedEntityId}
                   />
                 );
               })}
@@ -983,6 +1251,14 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
               </div>
             </div>
 
+            {/* Playbook Phase Tracker */}
+            <div className="p-4 border-b border-gray-800/50">
+              <PlaybookPhaseTracker
+                currentPhase={currentPlaybookPhase}
+                phaseProgress={phaseProgress}
+              />
+            </div>
+
             {/* COP Stats */}
             <div className="p-4 border-b border-gray-800/50">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">Situation Board</h3>
@@ -991,6 +1267,26 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
                 <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" />
                 <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" />
               </div>
+              {/* Triage Queue Status */}
+              {triageQueue.length > 0 && (
+                <div className="mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <div className="flex items-center gap-2 text-amber-400 text-xs">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span className="font-medium">{triageQueue.length} in triage queue</span>
+                  </div>
+                </div>
+              )}
+              {/* Cascade Multiplier Display */}
+              {cascadeMultiplier > 1 && (
+                <div className="mt-2 p-2 rounded-lg bg-violet-500/10 border border-violet-500/30">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-violet-400">Cascade Multiplier</span>
+                    <span className="text-violet-400 font-bold">
+                      {cascadeMultiplier.toFixed(2)}x
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Dispatch Pressure */}
@@ -1096,6 +1392,8 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
                         }
                       }}
                       reducedMotion={reducedMotion}
+                      linkedEntities={log.linkedEntities}
+                      highlightedEntityId={highlightedEntityId}
                     />
                   );
                 })}
@@ -1276,6 +1574,25 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
       {showCoachMarks && !isRunning && revealedInjects.length === 0 && (
         <CoachMarks onDismiss={() => setShowCoachMarks(false)} />
       )}
+
+      {/* Entity Link Panel */}
+      {showEntityPanel && log.linkedEntities && (
+        <EntityLinkPanel
+          entities={log.linkedEntities}
+          injects={log.injects}
+          highlightedEntityId={highlightedEntityId}
+          onHighlightEntity={setHighlightedEntityId}
+          onClose={() => setShowEntityPanel(false)}
+        />
+      )}
+
+      {/* Resource Contention Warning */}
+      {resourceContention && <ResourceContentionWarning message={resourceContention} />}
+
+      {/* ESRM Cascade Effect Overlay */}
+      {esrmCascadeActive && (
+        <div className="fixed inset-0 pointer-events-none z-30 bg-gradient-to-b from-red-500/5 to-transparent animate-pulse" />
+      )}
     </div>
   );
 }
@@ -1287,6 +1604,8 @@ function InjectCard({
   isActive,
   onSelect,
   reducedMotion,
+  linkedEntities,
+  highlightedEntityId,
 }: {
   inject: ScenarioInject;
   index: number;
@@ -1294,11 +1613,33 @@ function InjectCard({
   isActive: boolean;
   onSelect: () => void;
   reducedMotion: boolean;
+  linkedEntities?: LinkedEntity[];
+  highlightedEntityId?: string | null;
 }): JSX.Element {
-  const extendedInject = inject as unknown as { domain?: SecurityDomain; urgencyLevel?: string };
+  const extendedInject = inject as unknown as {
+    domain?: SecurityDomain;
+    urgencyLevel?: string;
+    linkedEntityIds?: string[];
+    triagePriority?: string;
+    resourcesRequired?: { guards?: number; analysts?: number; responders?: number };
+  };
   const domain = extendedInject.domain;
   const config = domain ? DOMAIN_CONFIG[domain] : null;
   const urgency = extendedInject.urgencyLevel;
+  const linkedEntityIds = extendedInject.linkedEntityIds || [];
+  const hasHighlightedEntity = highlightedEntityId && linkedEntityIds.includes(highlightedEntityId);
+  const resourcesNeeded = extendedInject.resourcesRequired;
+  const hasResourceRequirement =
+    resourcesNeeded &&
+    (resourcesNeeded.guards || resourcesNeeded.analysts || resourcesNeeded.responders);
+
+  const getEntityChips = () => {
+    if (!linkedEntities || linkedEntityIds.length === 0) return null;
+    const entities = linkedEntities.filter((e) => linkedEntityIds.includes(e.id)).slice(0, 3);
+    return entities;
+  };
+
+  const entityChips = getEntityChips();
 
   return (
     <button
@@ -1307,6 +1648,7 @@ function InjectCard({
       className={clsx(
         'w-full text-left p-4 rounded-xl border transition-all duration-200',
         !reducedMotion && index === 0 && 'animate-slide-in',
+        hasHighlightedEntity && 'ring-2 ring-cyan-500/50',
         isHandled
           ? 'bg-gray-800/20 border-gray-800/40 opacity-60'
           : isActive
@@ -1333,6 +1675,14 @@ function InjectCard({
               {config.label}
             </span>
           )}
+          {hasResourceRequirement && !isHandled && (
+            <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
+              <Users className="w-3 h-3" />
+              {(resourcesNeeded?.guards || 0) +
+                (resourcesNeeded?.analysts || 0) +
+                (resourcesNeeded?.responders || 0)}
+            </span>
+          )}
         </div>
         {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
       </div>
@@ -1354,6 +1704,33 @@ function InjectCard({
       >
         {inject.content}
       </p>
+
+      {/* Entity chips */}
+      {entityChips && entityChips.length > 0 && !isHandled && (
+        <div className="flex items-center gap-1 mt-2 flex-wrap">
+          <Link2 className="w-3 h-3 text-cyan-500/60" />
+          {entityChips.map((entity) => {
+            const eConfig = ENTITY_TYPE_CONFIG[entity.type];
+            const isHighlighted = highlightedEntityId === entity.id;
+            return (
+              <span
+                key={entity.id}
+                className={clsx(
+                  'text-2xs px-1.5 py-0.5 rounded transition-all',
+                  isHighlighted
+                    ? 'bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50'
+                    : `${eConfig.bgColor} ${eConfig.color}`
+                )}
+              >
+                {entity.shortName || entity.name}
+              </span>
+            );
+          })}
+          {linkedEntityIds.length > 3 && (
+            <span className="text-2xs text-gray-500">+{linkedEntityIds.length - 3}</span>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
         <span className="text-2xs text-gray-500">{inject.source}</span>
@@ -1737,7 +2114,12 @@ function DispatchResource({
   color,
 }: {
   label: string;
-  resource: { available: number; total: number; cooldown: number };
+  resource: {
+    available: number;
+    total: number;
+    cooldown: number;
+    contentionLevel: 'NORMAL' | 'STRAINED' | 'CRITICAL';
+  };
   color: 'cyan' | 'violet' | 'orange';
 }): JSX.Element {
   const colorClasses = {
@@ -1752,9 +2134,34 @@ function DispatchResource({
     orange: 'text-orange-400',
   };
 
+  const contentionColors = {
+    NORMAL: '',
+    STRAINED: 'ring-1 ring-amber-500/50',
+    CRITICAL: 'ring-2 ring-red-500/50 animate-pulse',
+  };
+
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-gray-400">{label}</span>
+    <div
+      className={clsx(
+        'flex items-center justify-between p-1.5 rounded-lg transition-all',
+        contentionColors[resource.contentionLevel]
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-gray-400">{label}</span>
+        {resource.contentionLevel !== 'NORMAL' && (
+          <span
+            className={clsx(
+              'text-2xs px-1 py-0.5 rounded font-bold',
+              resource.contentionLevel === 'CRITICAL'
+                ? 'bg-red-500/20 text-red-400'
+                : 'bg-amber-500/20 text-amber-400'
+            )}
+          >
+            {resource.contentionLevel}
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-1.5">
         <div className="flex gap-0.5">
           {Array.from({ length: resource.total }).map((_, i) => (
@@ -1762,7 +2169,11 @@ function DispatchResource({
               key={i}
               className={clsx(
                 'w-2 h-2 rounded-full transition-all',
-                i < resource.available ? colorClasses[color] : 'bg-gray-700'
+                i < resource.available ? colorClasses[color] : 'bg-gray-700',
+                resource.cooldown > 0 &&
+                  i >= resource.available &&
+                  i < resource.available + 1 &&
+                  'animate-pulse bg-gray-600'
               )}
             />
           ))}
@@ -2060,14 +2471,17 @@ function StatCard({
 
 function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   const [activeSection, setActiveSection] = useState<
-    'loop' | 'postures' | 'domains' | 'esrm' | 'scoring'
+    'loop' | 'postures' | 'domains' | 'esrm' | 'scoring' | 'playbook' | 'entities' | 'resources'
   >('loop');
 
   const sections = [
     { id: 'loop' as const, label: 'Core Loop', icon: <Hourglass className="w-4 h-4" /> },
+    { id: 'playbook' as const, label: 'Playbook', icon: <FileText className="w-4 h-4" /> },
+    { id: 'entities' as const, label: 'Entities', icon: <Link2 className="w-4 h-4" /> },
+    { id: 'resources' as const, label: 'Resources', icon: <Users className="w-4 h-4" /> },
     { id: 'postures' as const, label: 'Postures', icon: <Target className="w-4 h-4" /> },
     { id: 'domains' as const, label: 'Domains', icon: <Layers className="w-4 h-4" /> },
-    { id: 'esrm' as const, label: 'ESRM', icon: <Users className="w-4 h-4" /> },
+    { id: 'esrm' as const, label: 'ESRM', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'scoring' as const, label: 'Scoring', icon: <Zap className="w-4 h-4" /> },
   ];
 
@@ -2137,6 +2551,196 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                 <p className="text-sm text-amber-200">
                   <strong>Fast-paced:</strong> Intel arrives every 15-45 seconds. No time to
                   overthink—trust your training.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'playbook' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Playbook Phases</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                The simulation follows a structured 60-minute playbook with five phases. Progress
+                through phases to maximize your score.
+              </p>
+              <div className="space-y-3">
+                {[
+                  {
+                    name: 'Assessment',
+                    time: '0-10 min',
+                    desc: 'Rapidly assess scope and establish initial posture',
+                    color: 'emerald',
+                  },
+                  {
+                    name: 'Bridge',
+                    time: '10-20 min',
+                    desc: 'Coordinate with stakeholders, clarify decision authority',
+                    color: 'cyan',
+                  },
+                  {
+                    name: 'Continuity',
+                    time: '20-35 min',
+                    desc: 'Implement backup procedures and compensating controls',
+                    color: 'amber',
+                  },
+                  {
+                    name: 'Information',
+                    time: '35-50 min',
+                    desc: 'Assess data exposure, coordinate credential reviews',
+                    color: 'violet',
+                  },
+                  {
+                    name: 'Checkpoint',
+                    time: '50-60 min',
+                    desc: 'Review decisions, validate assumptions, plan next steps',
+                    color: 'blue',
+                  },
+                ].map((phase) => (
+                  <div
+                    key={phase.name}
+                    className={clsx(
+                      'p-3 rounded-xl border',
+                      `bg-${phase.color}-500/10 border-${phase.color}-500/30`
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-${phase.color}-400 font-semibold`}>{phase.name}</span>
+                      <span className="text-xs text-gray-500">{phase.time}</span>
+                    </div>
+                    <p className="text-xs text-gray-400">{phase.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
+                <p className="text-sm text-emerald-200">
+                  <strong>Phase Bonus:</strong> Completing decisions during earlier phases
+                  (Assessment, Bridge, Continuity) earns +25 bonus points.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'entities' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Entity Linking</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Injects reference linked entities—people, places, assets, organizations, and systems
+                that connect across the incident. Recognizing these connections improves situational
+                awareness.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span className="text-blue-400 font-medium text-sm">Person</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Individuals involved: targets, subjects, contacts
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DoorOpen className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400 font-medium text-sm">Location</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Physical locations: buildings, floors, sites
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="w-4 h-4 text-amber-400" />
+                    <span className="text-amber-400 font-medium text-sm">Asset</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Valuable items: data, credentials, equipment
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-violet-400" />
+                    <span className="text-violet-400 font-medium text-sm">Organization</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Entities: vendors, threat actors, agencies
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 col-span-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Cpu className="w-4 h-4 text-orange-400" />
+                    <span className="text-orange-400 font-medium text-sm">System</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Technical systems: badge systems, BMS, malware
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 mt-4">
+                <div className="flex items-center gap-2 text-cyan-400 text-sm mb-2">
+                  <Link2 className="w-4 h-4" />
+                  <strong>Entity Map</strong>
+                </div>
+                <p className="text-xs text-gray-300">
+                  Click the link icon in the header to open the Entity Map. Select an entity to
+                  highlight all injects where it appears. Entities with more connections are more
+                  central to the incident.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'resources' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Dispatch & Resources</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Managing resources is critical. Guards, analysts, and responders have limited
+                availability. Deploying resources puts them on cooldown.
+              </p>
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-cyan-400 font-semibold">Guards (4 total)</span>
+                  </div>
+                  <p className="text-xs text-gray-300">
+                    Physical security officers. Deploy for access control, surveillance, escort.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-violet-400 font-semibold">Analysts (3 total)</span>
+                  </div>
+                  <p className="text-xs text-gray-300">
+                    Intel and cyber analysts. Deploy for investigation, correlation, research.
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-orange-400 font-semibold">Responders (2 total)</span>
+                  </div>
+                  <p className="text-xs text-gray-300">
+                    Incident responders. Deploy for critical actions, containment, recovery.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2 mt-4">
+                <h4 className="text-sm font-semibold text-gray-300">Contention Levels</h4>
+                <div className="p-2 rounded-lg bg-gray-800/50 flex items-center justify-between">
+                  <span className="text-xs text-gray-400">Normal</span>
+                  <span className="text-xs text-emerald-400">&gt;50% available</span>
+                </div>
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+                  <span className="text-xs text-amber-400">Strained</span>
+                  <span className="text-xs text-amber-400">25-50% available</span>
+                </div>
+                <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
+                  <span className="text-xs text-red-400">Critical</span>
+                  <span className="text-xs text-red-400">&lt;25% available</span>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <p className="text-sm text-amber-200">
+                  <strong>Contention Penalty:</strong> Making decisions with insufficient resources
+                  incurs -30 points. Resources regenerate over time.
                 </p>
               </div>
             </div>
@@ -2364,6 +2968,229 @@ function CoachMarks({ onDismiss }: { onDismiss: () => void }): JSX.Element {
           >
             <X className="w-4 h-4 text-gray-500" />
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EntityLinkPanel({
+  entities,
+  injects,
+  highlightedEntityId,
+  onHighlightEntity,
+  onClose,
+}: {
+  entities: LinkedEntity[];
+  injects: ScenarioInject[];
+  highlightedEntityId: string | null;
+  onHighlightEntity: (id: string | null) => void;
+  onClose: () => void;
+}): JSX.Element {
+  const getEntityAppearances = (entityId: string): number => {
+    return injects.filter((i) => {
+      const linkedIds = (i as unknown as { linkedEntityIds?: string[] }).linkedEntityIds || [];
+      return linkedIds.includes(entityId);
+    }).length;
+  };
+
+  const getRelatedEntities = (entityId: string): LinkedEntity[] => {
+    const entity = entities.find((e) => e.id === entityId);
+    if (!entity?.relatedEntityIds) return [];
+    return entities.filter((e) => entity.relatedEntityIds?.includes(e.id));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+      <div className="bg-gradient-to-b from-[#0d0d14] to-[#08080c] border border-gray-800/80 rounded-3xl max-w-4xl w-full max-h-[85vh] overflow-hidden shadow-2xl animate-scale-in">
+        <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+              <Link2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Entity Link Map</h2>
+              <p className="text-xs text-gray-500">{entities.length} entities across injects</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-800 transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-5 overflow-y-auto max-h-[70vh]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {entities.map((entity) => {
+              const config = ENTITY_TYPE_CONFIG[entity.type];
+              const appearances = getEntityAppearances(entity.id);
+              const related = getRelatedEntities(entity.id);
+              const isHighlighted = highlightedEntityId === entity.id;
+
+              return (
+                <button
+                  key={entity.id}
+                  onClick={() => onHighlightEntity(isHighlighted ? null : entity.id)}
+                  className={clsx(
+                    'p-4 rounded-2xl border-2 text-left transition-all duration-200',
+                    isHighlighted
+                      ? 'bg-cyan-500/15 border-cyan-500/50 ring-2 ring-cyan-500/30'
+                      : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60'
+                  )}
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div
+                      className={clsx(
+                        'w-10 h-10 rounded-xl flex items-center justify-center',
+                        config.bgColor
+                      )}
+                    >
+                      <config.icon className={clsx('w-5 h-5', config.color)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-200 truncate">
+                        {entity.shortName || entity.name}
+                      </h4>
+                      <span className={clsx('text-2xs font-medium', config.color)}>
+                        {config.label}
+                      </span>
+                    </div>
+                    {entity.criticality && (
+                      <span
+                        className={clsx(
+                          'text-2xs px-1.5 py-0.5 rounded font-bold',
+                          entity.criticality === 'CRITICAL'
+                            ? 'bg-red-500/20 text-red-400'
+                            : entity.criticality === 'HIGH'
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-gray-700 text-gray-400'
+                        )}
+                      >
+                        {entity.criticality}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-gray-400 mb-3 line-clamp-2">{entity.description}</p>
+
+                  <div className="flex items-center justify-between text-2xs">
+                    <span className="text-gray-500">
+                      Appears in <span className="text-cyan-400 font-bold">{appearances}</span>{' '}
+                      injects
+                    </span>
+                    {related.length > 0 && (
+                      <span className="text-gray-500">
+                        <span className="text-violet-400 font-bold">{related.length}</span> links
+                      </span>
+                    )}
+                  </div>
+
+                  {isHighlighted && related.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-700/50">
+                      <p className="text-2xs text-gray-500 mb-2">Related entities:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {related.map((r) => (
+                          <span
+                            key={r.id}
+                            className="text-2xs px-2 py-0.5 rounded bg-gray-800 text-gray-300"
+                          >
+                            {r.shortName || r.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlaybookPhaseTracker({
+  currentPhase,
+  phaseProgress,
+}: {
+  currentPhase: number;
+  phaseProgress: Record<number, number>;
+}): JSX.Element {
+  return (
+    <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-700/40">
+      <div className="flex items-center gap-2 mb-3">
+        <Hourglass className="w-4 h-4 text-amber-400" />
+        <span className="text-xs font-semibold text-gray-300">Playbook Phase</span>
+      </div>
+      <div className="space-y-2">
+        {PLAYBOOK_PHASES.map((phase, idx) => {
+          const Icon = phase.icon;
+          const isActive = idx === currentPhase;
+          const isComplete = idx < currentPhase;
+          const progress = phaseProgress[idx] || 0;
+
+          return (
+            <div key={phase.name} className="flex items-center gap-2">
+              <div
+                className={clsx(
+                  'w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0',
+                  isComplete
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : isActive
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'bg-gray-800 text-gray-600'
+                )}
+              >
+                {isComplete ? (
+                  <CheckCircle className="w-3.5 h-3.5" />
+                ) : (
+                  <Icon className="w-3.5 h-3.5" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span
+                    className={clsx(
+                      'text-2xs font-medium truncate',
+                      isActive
+                        ? 'text-amber-400'
+                        : isComplete
+                          ? 'text-emerald-400'
+                          : 'text-gray-500'
+                    )}
+                  >
+                    {phase.name}
+                  </span>
+                  <span className="text-2xs text-gray-600">{phase.duration}m</span>
+                </div>
+                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className={clsx(
+                      'h-full transition-all duration-500',
+                      isComplete ? 'bg-emerald-500' : isActive ? 'bg-amber-500' : 'bg-gray-700'
+                    )}
+                    style={{ width: isComplete ? '100%' : isActive ? `${progress}%` : '0%' }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ResourceContentionWarning({ message }: { message: string }): JSX.Element {
+  return (
+    <div className="fixed top-1/4 left-1/2 -translate-x-1/2 z-50 animate-slide-in">
+      <div className="px-6 py-4 rounded-2xl bg-red-500/20 border-2 border-red-500/50 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="w-6 h-6 text-red-400 animate-pulse" />
+          <div>
+            <p className="text-sm font-semibold text-red-400">Resource Contention</p>
+            <p className="text-xs text-red-300/80">{message}</p>
+          </div>
         </div>
       </div>
     </div>

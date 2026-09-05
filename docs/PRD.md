@@ -1,4 +1,4 @@
-# Hourglass Command — PRD 1.1 (Foolproof)
+# Hourglass Command — PRD 1.3 (Max-Depth)
 
 ---
 
@@ -6,8 +6,8 @@
 
 | Field              | Value                   |
 | ------------------ | ----------------------- |
-| **Document ID**    | PRD-HC-1.2              |
-| **Version**        | 1.2 (Max-Port)          |
+| **Document ID**    | PRD-HC-1.3              |
+| **Version**        | 1.3 (Max-Depth)         |
 | **Status**         | Locked                  |
 | **Owner**          | Shannon Brown           |
 | **Approved By**    | Chief of Staff          |
@@ -16,11 +16,12 @@
 
 ### Change History
 
-| Version | Date     | Author        | Changes                                                                       |
-| ------- | -------- | ------------- | ----------------------------------------------------------------------------- |
-| 1.0     | Aug 2026 | Shannon Brown | Initial PRD                                                                   |
-| 1.1     | Sep 2026 | Shannon Brown | Foolproof edition: 12 invariants, honesty threat model, closed defaults, RACI |
-| 1.2     | Sep 2026 | Shannon Brown | Max-port amendment: simulation systems, fast-casual tempo, in-game help       |
+| Version | Date     | Author        | Changes                                                                                   |
+| ------- | -------- | ------------- | ----------------------------------------------------------------------------------------- |
+| 1.0     | Aug 2026 | Shannon Brown | Initial PRD                                                                               |
+| 1.1     | Sep 2026 | Shannon Brown | Foolproof edition: 12 invariants, honesty threat model, closed defaults, RACI             |
+| 1.2     | Sep 2026 | Shannon Brown | Max-port amendment: simulation systems, fast-casual tempo, in-game help                   |
+| 1.3     | Sep 2026 | Shannon Brown | Max-depth: all simulation systems implemented, entity linking, playbook phases, Musk algo |
 
 ### Distribution
 
@@ -408,18 +409,18 @@ Features that are **closed by default** — require explicit PRD amendment to op
 
 Port **maximum enterprise incident management system functionality** as original Hourglass Command simulation mechanics. These systems create Sim City-class depth while maintaining fast-casual mobile gameplay through progressive disclosure.
 
-### Simulation Systems (MUST Implement)
+### Simulation Systems (All Implemented ✅)
 
-| System                   | Description                                                            | UX Approach                         |
-| ------------------------ | ---------------------------------------------------------------------- | ----------------------------------- |
-| **COP / Shared Picture** | Cross-domain situational awareness (Physical + Intel + Cyber)          | Domain badges, fusion indicators    |
-| **Dispatch Pressure**    | Abstracted resource availability, ETA, attention management            | Resource tokens, cooldown timers    |
-| **Triage & Routing**     | Prioritization queue, urgency sorting, attention allocation            | Priority badges, sorted intel feed  |
-| **Guided Playbooks**     | Step-by-step response phases with checklists                           | Phase progress, checklist UI        |
-| **Entity Links**         | People, places, assets connected across injects                        | Linked entity chips, cross-refs     |
-| **ESRM Cascades**        | Advisor/owner model, residual risk, accept/mitigate/transfer/avoid     | Asset owner selection, risk framing |
-| **Escalation Path**      | Activity → Incident → Investigation-grade pressure (training fidelity) | Escalation level indicator          |
-| **Audit Timeline / AAR** | Chronological decision log, structured debrief, exportable             | Timeline view, AAR export           |
+| System                   | Description                                                        | UX Approach                                  | Status  |
+| ------------------------ | ------------------------------------------------------------------ | -------------------------------------------- | ------- |
+| **COP / Shared Picture** | Cross-domain situational awareness (Physical + Intel + Cyber)      | Domain badges, fusion indicators, triage     | ✅ Done |
+| **Dispatch Pressure**    | Abstracted resource availability, contention, cooldowns            | Resource tokens, NORMAL/STRAINED/CRITICAL    | ✅ Done |
+| **Triage & Routing**     | Prioritization queue, urgency sorting, attention allocation        | IMMEDIATE/URGENT/ROUTINE badges, sorted feed | ✅ Done |
+| **Guided Playbooks**     | 5-phase progression (Assessment→Bridge→Continuity→Info→Checkpoint) | Phase tracker, time-based progression        | ✅ Done |
+| **Entity Links**         | People, places, assets, orgs, systems connected across injects     | Entity map, highlight-on-select, chips       | ✅ Done |
+| **ESRM Cascades**        | Advisor/owner model, residual risk, cascade multipliers            | Asset selection, owner briefing, scoring     | ✅ Done |
+| **Escalation Path**      | ACTIVITY → INCIDENT → INVESTIGATION with score multipliers         | Header indicator, 1.0x → 1.25x → 1.5x        | ✅ Done |
+| **Audit Timeline / AAR** | Chronological decision log, structured debrief, exportable         | Timeline view, grade calculation, MD export  | ✅ Done |
 
 ### Systems NOT Ported (Production Scope)
 
@@ -454,6 +455,74 @@ The following remain **permanently closed** per invariants:
 - Marketing or descriptive copy
 
 This is an original simulation built on enterprise incident management patterns, not a clone or derivative.
+
+---
+
+## §10.2 Musk 5-Step Algorithm Application (PRD 1.3)
+
+**Effective:** September 2026  
+**Approach:** Applied Elon Musk's 5-step engineering algorithm systematically to maximize simulation depth while eliminating waste.
+
+### Step 1: Make Requirements Less Dumb
+
+| Original Requirement      | Challenge Applied                           | Outcome                                            |
+| ------------------------- | ------------------------------------------- | -------------------------------------------------- |
+| Session persistence       | Does it improve first-hour training?        | DELETED — adds complexity, breaks instant access   |
+| User preferences settings | Who asked for this?                         | DELETED — vanity SaaS theater                      |
+| Tutorial wizard           | Can players learn by doing?                 | REPLACED with Field Guide + coach marks            |
+| Scenario difficulty modes | Does fidelity trump accessibility?          | KEPT — escalation level naturally increases depth  |
+| Full checklist management | Is checkbox ticking the training objective? | SIMPLIFIED — phase progression replaces checklists |
+
+### Step 2: Delete
+
+| Deleted Item                | Rationale                                           |
+| --------------------------- | --------------------------------------------------- |
+| Scenario builder UI         | Scope creep; scenarios are authored, not configured |
+| Multi-org / team management | SaaS theater (INV-07)                               |
+| Notification preferences    | No auth = no notifications to configure             |
+| Analytics dashboard         | Engagement farming (Anti-Metric §7)                 |
+| Export format selector      | Markdown + JSON sufficient; no PDF/DOCX generation  |
+| Verbose onboarding flow     | Fast-casual tempo means instant engagement          |
+| Separate "Learn" mode       | All play is training; no artificial separation      |
+
+### Step 3: Simplify / Optimize
+
+| Original Design                | Simplified To                                          |
+| ------------------------------ | ------------------------------------------------------ |
+| 5 playbook phases with gates   | Time-based phase progression (no blocking gates)       |
+| Complex resource allocation UI | Simple token display with contention states            |
+| Entity relationship editor     | Read-only entity map with highlight-on-select          |
+| Multi-select asset targeting   | Single asset selection per decision                    |
+| Branching playbook paths       | Linear 60-minute timeline                              |
+| Detailed scoring breakdown     | Score popup + debrief summary (progressive disclosure) |
+
+### Step 4: Accelerate Cycle Time
+
+| Optimization                      | Impact                                 |
+| --------------------------------- | -------------------------------------- |
+| First inject at 15 seconds        | Immediate engagement, no waiting       |
+| Auto-queue next inject            | No dead air between decisions          |
+| 45-second decision timer          | Pressure without paralysis             |
+| Phase transitions without prompts | Continuous flow, no interruptions      |
+| Entity chips on inject cards      | Context at a glance, no modal required |
+| Keyboard shortcuts (C/D/P)        | Power users skip mouse interaction     |
+
+### Step 5: Automate (Last)
+
+| Automation                     | Implemented After Manual Proved Value        |
+| ------------------------------ | -------------------------------------------- |
+| Triage queue sorting           | Player understands priority; system enforces |
+| Resource cooldown regeneration | Predictable timing, no manual tracking       |
+| Phase progression              | Time-based, deterministic                    |
+| Escalation level calculation   | Automatic based on inject/decision counts    |
+| Cascade multiplier application | Score calculation is transparent             |
+
+**NOT Automated (Preserves Human Judgment):**
+
+- Asset selection — player must identify what's at risk
+- Asset owner briefing — player chooses when to communicate
+- Posture decision — player owns the risk treatment choice
+- Residual risk documentation — player articulates remaining risk
 
 ---
 
@@ -538,26 +607,27 @@ The following are **permanently out of scope** per invariants:
 - ✅ SOTA UI elevation
 - ✅ PRD 1.1 (Foolproof)
 
-### Phase 2: Simulation Systems (PRD 1.2 — Active)
+### Phase 2: Simulation Systems (PRD 1.3 — Complete)
 
 - ✅ Fused GSOC scenarios (Physical + Intel + Cyber)
 - ✅ ESRM framework with asset owners
 - ✅ Fast-casual tempo (first inject ~15s)
-- 🔄 COP / shared picture
-- 🔄 Dispatch pressure (resource management)
-- 🔄 Triage & routing (priority queue)
-- 🔄 Entity links across injects
-- 🔄 Escalation path indicators
-- 🔄 In-game Field Guide / help
-- ⏸️ Guided playbook phases
-- ⏸️ Session persistence
-- ⏸️ Keyboard shortcuts
+- ✅ COP / shared picture with domain fusion
+- ✅ Dispatch pressure (resource contention, cooldowns, CRITICAL/STRAINED/NORMAL states)
+- ✅ Triage & routing (priority queue sorted by IMMEDIATE/URGENT/ROUTINE)
+- ✅ Entity links across injects (PERSON/PLACE/ASSET/ORG/SYSTEM with visual graph)
+- ✅ Escalation path indicators (ACTIVITY → INCIDENT → INVESTIGATION with cascade multipliers)
+- ✅ In-game Field Guide (8 sections: Loop, Playbook, Entities, Resources, Postures, Domains, ESRM, Scoring)
+- ✅ Guided playbook phases (5-phase progression: Assessment → Bridge → Continuity → Information → Checkpoint)
+- ✅ ESRM cascades (treatment outcomes affect COP, scoring multipliers)
+- ⏸️ Session persistence (CLOSED — adds state complexity per §10)
+- ⏸️ Keyboard shortcuts (implemented for postures C/D/P, CLOSED for expansion)
 
 ### Phase 3: Polish (Closed Until PRD 2.0)
 
-- ⏸️ Custom scenario builder
-- ⏸️ Scenario sharing
-- ⏸️ Print optimization
+- ⏸️ Custom scenario builder — CLOSED per §10 (scope creep risk)
+- ⏸️ Scenario sharing — CLOSED (requires persistence)
+- ⏸️ Print optimization — CLOSED (nice-to-have)
 
 ---
 
