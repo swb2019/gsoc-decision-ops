@@ -4,13 +4,13 @@ This directory contains screenshots for the README documentation.
 
 ## Required Screenshots
 
-| Filename | Description | Capture Instructions |
-|----------|-------------|---------------------|
-| `home.png` | Home page with scenario list | Full page, 1280px width |
-| `overview.png` | Scenario Overview tab with COP panels | Show Facts/Assumptions/Unknowns panels |
+| Filename       | Description                              | Capture Instructions                   |
+| -------------- | ---------------------------------------- | -------------------------------------- |
+| `home.png`     | Home page with scenario list             | Full page, 1280px width                |
+| `overview.png` | Scenario Overview tab with COP panels    | Show Facts/Assumptions/Unknowns panels |
 | `decision.png` | Decision recording form with ESRM fields | Show posture selection + residual risk |
-| `playbook.png` | Playbook tab with expanded phase | Show phase checklist |
-| `export.png` | Export tab ready for download | Show AAR preview |
+| `playbook.png` | Playbook tab with expanded phase         | Show phase checklist                   |
+| `export.png`   | Export tab ready for download            | Show AAR preview                       |
 
 ## Capture Guidelines
 
