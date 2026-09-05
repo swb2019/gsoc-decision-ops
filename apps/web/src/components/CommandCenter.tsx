@@ -74,6 +74,10 @@ import {
   Calculator,
   DollarSign,
   Percent,
+  Thermometer,
+  ArrowUp,
+  ArrowDown,
+  Hexagon,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -1337,6 +1341,26 @@ export default function CommandCenter({
   const [calcTrails, setCalcTrails] = useState<CalcTrail[]>([]);
   const [kriDashboard, setKRIDashboard] = useState<KRIDashboard | null>(null);
   const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
+
+  // Consequence Theatre State - tracks animated feedback for decisions
+  const [consequenceAnimation, setConsequenceAnimation] = useState<{
+    active: boolean;
+    type: 'positive' | 'negative' | 'neutral';
+    kriChanges: { id: string; delta: number; newStatus: 'GREEN' | 'AMBER' | 'RED' }[];
+    trustChange: number;
+    valueChange: number;
+    residualChange: number;
+  } | null>(null);
+  const [stakeholderTrust, setStakeholderTrust] = useState(75); // 0-100 trust score
+  const [overallResidualRisk, setOverallResidualRisk] = useState<
+    'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  >('MEDIUM');
+  const [zoneHeatLevels, setZoneHeatLevels] = useState<Record<string, number>>({
+    executive: 30,
+    operations: 40,
+    perimeter: 25,
+    cyber: 35,
+  });
   const [teamRoster, setTeamRoster] = useState<TeamRosterState | null>(null);
   const [stakeholderMap, setStakeholderMap] = useState<StakeholderMap | null>(null);
   const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
@@ -2190,6 +2214,31 @@ export default function CommandCenter({
       difficulty: difficulty as 'ROOKIE' | 'OPERATOR' | 'DIRECTOR',
     });
 
+    // CONSEQUENCE THEATRE: Timeout has negative consequences
+    setConsequenceAnimation({
+      active: true,
+      type: 'negative',
+      kriChanges: [
+        { id: 'mtta', delta: 15, newStatus: 'AMBER' },
+        { id: 'response-time', delta: 20, newStatus: 'RED' },
+      ],
+      trustChange: -10,
+      valueChange: -5000,
+      residualChange: 15,
+    });
+
+    // Update stakeholder trust negatively
+    setStakeholderTrust((prev) => Math.max(0, prev - 10));
+
+    // Increase zone heat due to inaction
+    setZoneHeatLevels((prev) => ({
+      ...prev,
+      operations: Math.min(100, prev.operations + 15),
+    }));
+
+    // Clear consequence animation after 1 second
+    setTimeout(() => setConsequenceAnimation(null), 1000);
+
     setGameState((prev) => ({
       ...prev,
       score: prev.score, // No change - timeout gives 0 points
@@ -2375,6 +2424,68 @@ export default function CommandCenter({
       });
 
       setCalcTrails((prev) => [...prev, calcTrail]);
+
+      // CONSEQUENCE THEATRE: Calculate and animate visible COP/KRI/trust changes
+      const valueNetChange = calcTrail.finalResult.netValue;
+      const trustDelta = isCorrect
+        ? (assetOwnerBriefed ? 8 : 3) + (selectedResidualRisk ? 3 : 0)
+        : -(assetOwnerBriefed ? 2 : 8);
+      const residualDelta = posture === 'PAUSE' ? -20 : posture === 'DEGRADE' ? -10 : 5;
+
+      // Determine zone affected by this decision
+      const zoneAffected = selectedAsset.businessFunction.toLowerCase().includes('executive')
+        ? 'executive'
+        : selectedAsset.businessFunction.toLowerCase().includes('security')
+          ? 'perimeter'
+          : selectedAsset.businessFunction.toLowerCase().includes('it')
+            ? 'cyber'
+            : 'operations';
+
+      // Trigger consequence animation
+      setConsequenceAnimation({
+        active: true,
+        type: isCorrect
+          ? 'positive'
+          : scoringResult.breakdown.penalties.total < -20
+            ? 'negative'
+            : 'neutral',
+        kriChanges: [
+          { id: 'mtta', delta: isCorrect ? -5 : 10, newStatus: isCorrect ? 'GREEN' : 'AMBER' },
+          {
+            id: 'residual-rate',
+            delta: selectedResidualRisk ? 10 : -5,
+            newStatus: selectedResidualRisk ? 'GREEN' : 'AMBER',
+          },
+        ],
+        trustChange: trustDelta,
+        valueChange: valueNetChange,
+        residualChange: residualDelta,
+      });
+
+      // Update stakeholder trust (clamped 0-100)
+      setStakeholderTrust((prev) => Math.max(0, Math.min(100, prev + trustDelta)));
+
+      // Update zone heat levels
+      setZoneHeatLevels((prev) => ({
+        ...prev,
+        [zoneAffected]: Math.max(0, Math.min(100, prev[zoneAffected] + (isCorrect ? -15 : 20))),
+      }));
+
+      // Update overall residual risk based on posture
+      if (posture === 'PAUSE') {
+        setOverallResidualRisk('LOW');
+      } else if (posture === 'DEGRADE') {
+        setOverallResidualRisk((prev) =>
+          prev === 'CRITICAL' ? 'HIGH' : prev === 'HIGH' ? 'MEDIUM' : prev
+        );
+      } else if (!isCorrect && selectedAsset.criticality === 'CRITICAL') {
+        setOverallResidualRisk((prev) =>
+          prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : 'CRITICAL'
+        );
+      }
+
+      // Clear consequence animation after 1 second
+      setTimeout(() => setConsequenceAnimation(null), 1000);
 
       setGameState((prev) => ({
         ...prev,
@@ -3417,18 +3528,24 @@ export default function CommandCenter({
                   value={stats.totalFacts}
                   color="emerald"
                   icon={CheckCircle}
+                  animating={consequenceAnimation?.active}
+                  reducedMotion={reducedMotion}
                 />
                 <MiniStat
                   label="Assumed"
                   value={stats.totalAssumptions}
                   color="amber"
                   icon={HelpCircle}
+                  animating={consequenceAnimation?.active}
+                  reducedMotion={reducedMotion}
                 />
                 <MiniStat
                   label="Unknown"
                   value={stats.totalUnknowns}
                   color="red"
                   icon={AlertCircle}
+                  animating={consequenceAnimation?.active}
+                  reducedMotion={reducedMotion}
                 />
               </div>
               {/* Triage Queue Status */}
@@ -3453,12 +3570,51 @@ export default function CommandCenter({
               )}
             </div>
 
-            {/* Dispatch Pressure */}
+            {/* Visual COP Zone Display */}
+            <div className="p-4 border-b border-gray-800/50">
+              <COPZoneDisplay
+                zoneHeatLevels={zoneHeatLevels}
+                overallResidualRisk={overallResidualRisk}
+                stakeholderTrust={stakeholderTrust}
+                reducedMotion={reducedMotion}
+                animating={!!consequenceAnimation?.active}
+              />
+            </div>
+
+            {/* Dispatch Pressure with Resource Chips */}
             <div className="p-4 border-b border-gray-800/50">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-blue-400" />
                 <h3 className="text-sm font-semibold text-gray-300">Resources</h3>
               </div>
+              {/* Compact Resource Chips */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <ResourceChip
+                  label="Guards"
+                  available={dispatchResources.guards.available}
+                  total={dispatchResources.guards.total}
+                  icon={Shield}
+                  contentionLevel={dispatchResources.guards.contentionLevel}
+                  reducedMotion={reducedMotion}
+                />
+                <ResourceChip
+                  label="Analysts"
+                  available={dispatchResources.analysts.available}
+                  total={dispatchResources.analysts.total}
+                  icon={Brain}
+                  contentionLevel={dispatchResources.analysts.contentionLevel}
+                  reducedMotion={reducedMotion}
+                />
+                <ResourceChip
+                  label="Responders"
+                  available={dispatchResources.responders.available}
+                  total={dispatchResources.responders.total}
+                  icon={Zap}
+                  contentionLevel={dispatchResources.responders.contentionLevel}
+                  reducedMotion={reducedMotion}
+                />
+              </div>
+              {/* Detailed Resource Bars */}
               <div className="space-y-2">
                 <DispatchResource label="Guards" resource={dispatchResources.guards} color="cyan" />
                 <DispatchResource
@@ -3684,20 +3840,37 @@ export default function CommandCenter({
                     value={stats.totalFacts}
                     color="emerald"
                     icon={CheckCircle}
+                    animating={consequenceAnimation?.active}
+                    reducedMotion={reducedMotion}
                   />
                   <MiniStat
                     label="Assumed"
                     value={stats.totalAssumptions}
                     color="amber"
                     icon={HelpCircle}
+                    animating={consequenceAnimation?.active}
+                    reducedMotion={reducedMotion}
                   />
                   <MiniStat
                     label="Unknown"
                     value={stats.totalUnknowns}
                     color="red"
                     icon={AlertCircle}
+                    animating={consequenceAnimation?.active}
+                    reducedMotion={reducedMotion}
                   />
                 </div>
+              </div>
+
+              {/* Visual COP Zone Display - Mobile */}
+              <div className="p-4 border-b border-gray-800/50">
+                <COPZoneDisplay
+                  zoneHeatLevels={zoneHeatLevels}
+                  overallResidualRisk={overallResidualRisk}
+                  stakeholderTrust={stakeholderTrust}
+                  reducedMotion={reducedMotion}
+                  animating={!!consequenceAnimation?.active}
+                />
               </div>
 
               {/* Assets */}
@@ -3856,6 +4029,9 @@ export default function CommandCenter({
           }}
         />
       )}
+
+      {/* Consequence Theatre Overlay */}
+      <ConsequenceTheatreOverlay animation={consequenceAnimation} reducedMotion={reducedMotion} />
 
       {/* Difficulty Picker Modal */}
       {showDifficultyPicker && (
@@ -5123,11 +5299,17 @@ function MiniStat({
   value,
   color,
   icon: Icon,
+  delta,
+  animating,
+  reducedMotion,
 }: {
   label: string;
   value: number;
   color: 'emerald' | 'amber' | 'red';
   icon?: typeof Shield;
+  delta?: number;
+  animating?: boolean;
+  reducedMotion?: boolean;
 }): JSX.Element {
   const colorClasses = {
     emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
@@ -5136,12 +5318,321 @@ function MiniStat({
   };
 
   return (
-    <div className={clsx('p-2.5 rounded-xl border text-center', colorClasses[color])}>
+    <div
+      className={clsx(
+        'p-2.5 rounded-xl border text-center relative overflow-hidden transition-all duration-300',
+        colorClasses[color],
+        animating && !reducedMotion && 'scale-105 ring-2 ring-white/20'
+      )}
+    >
       {Icon && <Icon className={clsx('w-4 h-4 mx-auto mb-1', colorClasses[color].split(' ')[0])} />}
       <div className={clsx('text-xl font-bold font-mono', colorClasses[color].split(' ')[0])}>
         {value}
       </div>
       <div className="text-2xs text-gray-500 uppercase tracking-wider">{label}</div>
+      {delta !== undefined && delta !== 0 && (
+        <div
+          className={clsx(
+            'absolute top-1 right-1 text-2xs font-bold flex items-center gap-0.5',
+            !reducedMotion && 'animate-bounce',
+            delta > 0 ? 'text-emerald-400' : 'text-red-400'
+          )}
+        >
+          {delta > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+          {Math.abs(delta)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Consequence Theatre Overlay
+ * Shows animated feedback when decisions affect COP/KRI/trust
+ */
+function ConsequenceTheatreOverlay({
+  animation,
+  reducedMotion,
+}: {
+  animation: {
+    active: boolean;
+    type: 'positive' | 'negative' | 'neutral';
+    kriChanges: { id: string; delta: number; newStatus: 'GREEN' | 'AMBER' | 'RED' }[];
+    trustChange: number;
+    valueChange: number;
+    residualChange: number;
+  } | null;
+  reducedMotion: boolean;
+}): JSX.Element | null {
+  if (!animation || !animation.active) return null;
+
+  const bgGradient =
+    animation.type === 'positive'
+      ? 'from-emerald-500/20 via-transparent to-transparent'
+      : animation.type === 'negative'
+        ? 'from-red-500/20 via-transparent to-transparent'
+        : 'from-amber-500/20 via-transparent to-transparent';
+
+  return (
+    <div
+      className={clsx(
+        'fixed inset-0 pointer-events-none z-40',
+        !reducedMotion && 'animate-fade-in-fast'
+      )}
+    >
+      <div className={clsx('absolute inset-0 bg-gradient-to-b', bgGradient)} />
+
+      {/* Floating consequence indicators */}
+      <div className="absolute top-20 right-4 flex flex-col gap-2">
+        {animation.trustChange !== 0 && (
+          <div
+            className={clsx(
+              'px-3 py-2 rounded-lg backdrop-blur-sm flex items-center gap-2',
+              !reducedMotion && 'animate-slide-in-right',
+              animation.trustChange > 0
+                ? 'bg-emerald-500/20 border border-emerald-500/40'
+                : 'bg-red-500/20 border border-red-500/40'
+            )}
+          >
+            <Users className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              Trust {animation.trustChange > 0 ? '+' : ''}
+              {animation.trustChange}%
+            </span>
+          </div>
+        )}
+
+        {animation.valueChange !== 0 && (
+          <div
+            className={clsx(
+              'px-3 py-2 rounded-lg backdrop-blur-sm flex items-center gap-2',
+              !reducedMotion && 'animate-slide-in-right animation-delay-100',
+              animation.valueChange > 0
+                ? 'bg-emerald-500/20 border border-emerald-500/40'
+                : 'bg-amber-500/20 border border-amber-500/40'
+            )}
+          >
+            <DollarSign className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {animation.valueChange >= 0 ? '+' : ''}$
+              {Math.abs(animation.valueChange).toLocaleString()}
+            </span>
+          </div>
+        )}
+
+        {animation.residualChange !== 0 && (
+          <div
+            className={clsx(
+              'px-3 py-2 rounded-lg backdrop-blur-sm flex items-center gap-2',
+              !reducedMotion && 'animate-slide-in-right animation-delay-200',
+              animation.residualChange < 0
+                ? 'bg-emerald-500/20 border border-emerald-500/40'
+                : 'bg-red-500/20 border border-red-500/40'
+            )}
+          >
+            <Shield className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              Risk {animation.residualChange < 0 ? '' : '+'}
+              {animation.residualChange}%
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * COP Zone Display - Visual layered view of operational zones
+ */
+function COPZoneDisplay({
+  zoneHeatLevels,
+  overallResidualRisk,
+  stakeholderTrust,
+  reducedMotion,
+  animating,
+}: {
+  zoneHeatLevels: Record<string, number>;
+  overallResidualRisk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  stakeholderTrust: number;
+  reducedMotion: boolean;
+  animating: boolean;
+}): JSX.Element {
+  const getHeatColor = (level: number): string => {
+    if (level < 25) return 'bg-emerald-500/30 border-emerald-500/50';
+    if (level < 50) return 'bg-amber-500/30 border-amber-500/50';
+    if (level < 75) return 'bg-orange-500/30 border-orange-500/50';
+    return 'bg-red-500/30 border-red-500/50';
+  };
+
+  const getHeatTextColor = (level: number): string => {
+    if (level < 25) return 'text-emerald-400';
+    if (level < 50) return 'text-amber-400';
+    if (level < 75) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
+  const residualColors: Record<string, string> = {
+    LOW: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+    MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+    CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/40',
+  };
+
+  const trustColor =
+    stakeholderTrust >= 70
+      ? 'text-emerald-400'
+      : stakeholderTrust >= 40
+        ? 'text-amber-400'
+        : 'text-red-400';
+
+  return (
+    <div className="space-y-3">
+      {/* Zone Heat Map */}
+      <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-700/40">
+        <div className="flex items-center gap-2 mb-3">
+          <Thermometer className="w-4 h-4 text-orange-400" />
+          <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+            Zone Heat
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(zoneHeatLevels).map(([zone, level]) => (
+            <div
+              key={zone}
+              className={clsx(
+                'p-2 rounded-lg border relative overflow-hidden transition-all duration-500',
+                getHeatColor(level),
+                animating && !reducedMotion && 'scale-[1.02]'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Hexagon className={clsx('w-3 h-3', getHeatTextColor(level))} />
+                  <span className="text-2xs font-medium text-gray-300 capitalize">{zone}</span>
+                </div>
+                <span className={clsx('text-xs font-bold font-mono', getHeatTextColor(level))}>
+                  {level}%
+                </span>
+              </div>
+              {/* Heat bar */}
+              <div className="mt-1.5 h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                <div
+                  className={clsx(
+                    'h-full rounded-full transition-all duration-500',
+                    level < 25
+                      ? 'bg-emerald-400'
+                      : level < 50
+                        ? 'bg-amber-400'
+                        : level < 75
+                          ? 'bg-orange-400'
+                          : 'bg-red-400'
+                  )}
+                  style={{ width: `${level}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Trust & Residual Risk Chips */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Stakeholder Trust */}
+        <div
+          className={clsx(
+            'p-2.5 rounded-xl border transition-all duration-300',
+            stakeholderTrust >= 70
+              ? 'bg-emerald-500/10 border-emerald-500/30'
+              : stakeholderTrust >= 40
+                ? 'bg-amber-500/10 border-amber-500/30'
+                : 'bg-red-500/10 border-red-500/30',
+            animating && !reducedMotion && 'scale-105'
+          )}
+        >
+          <div className="flex items-center gap-1.5 mb-1">
+            <Users className={clsx('w-3 h-3', trustColor)} />
+            <span className="text-2xs text-gray-400">Trust</span>
+          </div>
+          <div className={clsx('text-lg font-bold font-mono', trustColor)}>{stakeholderTrust}%</div>
+        </div>
+
+        {/* Overall Residual Risk */}
+        <div
+          className={clsx(
+            'p-2.5 rounded-xl border transition-all duration-300',
+            residualColors[overallResidualRisk],
+            animating && !reducedMotion && 'scale-105'
+          )}
+        >
+          <div className="flex items-center gap-1.5 mb-1">
+            <Shield className="w-3 h-3" />
+            <span className="text-2xs text-gray-400">Residual</span>
+          </div>
+          <div className="text-sm font-bold">{overallResidualRisk}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Resource Chip - Compact resource status indicator
+ */
+function ResourceChip({
+  label,
+  available,
+  total,
+  icon: Icon,
+  contentionLevel,
+  reducedMotion,
+}: {
+  label: string;
+  available: number;
+  total: number;
+  icon: typeof Shield;
+  contentionLevel: 'NORMAL' | 'STRAINED' | 'CRITICAL';
+  reducedMotion: boolean;
+}): JSX.Element {
+  const ratio = available / total;
+  const color =
+    contentionLevel === 'CRITICAL' ? 'red' : contentionLevel === 'STRAINED' ? 'amber' : 'emerald';
+
+  const colorClasses = {
+    emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+    amber: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+    red: 'bg-red-500/10 border-red-500/30 text-red-400',
+  };
+
+  return (
+    <div
+      className={clsx(
+        'px-2 py-1.5 rounded-lg border flex items-center gap-2 transition-all',
+        colorClasses[color],
+        contentionLevel === 'CRITICAL' && !reducedMotion && 'animate-pulse'
+      )}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      <div className="flex-1 min-w-0">
+        <div className="text-2xs text-gray-400 truncate">{label}</div>
+        <div className="text-xs font-bold font-mono">
+          {available}/{total}
+        </div>
+      </div>
+      {/* Mini utilization bar */}
+      <div className="w-8 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+        <div
+          className={clsx(
+            'h-full rounded-full transition-all duration-300',
+            color === 'emerald'
+              ? 'bg-emerald-400'
+              : color === 'amber'
+                ? 'bg-amber-400'
+                : 'bg-red-400'
+          )}
+          style={{ width: `${ratio * 100}%` }}
+        />
+      </div>
     </div>
   );
 }
