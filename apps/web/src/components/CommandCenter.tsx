@@ -28,6 +28,8 @@ import {
   Clock,
   Flame,
   Activity,
+  Briefcase,
+  BarChart3,
 } from 'lucide-react';
 import {
   recordDecision,
@@ -44,6 +46,7 @@ import Link from 'next/link';
 import { clsx } from 'clsx';
 
 type SecurityDomain = 'PHYSICAL' | 'INTELLIGENCE' | 'CYBER';
+type MobileTab = 'intel' | 'decision' | 'cop';
 
 interface CommandCenterProps {
   initialLog: DecisionLog;
@@ -171,6 +174,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   });
   const [reducedMotion, setReducedMotion] = useState(false);
   const [lastInjectTime, setLastInjectTime] = useState(0);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('intel');
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -490,27 +494,27 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         />
       </div>
 
-      {/* Top Command Bar */}
-      <header className="relative z-40 flex-none border-b border-gray-800/60 bg-[#08080e]/90 backdrop-blur-2xl">
-        <div className="flex items-center justify-between px-4 py-3 lg:px-6">
-          {/* Left: Logo & Incident */}
-          <div className="flex items-center gap-4">
+      {/* Top Command Bar - Mobile-first responsive */}
+      <header className="relative z-40 flex-none border-b border-gray-800/60 bg-[#08080e]/90 backdrop-blur-2xl safe-area-top">
+        <div className="flex items-center justify-between px-3 py-2 lg:px-6 lg:py-3">
+          {/* Left: Back & Logo */}
+          <div className="flex items-center gap-2 lg:gap-4">
             <Link
               href="/"
-              className="p-2 -m-2 rounded-xl hover:bg-gray-800/50 transition-all group"
+              className="p-2.5 rounded-xl hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target flex items-center justify-center"
               aria-label="Exit mission"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-300 transition-colors" />
+              <ArrowLeft className="w-5 h-5 text-gray-500" />
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-3">
               <div className="relative">
                 <div className="absolute inset-0 bg-emerald-500/30 rounded-xl blur-xl animate-pulse-slow" />
-                <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <div className="relative w-10 h-10 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
                   <Shield className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden lg:block">
                 <div className="text-base font-bold text-gray-100 tracking-tight">
                   Aegis Command
                 </div>
@@ -522,18 +526,62 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
                     )}
                   />
                   <span className={clsx(isRunning ? 'text-emerald-400' : 'text-gray-500')}>
-                    {isRunning ? 'ACTIVE INCIDENT' : 'STANDBY'}
+                    {isRunning ? 'ACTIVE' : 'STANDBY'}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Center: Timer - THE HEART OF TENSION */}
-          <div className="flex items-center gap-4">
+          {/* Center: Timer - Always visible, compact on mobile */}
+          <div className="flex items-center">
+            {/* Mobile compact timer */}
             <div
               className={clsx(
-                'relative flex items-center gap-4 px-5 py-3 rounded-2xl border-2 transition-all duration-300',
+                'flex lg:hidden items-center gap-2 px-3 py-2 rounded-xl border transition-all',
+                isCritical
+                  ? 'bg-red-500/10 border-red-500/40'
+                  : isUrgent
+                    ? 'bg-amber-500/10 border-amber-500/30'
+                    : 'bg-gray-800/40 border-gray-700/50'
+              )}
+            >
+              <button
+                onClick={() => setIsRunning(!isRunning)}
+                className={clsx(
+                  'p-2 rounded-lg transition-all touch-target flex items-center justify-center',
+                  isRunning
+                    ? 'bg-amber-500/20 text-amber-400 active:bg-amber-500/30'
+                    : 'bg-emerald-500/20 text-emerald-400 active:bg-emerald-500/30'
+                )}
+                aria-label={isRunning ? 'Pause' : 'Start'}
+              >
+                {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </button>
+              <div
+                className={clsx(
+                  'font-mono text-xl font-black tracking-tighter',
+                  isCritical ? 'text-red-400' : isUrgent ? 'text-amber-400' : 'text-white'
+                )}
+              >
+                {formatTime(elapsedSeconds)}
+              </div>
+              <Timer
+                className={clsx(
+                  'w-5 h-5',
+                  isCritical
+                    ? 'text-red-400 animate-bounce'
+                    : isUrgent
+                      ? 'text-amber-400'
+                      : 'text-gray-500'
+                )}
+              />
+            </div>
+
+            {/* Desktop full timer */}
+            <div
+              className={clsx(
+                'hidden lg:flex relative items-center gap-4 px-5 py-3 rounded-2xl border-2 transition-all duration-300',
                 isCritical
                   ? 'bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/20'
                   : isUrgent
@@ -548,7 +596,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
               <button
                 onClick={() => setIsRunning(!isRunning)}
                 className={clsx(
-                  'relative z-10 p-2.5 rounded-xl transition-all duration-200',
+                  'relative z-10 p-2.5 rounded-xl transition-all duration-200 touch-target flex items-center justify-center',
                   isRunning
                     ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
                     : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
@@ -588,9 +636,20 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
             </div>
           </div>
 
-          {/* Right: Score Display */}
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-gray-800/60 to-gray-800/40 border border-gray-700/50">
+          {/* Right: Score & Actions */}
+          <div className="flex items-center gap-1 lg:gap-3">
+            {/* Mobile score badge */}
+            <div className="flex lg:hidden items-center gap-1 px-2 py-1 rounded-lg bg-gray-800/40">
+              <Zap className="w-4 h-4 text-emerald-400" />
+              <span className="font-mono text-sm font-bold text-emerald-400">
+                {gameState.score >= 1000
+                  ? `${(gameState.score / 1000).toFixed(1)}k`
+                  : gameState.score}
+              </span>
+            </div>
+
+            {/* Desktop score display */}
+            <div className="hidden lg:flex items-center gap-4 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-gray-800/60 to-gray-800/40 border border-gray-700/50">
               <div className="text-center">
                 <div className="font-mono text-2xl font-black text-emerald-400 tracking-tight">
                   {gameState.score.toLocaleString()}
@@ -614,14 +673,16 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
 
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-all"
+              className="hidden sm:flex p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target items-center justify-center"
+              aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
             >
               {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
 
             <button
               onClick={() => setShowDebrief(true)}
-              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition-all"
+              className="p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all touch-target flex items-center justify-center"
+              aria-label="View debrief"
             >
               <FileText className="w-5 h-5" />
             </button>
@@ -629,7 +690,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         </div>
 
         {/* Progress Bar */}
-        <div className="h-1.5 bg-gray-900/80">
+        <div className="h-1 lg:h-1.5 bg-gray-900/80">
           <div
             className={clsx(
               'h-full transition-all duration-500 relative',
@@ -646,171 +707,408 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative z-10 flex-1 flex overflow-hidden">
-        {/* Left: Intel Feed */}
-        <div className="w-80 xl:w-96 flex-shrink-0 border-r border-gray-800/50 bg-[#08080c]/80 backdrop-blur-xl flex flex-col">
-          <div className="p-4 border-b border-gray-800/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Radio
-                  className={clsx(
-                    'w-5 h-5',
-                    isRunning ? 'text-emerald-400 animate-pulse' : 'text-gray-600'
-                  )}
-                />
-                <h2 className="font-semibold text-gray-200">Intel Feed</h2>
-              </div>
-              <span className="text-xs text-gray-500 font-mono">
-                {revealedInjects.length}/{log.injects.length}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-3">
-            {revealedInjects.length === 0 && (
-              <div className="text-center py-16">
-                <Activity className="w-12 h-12 text-gray-700 mx-auto mb-4 animate-pulse" />
-                <p className="text-sm text-gray-500">Awaiting intel...</p>
-                <p className="text-xs text-gray-600 mt-2">Press SPACE to begin</p>
-              </div>
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-nav lg:hidden" aria-label="Mobile navigation">
+        <div className="flex items-center">
+          <button
+            onClick={() => setMobileTab('intel')}
+            className={clsx(
+              'mobile-nav-item',
+              mobileTab === 'intel' ? 'mobile-nav-item-active' : 'text-gray-500'
             )}
-
-            {revealedInjects.map((inject, idx) => {
-              const isHandled = log.decisions.some((d) => d.title === inject.title);
-              const isActive = pendingDecision?.id === inject.id;
-
-              return (
-                <InjectCard
-                  key={inject.id}
-                  inject={inject}
-                  index={idx}
-                  isHandled={isHandled}
-                  isActive={isActive}
-                  onSelect={() => {
-                    if (!isHandled) {
-                      setPendingDecision(inject);
-                      setSelectedAsset(null);
-                      setAssetOwnerBriefed(false);
-                      setResidualRiskNote('');
-                    }
-                  }}
-                  reducedMotion={reducedMotion}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Center: Decision Console */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {pendingDecision ? (
-            <DecisionConsole
-              inject={pendingDecision}
-              assets={assets}
-              selectedAsset={selectedAsset}
-              onSelectAsset={setSelectedAsset}
-              assetOwnerBriefed={assetOwnerBriefed}
-              onToggleBriefed={() => setAssetOwnerBriefed(!assetOwnerBriefed)}
-              residualRiskNote={residualRiskNote}
-              onResidualRiskChange={setResidualRiskNote}
-              decisionTimer={decisionTimer}
-              onCommit={handlePostureCommit}
-              reducedMotion={reducedMotion}
-            />
-          ) : (
-            <IdleState
-              isRunning={isRunning}
-              revealedInjects={revealedInjects}
-              decisions={log.decisions}
-              onStart={() => setIsRunning(true)}
-              onSelectInject={(inject) => {
-                setPendingDecision(inject);
-                setSelectedAsset(null);
-                setAssetOwnerBriefed(false);
-              }}
-            />
-          )}
-        </div>
-
-        {/* Right: Assets & COP */}
-        <div className="hidden xl:flex w-80 flex-shrink-0 border-l border-gray-800/50 bg-[#08080c]/80 backdrop-blur-xl flex-col">
-          {/* Assets at Risk */}
-          <div className="p-4 border-b border-gray-800/50">
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-semibold text-gray-300">Assets at Risk</h3>
-            </div>
-            <div className="space-y-2">
-              {assets.slice(0, 3).map((asset) => (
-                <div
-                  key={asset.id}
-                  className={clsx(
-                    'p-3 rounded-xl border cursor-pointer transition-all',
-                    selectedAsset?.id === asset.id
-                      ? 'bg-amber-500/10 border-amber-500/40'
-                      : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60'
-                  )}
-                  onClick={() => pendingDecision && setSelectedAsset(asset)}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-200 truncate">{asset.name}</span>
-                    <span
-                      className={clsx(
-                        'text-2xs px-1.5 py-0.5 rounded font-bold',
-                        asset.criticality === 'CRITICAL'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-amber-500/20 text-amber-400'
-                      )}
-                    >
-                      {asset.criticality}
-                    </span>
-                  </div>
-                  <p className="text-2xs text-gray-500 truncate">{asset.owner.name}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* COP Stats */}
-          <div className="p-4 border-b border-gray-800/50">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">Situation Board</h3>
-            <div className="grid grid-cols-3 gap-2">
-              <MiniStat label="Facts" value={stats.totalFacts} color="emerald" />
-              <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" />
-              <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" />
-            </div>
-          </div>
-
-          {/* Decision History */}
-          <div className="flex-1 p-4 overflow-y-auto">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">Decision Log</h3>
-            <div className="space-y-2">
-              {log.decisions
-                .slice(-5)
-                .reverse()
-                .map((decision) => (
-                  <div
-                    key={decision.id}
-                    className={clsx(
-                      'p-2.5 rounded-lg border text-xs',
-                      POSTURE_CONFIG[decision.posture].bgColor,
-                      POSTURE_CONFIG[decision.posture].borderColor
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={clsx('font-bold', POSTURE_CONFIG[decision.posture].color)}>
-                        {decision.posture}
-                      </span>
-                      <span className="text-gray-400 truncate">{decision.title}</span>
-                    </div>
-                  </div>
-                ))}
-              {log.decisions.length === 0 && (
-                <p className="text-xs text-gray-600 text-center py-4">No decisions yet</p>
+            aria-current={mobileTab === 'intel' ? 'page' : undefined}
+          >
+            <div className="relative">
+              <Radio className="w-6 h-6" />
+              {revealedInjects.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-2xs font-bold text-black flex items-center justify-center">
+                  {revealedInjects.length}
+                </span>
               )}
             </div>
+            <span className="mobile-nav-label">Intel</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('decision')}
+            className={clsx(
+              'mobile-nav-item',
+              mobileTab === 'decision' ? 'mobile-nav-item-active' : 'text-gray-500'
+            )}
+            aria-current={mobileTab === 'decision' ? 'page' : undefined}
+          >
+            <Briefcase className="w-6 h-6" />
+            <span className="mobile-nav-label">Decision</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('cop')}
+            className={clsx(
+              'mobile-nav-item',
+              mobileTab === 'cop' ? 'mobile-nav-item-active' : 'text-gray-500'
+            )}
+            aria-current={mobileTab === 'cop' ? 'page' : undefined}
+          >
+            <BarChart3 className="w-6 h-6" />
+            <span className="mobile-nav-label">COP</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="relative z-10 flex-1 flex overflow-hidden mobile-content-area">
+        {/* Desktop: Full 3-column layout */}
+        <div className="hidden lg:flex flex-1">
+          {/* Left: Intel Feed */}
+          <div className="w-80 xl:w-96 flex-shrink-0 border-r border-gray-800/50 bg-[#08080c]/80 backdrop-blur-xl flex flex-col">
+            <div className="p-4 border-b border-gray-800/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Radio
+                    className={clsx(
+                      'w-5 h-5',
+                      isRunning ? 'text-emerald-400 animate-pulse' : 'text-gray-600'
+                    )}
+                  />
+                  <h2 className="font-semibold text-gray-200">Intel Feed</h2>
+                </div>
+                <span className="text-xs text-gray-500 font-mono">
+                  {revealedInjects.length}/{log.injects.length}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-3">
+              {revealedInjects.length === 0 && (
+                <div className="text-center py-16">
+                  <Activity className="w-12 h-12 text-gray-700 mx-auto mb-4 animate-pulse" />
+                  <p className="text-sm text-gray-500">Awaiting intel...</p>
+                  <p className="text-xs text-gray-600 mt-2">Press SPACE to begin</p>
+                </div>
+              )}
+
+              {revealedInjects.map((inject, idx) => {
+                const isHandled = log.decisions.some((d) => d.title === inject.title);
+                const isActive = pendingDecision?.id === inject.id;
+
+                return (
+                  <InjectCard
+                    key={inject.id}
+                    inject={inject}
+                    index={idx}
+                    isHandled={isHandled}
+                    isActive={isActive}
+                    onSelect={() => {
+                      if (!isHandled) {
+                        setPendingDecision(inject);
+                        setSelectedAsset(null);
+                        setAssetOwnerBriefed(false);
+                        setResidualRiskNote('');
+                      }
+                    }}
+                    reducedMotion={reducedMotion}
+                  />
+                );
+              })}
+            </div>
           </div>
+
+          {/* Center: Decision Console */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {pendingDecision ? (
+              <DecisionConsole
+                inject={pendingDecision}
+                assets={assets}
+                selectedAsset={selectedAsset}
+                onSelectAsset={setSelectedAsset}
+                assetOwnerBriefed={assetOwnerBriefed}
+                onToggleBriefed={() => setAssetOwnerBriefed(!assetOwnerBriefed)}
+                residualRiskNote={residualRiskNote}
+                onResidualRiskChange={setResidualRiskNote}
+                decisionTimer={decisionTimer}
+                onCommit={handlePostureCommit}
+                reducedMotion={reducedMotion}
+              />
+            ) : (
+              <IdleState
+                isRunning={isRunning}
+                revealedInjects={revealedInjects}
+                decisions={log.decisions}
+                onStart={() => setIsRunning(true)}
+                onSelectInject={(inject) => {
+                  setPendingDecision(inject);
+                  setSelectedAsset(null);
+                  setAssetOwnerBriefed(false);
+                }}
+              />
+            )}
+          </div>
+
+          {/* Right: Assets & COP */}
+          <div className="hidden xl:flex w-80 flex-shrink-0 border-l border-gray-800/50 bg-[#08080c]/80 backdrop-blur-xl flex-col">
+            {/* Assets at Risk */}
+            <div className="p-4 border-b border-gray-800/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-semibold text-gray-300">Assets at Risk</h3>
+              </div>
+              <div className="space-y-2">
+                {assets.slice(0, 3).map((asset) => (
+                  <div
+                    key={asset.id}
+                    className={clsx(
+                      'p-3 rounded-xl border cursor-pointer transition-all',
+                      selectedAsset?.id === asset.id
+                        ? 'bg-amber-500/10 border-amber-500/40'
+                        : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60'
+                    )}
+                    onClick={() => pendingDecision && setSelectedAsset(asset)}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-200 truncate">
+                        {asset.name}
+                      </span>
+                      <span
+                        className={clsx(
+                          'text-2xs px-1.5 py-0.5 rounded font-bold',
+                          asset.criticality === 'CRITICAL'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-amber-500/20 text-amber-400'
+                        )}
+                      >
+                        {asset.criticality}
+                      </span>
+                    </div>
+                    <p className="text-2xs text-gray-500 truncate">{asset.owner.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* COP Stats */}
+            <div className="p-4 border-b border-gray-800/50">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Situation Board</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <MiniStat label="Facts" value={stats.totalFacts} color="emerald" />
+                <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" />
+                <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" />
+              </div>
+            </div>
+
+            {/* Decision History */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Decision Log</h3>
+              <div className="space-y-2">
+                {log.decisions
+                  .slice(-5)
+                  .reverse()
+                  .map((decision) => (
+                    <div
+                      key={decision.id}
+                      className={clsx(
+                        'p-2.5 rounded-lg border text-xs',
+                        POSTURE_CONFIG[decision.posture].bgColor,
+                        POSTURE_CONFIG[decision.posture].borderColor
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={clsx('font-bold', POSTURE_CONFIG[decision.posture].color)}>
+                          {decision.posture}
+                        </span>
+                        <span className="text-gray-400 truncate">{decision.title}</span>
+                      </div>
+                    </div>
+                  ))}
+                {log.decisions.length === 0 && (
+                  <p className="text-xs text-gray-600 text-center py-4">No decisions yet</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile: Single-surface tabbed view */}
+        <div className="flex lg:hidden flex-1 flex-col overflow-hidden">
+          {/* Mobile Intel Tab */}
+          {mobileTab === 'intel' && (
+            <div className="flex-1 flex flex-col overflow-hidden animate-fade-in">
+              <div className="p-4 border-b border-gray-800/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Radio
+                    className={clsx(
+                      'w-5 h-5',
+                      isRunning ? 'text-emerald-400 animate-pulse' : 'text-gray-600'
+                    )}
+                  />
+                  <h2 className="font-semibold text-gray-200">Intel Feed</h2>
+                </div>
+                <span className="text-xs text-gray-500 font-mono">
+                  {revealedInjects.length}/{log.injects.length}
+                </span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {revealedInjects.length === 0 && (
+                  <div className="text-center py-16">
+                    <Activity className="w-14 h-14 text-gray-700 mx-auto mb-4 animate-pulse" />
+                    <p className="text-base text-gray-500">Awaiting intel...</p>
+                    <p className="text-sm text-gray-600 mt-2">Tap play to begin simulation</p>
+                  </div>
+                )}
+
+                {revealedInjects.map((inject, idx) => {
+                  const isHandled = log.decisions.some((d) => d.title === inject.title);
+                  const isActive = pendingDecision?.id === inject.id;
+
+                  return (
+                    <InjectCard
+                      key={inject.id}
+                      inject={inject}
+                      index={idx}
+                      isHandled={isHandled}
+                      isActive={isActive}
+                      onSelect={() => {
+                        if (!isHandled) {
+                          setPendingDecision(inject);
+                          setSelectedAsset(null);
+                          setAssetOwnerBriefed(false);
+                          setResidualRiskNote('');
+                          setMobileTab('decision');
+                        }
+                      }}
+                      reducedMotion={reducedMotion}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Decision Tab */}
+          {mobileTab === 'decision' && (
+            <div className="flex-1 flex flex-col overflow-hidden animate-fade-in">
+              {pendingDecision ? (
+                <DecisionConsole
+                  inject={pendingDecision}
+                  assets={assets}
+                  selectedAsset={selectedAsset}
+                  onSelectAsset={setSelectedAsset}
+                  assetOwnerBriefed={assetOwnerBriefed}
+                  onToggleBriefed={() => setAssetOwnerBriefed(!assetOwnerBriefed)}
+                  residualRiskNote={residualRiskNote}
+                  onResidualRiskChange={setResidualRiskNote}
+                  decisionTimer={decisionTimer}
+                  onCommit={handlePostureCommit}
+                  reducedMotion={reducedMotion}
+                />
+              ) : (
+                <IdleState
+                  isRunning={isRunning}
+                  revealedInjects={revealedInjects}
+                  decisions={log.decisions}
+                  onStart={() => setIsRunning(true)}
+                  onSelectInject={(inject) => {
+                    setPendingDecision(inject);
+                    setSelectedAsset(null);
+                    setAssetOwnerBriefed(false);
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Mobile COP Tab */}
+          {mobileTab === 'cop' && (
+            <div className="flex-1 overflow-y-auto animate-fade-in">
+              {/* Stats */}
+              <div className="p-4 border-b border-gray-800/50">
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">Situation Board</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <MiniStat label="Facts" value={stats.totalFacts} color="emerald" />
+                  <MiniStat label="Assumed" value={stats.totalAssumptions} color="amber" />
+                  <MiniStat label="Unknown" value={stats.totalUnknowns} color="red" />
+                </div>
+              </div>
+
+              {/* Assets */}
+              <div className="p-4 border-b border-gray-800/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-gray-300">Assets at Risk</h3>
+                </div>
+                <div className="space-y-3">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      className={clsx(
+                        'w-full p-4 rounded-xl border text-left transition-all touch-target',
+                        selectedAsset?.id === asset.id
+                          ? 'bg-amber-500/10 border-amber-500/40'
+                          : 'bg-gray-800/30 border-gray-700/40 active:bg-gray-800/50'
+                      )}
+                      onClick={() => {
+                        if (pendingDecision) {
+                          setSelectedAsset(asset);
+                          setMobileTab('decision');
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-base font-medium text-gray-200">{asset.name}</span>
+                        <span
+                          className={clsx(
+                            'text-xs px-2 py-1 rounded font-bold',
+                            asset.criticality === 'CRITICAL'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-amber-500/20 text-amber-400'
+                          )}
+                        >
+                          {asset.criticality}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">{asset.owner.name}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Decision History */}
+              <div className="p-4">
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">Decision Log</h3>
+                <div className="space-y-3">
+                  {log.decisions
+                    .slice()
+                    .reverse()
+                    .map((decision) => (
+                      <div
+                        key={decision.id}
+                        className={clsx(
+                          'p-4 rounded-xl border',
+                          POSTURE_CONFIG[decision.posture].bgColor,
+                          POSTURE_CONFIG[decision.posture].borderColor
+                        )}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={clsx(
+                              'text-sm font-bold',
+                              POSTURE_CONFIG[decision.posture].color
+                            )}
+                          >
+                            {decision.posture}
+                          </span>
+                        </div>
+                        <span className="text-sm text-gray-300">{decision.title}</span>
+                      </div>
+                    ))}
+                  {log.decisions.length === 0 && (
+                    <div className="text-center py-8">
+                      <Briefcase className="w-10 h-10 text-gray-700 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600">No decisions yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
