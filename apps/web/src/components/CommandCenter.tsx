@@ -279,7 +279,6 @@ import {
   type TrendDirection,
   type TeamRosterState,
   type StakeholderMap,
-  type ExecutiveBriefing,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -553,7 +552,6 @@ export default function CommandCenter({
   const [pipelineHealth, setPipelineHealth] = useState<PipelineHealth | null>(null);
   const [teamRoster, setTeamRoster] = useState<TeamRosterState | null>(null);
   const [stakeholderMap, setStakeholderMap] = useState<StakeholderMap | null>(null);
-  const [_executiveBriefings] = useState<ExecutiveBriefing[]>([]);
   const [showLeadershipPanel, setShowLeadershipPanel] = useState(false);
   const [leadershipTab, setLeadershipTab] = useState<'team' | 'stakeholders'>('team');
 
@@ -2060,7 +2058,7 @@ export default function CommandCenter({
                   ) : (
                     <StakeholderPanel
                       stakeholderMap={stakeholderMap}
-                      briefings={executiveBriefings}
+                      briefings={[]}
                       currentEscalationLevel={
                         escalationLevel === 'INVESTIGATION'
                           ? 4
