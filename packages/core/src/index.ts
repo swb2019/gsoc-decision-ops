@@ -199,3 +199,67 @@ export {
 } from './intake-channels.js';
 
 export type { ChannelConfig } from './intake-channels.js';
+
+// Value Metrics (ESRM Business Value Visibility)
+export {
+  calculateESRMValueCreated,
+  calculateMissionContinuityValue,
+  calculateResidualRiskValue,
+  calculateOwnerAffirmationValue,
+  calculateAvoidedLossValue,
+  calculateAdvisorEffectivenessValue,
+} from './value-metrics.js';
+
+export type {
+  MissionContinuityState,
+  MissionContinuityValue,
+  ResidualRiskValue,
+  OwnerAffirmationValue,
+  AvoidedLossProxy,
+  AvoidedLossValue,
+  AdvisorEffectivenessValue,
+  ESRMValueCreated,
+} from './value-metrics.js';
+
+// KRI (Key Risk Indicators)
+export {
+  createKRIDashboard,
+  calculateMTTA,
+  calculateMTTR,
+  calculateOpenCriticalRisks,
+  calculateResidualRiskExplicitnessRate,
+  calculateAssetOwnerBriefingRate,
+  calculateDispatchContention,
+  calculateChannelNoiseRatio,
+  calculateTreatmentMix,
+  calculateEscalationIndicator,
+  KRI_DEFINITIONS,
+} from './kri.js';
+
+export type {
+  TrafficLightStatus,
+  TrendDirection,
+  KRICategory,
+  KRIMeasurement,
+  KRIDashboard,
+  KRIHistoryEntry,
+} from './kri.js';
+
+// Pipeline Health
+export {
+  createPipelineHealth,
+  PIPELINE_STAGE_CONFIG,
+  SOURCE_CHANNEL_CONFIG,
+  PIPELINE_FLOW,
+  PIPELINE_DEFINITIONS,
+} from './pipeline.js';
+
+export type {
+  PipelineStage,
+  SourceType,
+  PipelineHealthStatus,
+  StageHealth,
+  SourceChannelHealth,
+  PipelineHealth,
+  PipelineAlert,
+} from './pipeline.js';
