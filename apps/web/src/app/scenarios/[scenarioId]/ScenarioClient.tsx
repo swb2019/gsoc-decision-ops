@@ -209,7 +209,7 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
   return (
     <div className="min-h-screen bg-ops-dark-950 relative">
       <div className="noise-overlay" aria-hidden="true" />
-      
+
       <header className="border-b border-ops-dark-800/60 bg-ops-dark-900/60 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
@@ -226,7 +226,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                   <Shield className="w-5 h-5 text-ops-accent-green-400" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-base sm:text-lg font-semibold text-ops-dark-50 truncate">{log.incident.title}</h1>
+                  <h1 className="text-base sm:text-lg font-semibold text-ops-dark-50 truncate">
+                    {log.incident.title}
+                  </h1>
                   <p className="text-xs text-ops-dark-500 font-medium">Training Scenario</p>
                 </div>
               </div>
@@ -234,7 +236,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
             <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
               <div className="hidden sm:block text-right">
                 <div className="text-xs text-ops-dark-500 uppercase tracking-wider">Elapsed</div>
-                <div className="font-mono text-ops-accent-green-400 font-semibold">{elapsedMinutes}m</div>
+                <div className="font-mono text-ops-accent-green-400 font-semibold">
+                  {elapsedMinutes}m
+                </div>
               </div>
               <span
                 className={`status-badge ${
@@ -273,8 +277,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
         <div className="governance-banner mb-6 flex items-start sm:items-center gap-3 animate-fade-in">
           <Lock className="w-5 h-5 flex-shrink-0 mt-0.5 sm:mt-0" />
           <p className="text-sm">
-            <strong className="font-semibold">Training Mode:</strong> This is a synthetic scenario. All decisions are for
-            practice only. Human judgment remains essential in actual incidents.
+            <strong className="font-semibold">Training Mode:</strong> This is a synthetic scenario.
+            All decisions are for practice only. Human judgment remains essential in actual
+            incidents.
           </p>
         </div>
 
@@ -354,7 +359,9 @@ function OverviewTab({
                 <div className="text-2xs text-ops-dark-500 uppercase tracking-wider font-semibold">
                   Vendor Context
                 </div>
-                <div className="text-sm text-ops-dark-100 font-medium">{log.vendorContext.vendorName}</div>
+                <div className="text-sm text-ops-dark-100 font-medium">
+                  {log.vendorContext.vendorName}
+                </div>
                 <div className="text-xs text-ops-dark-400">
                   Type: {log.vendorContext.vendorType}
                 </div>
@@ -412,10 +419,15 @@ function OverviewTab({
               <EmptyState message="No facts recorded yet." />
             ) : (
               log.facts.map((fact) => (
-                <div key={fact.id} className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                <div
+                  key={fact.id}
+                  className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30"
+                >
                   <p className="text-sm text-ops-dark-200 leading-relaxed">{fact.description}</p>
                   <div className="flex items-center gap-2 mt-3 text-xs text-ops-dark-500">
-                    <span className="uppercase font-semibold px-1.5 py-0.5 rounded bg-ops-dark-700/50">{fact.confidence}</span>
+                    <span className="uppercase font-semibold px-1.5 py-0.5 rounded bg-ops-dark-700/50">
+                      {fact.confidence}
+                    </span>
                     <span>Source: {fact.source}</span>
                   </div>
                 </div>
@@ -449,8 +461,13 @@ function OverviewTab({
               <EmptyState message="No assumptions recorded yet." />
             ) : (
               log.assumptions.map((assumption) => (
-                <div key={assumption.id} className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
-                  <p className="text-sm text-ops-dark-200 leading-relaxed">{assumption.description}</p>
+                <div
+                  key={assumption.id}
+                  className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30"
+                >
+                  <p className="text-sm text-ops-dark-200 leading-relaxed">
+                    {assumption.description}
+                  </p>
                   <div className="mt-3 text-xs text-ops-dark-500 space-y-1">
                     <div>Basis: {assumption.basis}</div>
                     <div className="text-ops-accent-red-400/80 font-medium">
@@ -488,7 +505,10 @@ function OverviewTab({
               <EmptyState message="No unknowns recorded yet." />
             ) : (
               log.unknowns.map((unknown) => (
-                <div key={unknown.id} className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
+                <div
+                  key={unknown.id}
+                  className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30"
+                >
                   <div className="flex items-start gap-2 mb-2">
                     <span
                       className={`status-badge text-2xs ${
@@ -654,7 +674,9 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
         <div className="card posture-continue">
           <div className="card-body text-center py-6">
             <div className="text-4xl font-bold mb-1">{stats.postureBreakdown.CONTINUE}</div>
-            <div className="text-sm uppercase tracking-wider font-semibold opacity-80">Continue</div>
+            <div className="text-sm uppercase tracking-wider font-semibold opacity-80">
+              Continue
+            </div>
           </div>
         </div>
         <div className="card posture-degrade">
@@ -736,7 +758,9 @@ function DecisionsTab({ log, stats, onRecordDecision }: DecisionsTabProps): JSX.
                 </div>
               </div>
               <div className="card-body">
-                <p className="text-sm text-ops-dark-300 mb-4 leading-relaxed">{decision.description}</p>
+                <p className="text-sm text-ops-dark-300 mb-4 leading-relaxed">
+                  {decision.description}
+                </p>
                 <div className="bg-ops-dark-800/40 rounded-xl p-4 border border-ops-dark-700/30">
                   <div className="text-2xs text-ops-dark-500 uppercase tracking-wider mb-1.5 font-semibold">
                     Rationale
@@ -825,7 +849,9 @@ function PlaybookTab({
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <div className="text-2xs text-ops-dark-500 uppercase tracking-wider">Progress</div>
+                    <div className="text-2xs text-ops-dark-500 uppercase tracking-wider">
+                      Progress
+                    </div>
                     <div className="text-sm font-mono text-ops-dark-300">
                       {completedCount}/{totalCount}
                     </div>
@@ -842,7 +868,9 @@ function PlaybookTab({
 
               {isExpanded && (
                 <div className="card-body border-t border-ops-dark-800/60 animate-fade-in-down">
-                  <p className="text-sm text-ops-dark-400 mb-6 leading-relaxed">{phase.description}</p>
+                  <p className="text-sm text-ops-dark-400 mb-6 leading-relaxed">
+                    {phase.description}
+                  </p>
 
                   <div className="mb-6">
                     <h5 className="text-sm font-semibold text-ops-dark-200 mb-3 flex items-center gap-2">
@@ -919,7 +947,9 @@ function PlaybookTab({
                             )}
                           </div>
                           {item.required && (
-                            <span className="text-2xs text-ops-accent-red-400 font-semibold uppercase">Required</span>
+                            <span className="text-2xs text-ops-accent-red-400 font-semibold uppercase">
+                              Required
+                            </span>
                           )}
                         </div>
                       ))}
@@ -1013,9 +1043,7 @@ function ExportTab({ log, onExport }: ExportTabProps): JSX.Element {
 }
 
 function EmptyState({ message }: { message: string }): JSX.Element {
-  return (
-    <p className="text-sm text-ops-dark-500 text-center py-4">{message}</p>
-  );
+  return <p className="text-sm text-ops-dark-500 text-center py-4">{message}</p>;
 }
 
 function AddFactForm({

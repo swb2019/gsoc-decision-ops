@@ -10,6 +10,8 @@
 
 > **Portfolio Demo** — All scenarios are synthetic. This demonstrates decision-making methodology, not a production security platform.
 
+**[Product Requirements Document (PRD 1.1)](docs/PRD.md)** — Locked product definition including invariants, release gates, and honesty threat model.
+
 ---
 
 ## SOTA UI on a First-Principles Product
