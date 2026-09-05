@@ -1021,6 +1021,14 @@ import {
   setTipsEnabled,
   getTip,
 } from '../lib/field-guide';
+import GuidancePopup, { useGuidance } from './GuidancePopup';
+import type { GuidanceSurface } from '../lib/guidance';
+import {
+  ArcScheduler,
+  createArcFromLog,
+  parseSeedCode,
+  type ArcDifficulty,
+} from '@gsoc-decision-ops/core';
 
 type SecurityDomain = 'PHYSICAL' | 'INTELLIGENCE' | 'CYBER';
 type MobileTab = 'intel' | 'decision' | 'cop';
@@ -1254,6 +1262,12 @@ export default function CommandCenter({
   const [skippedMicroTasks, setSkippedMicroTasks] = useState<{ id: string; skippedAt: number }[]>(
     []
   );
+
+  // Arc scheduler for coherent randomized gameplay
+  const arcSchedulerRef = useRef<ArcScheduler | null>(null);
+
+  // Light-touch guidance system
+  const { triggerFirstVisit, triggerCondition, isEnabled: guidanceEnabled } = useGuidance();
 
   // Ambient music state (default OFF, persisted)
   const [ambientMusicEnabled, setAmbientMusicEnabled] = useState(false);
@@ -1592,7 +1606,26 @@ export default function CommandCenter({
     window.location.href = basePath ? `${basePath}/` : '/';
   }, []);
 
-  // Tab change with animation
+  // Start game with arc scheduler initialization
+  const handleStartGame = useCallback(
+    (customSeed?: string) => {
+      // Initialize arc scheduler with seed for coherent randomized gameplay
+      const seed = customSeed ? parseSeedCode(customSeed) : undefined;
+      const arcDifficulty = difficulty as ArcDifficulty;
+      const scheduler = createArcFromLog(initialLog, seed, arcDifficulty);
+
+      arcSchedulerRef.current = scheduler;
+      setIsRunning(true);
+
+      // Trigger first-visit guidance for main surfaces
+      setTimeout(() => {
+        triggerFirstVisit('INTEL_FEED');
+      }, 2000);
+    },
+    [difficulty, initialLog, triggerFirstVisit]
+  );
+
+  // Tab change with animation and guidance triggers
   const handleTabChange = useCallback(
     (newTab: MobileTab) => {
       if (newTab === mobileTab || tabAnimating) return;
@@ -1601,9 +1634,14 @@ export default function CommandCenter({
       setTimeout(() => {
         setMobileTab(newTab);
         setTabAnimating(false);
+
+        // Trigger first-visit guidance for the new tab
+        if (newTab === 'intel') triggerFirstVisit('INTEL_FEED');
+        else if (newTab === 'decision') triggerFirstVisit('DECISION_POSTURE');
+        else if (newTab === 'cop') triggerFirstVisit('COP_LAYERS');
       }, 150);
     },
-    [mobileTab, tabAnimating, tapFeedback]
+    [mobileTab, tabAnimating, tapFeedback, triggerFirstVisit]
   );
 
   // Initialize leadership roster and stakeholder map
@@ -2036,6 +2074,40 @@ export default function CommandCenter({
     setEscalationLevel(newLevel);
     setCascadeMultiplier(newMultiplier);
   }, [log]);
+
+  // Contextual guidance triggers based on game state
+  useEffect(() => {
+    if (!isRunning || !guidanceEnabled) return;
+
+    // Trigger LOW_TRUST guidance when trust drops below 50
+    if (stakeholderTrust < 50) {
+      triggerCondition('LOW_TRUST', 'TEAM_STAKEHOLDERS');
+    }
+
+    // Trigger HIGH_HEAT guidance when any zone is above 70
+    const highHeatZone = Object.entries(zoneHeatLevels).find(([, heat]) => heat > 70);
+    if (highHeatZone) {
+      triggerCondition('HIGH_HEAT', 'COP_LAYERS');
+    }
+
+    // Trigger RESOURCE_CONTENTION guidance
+    if (
+      dispatchResources.guards.contentionLevel === 'CRITICAL' ||
+      dispatchResources.analysts.contentionLevel === 'CRITICAL' ||
+      dispatchResources.responders.contentionLevel === 'CRITICAL'
+    ) {
+      triggerCondition('RESOURCE_CONTENTION', 'TACTICAL');
+    }
+  }, [isRunning, guidanceEnabled, stakeholderTrust, zoneHeatLevels, dispatchResources, triggerCondition]);
+
+  // Trigger STREAK_LOST guidance when streak resets after being > 2
+  const prevStreakRef = useRef(0);
+  useEffect(() => {
+    if (prevStreakRef.current >= 3 && gameState.streak === 0) {
+      triggerCondition('STREAK_LOST', 'DECISION_POSTURE');
+    }
+    prevStreakRef.current = gameState.streak;
+  }, [gameState.streak, triggerCondition]);
 
   // Playbook phase progression based on elapsed time
   useEffect(() => {
@@ -3042,7 +3114,10 @@ export default function CommandCenter({
 
               {/* KRI Dashboard Button */}
               <button
-                onClick={() => setShowKRIPanel(true)}
+                onClick={() => {
+                  setShowKRIPanel(true);
+                  triggerFirstVisit('KRI_VALUE');
+                }}
                 className={clsx(
                   'p-2 rounded-xl transition-all flex items-center justify-center relative',
                   kriDashboard?.overallHealth === 'GREEN'
@@ -3084,7 +3159,10 @@ export default function CommandCenter({
 
               {/* Tactical Actions Button */}
               <button
-                onClick={() => setShowTacticalPanel(true)}
+                onClick={() => {
+                  setShowTacticalPanel(true);
+                  triggerFirstVisit('TACTICAL');
+                }}
                 className={clsx(
                   'p-2 rounded-xl transition-all flex items-center justify-center relative',
                   tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
@@ -3103,7 +3181,10 @@ export default function CommandCenter({
 
               {/* Field Guide Button */}
               <button
-                onClick={() => setShowFieldGuide(true)}
+                onClick={() => {
+                  setShowFieldGuide(true);
+                  triggerFirstVisit('FIELD_GUIDE');
+                }}
                 className="p-2 rounded-xl text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 active:bg-amber-500/20 transition-all flex items-center justify-center"
                 aria-label="Open Field Guide"
               >
@@ -3213,6 +3294,7 @@ export default function CommandCenter({
                       onClick={() => {
                         setShowKRIPanel(true);
                         setShowMobileMenu(false);
+                        triggerFirstVisit('KRI_VALUE');
                       }}
                       className={clsx(
                         'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
@@ -3267,6 +3349,7 @@ export default function CommandCenter({
                       onClick={() => {
                         setShowTacticalPanel(true);
                         setShowMobileMenu(false);
+                        triggerFirstVisit('TACTICAL');
                       }}
                       className={clsx(
                         'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
@@ -3295,6 +3378,7 @@ export default function CommandCenter({
                       onClick={() => {
                         setShowFieldGuide(true);
                         setShowMobileMenu(false);
+                        triggerFirstVisit('FIELD_GUIDE');
                       }}
                       className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
                       role="menuitem"
@@ -3556,7 +3640,7 @@ export default function CommandCenter({
                 isRunning={isRunning}
                 revealedInjects={revealedInjects}
                 decisions={log.decisions}
-                onStart={() => setIsRunning(true)}
+                onStart={() => handleStartGame()}
                 onSelectInject={(inject) => {
                   setPendingDecision(inject);
                   setSelectedAsset(null);
@@ -3913,7 +3997,7 @@ export default function CommandCenter({
                   isRunning={isRunning}
                   revealedInjects={revealedInjects}
                   decisions={log.decisions}
-                  onStart={() => setIsRunning(true)}
+                  onStart={() => handleStartGame()}
                   onSelectInject={(inject) => {
                     setPendingDecision(inject);
                     setSelectedAsset(null);
@@ -4319,6 +4403,20 @@ export default function CommandCenter({
           showExplanation={microTaskExplanationShown}
         />
       )}
+
+      {/* Light-touch Guidance Popup */}
+      <GuidancePopup
+        reducedMotion={reducedMotion}
+        onNavigateToSurface={(surface: GuidanceSurface) => {
+          if (surface === 'INTEL_FEED') handleTabChange('intel');
+          else if (surface === 'COP_LAYERS') handleTabChange('cop');
+          else if (surface === 'DECISION_POSTURE') handleTabChange('decision');
+          else if (surface === 'TACTICAL') setShowTacticalPanel(true);
+          else if (surface === 'TEAM_STAKEHOLDERS') setShowLeadershipPanel(true);
+          else if (surface === 'KRI_VALUE') setShowKRIPanel(true);
+          else if (surface === 'FIELD_GUIDE') setShowFieldGuide(true);
+        }}
+      />
     </div>
   );
 }

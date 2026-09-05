@@ -43,19 +43,22 @@ const getBasePath = (): string => {
   return '';
 };
 
-// Map SFX types to audio file paths
+// SFX version for cache-busting (update when ElevenLabs regenerates files)
+const SFX_VERSION = '20260905-elevenlabs-v1';
+
+// Map SFX types to audio file paths with cache-bust query params
 const SFX_FILES: Record<SFXType, string> = {
-  injectArrive: '/audio/injectArrive.ogg',
-  correctDecision: '/audio/correctDecision.ogg',
-  wrongDecision: '/audio/wrongDecision.ogg',
-  tacticalDeploy: '/audio/tacticalDeploy.ogg',
-  microTask: '/audio/microTask.ogg',
-  warning: '/audio/error.ogg', // Use error sound for warning
-  error: '/audio/error.ogg',
-  scoreUp: '/audio/scoreUp.ogg',
-  streakBonus: '/audio/streakBonus.ogg',
-  timerTick: '/audio/microTask.ogg', // Subtle tick
-  timerUrgent: '/audio/timerUrgent.ogg',
+  injectArrive: `/audio/injectArrive.ogg?v=${SFX_VERSION}`,
+  correctDecision: `/audio/correctDecision.ogg?v=${SFX_VERSION}`,
+  wrongDecision: `/audio/wrongDecision.ogg?v=${SFX_VERSION}`,
+  tacticalDeploy: `/audio/tacticalDeploy.ogg?v=${SFX_VERSION}`,
+  microTask: `/audio/microTask.ogg?v=${SFX_VERSION}`,
+  warning: `/audio/error.ogg?v=${SFX_VERSION}`, // Use error sound for warning
+  error: `/audio/error.ogg?v=${SFX_VERSION}`,
+  scoreUp: `/audio/scoreUp.ogg?v=${SFX_VERSION}`,
+  streakBonus: `/audio/streakBonus.ogg?v=${SFX_VERSION}`,
+  timerTick: `/audio/microTask.ogg?v=${SFX_VERSION}`, // Subtle tick
+  timerUrgent: `/audio/timerUrgent.ogg?v=${SFX_VERSION}`,
 };
 
 // Audio element pool for overlapping sounds
