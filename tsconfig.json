@@ -17,8 +17,6 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true
   },
-  "references": [
-    { "path": "packages/core" }
-  ],
+  "references": [{ "path": "packages/core" }],
   "files": []
 }

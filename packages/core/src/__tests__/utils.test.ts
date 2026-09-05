@@ -275,11 +275,7 @@ describe('Utils', () => {
     });
 
     it('should work with object predicates', () => {
-      const items = [
-        { active: true },
-        { active: false },
-        { active: true },
-      ];
+      const items = [{ active: true }, { active: false }, { active: true }];
       const count = countWhere(items, (item) => item.active);
 
       expect(count).toBe(2);

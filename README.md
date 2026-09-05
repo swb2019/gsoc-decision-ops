@@ -11,7 +11,7 @@
 
 ![GSOC Decision Ops Demo - Scenario Interface](docs/images/demo-scenario.png)
 
-*Scenario decision log interface showing facts, assumptions, and action tracking*
+_Scenario decision log interface showing facts, assumptions, and action tracking_
 
 ---
 
@@ -20,6 +20,7 @@
 When a critical vendor experiences a security incident or service disruption, GSOC leaders must make rapid operational decisions with incomplete information. The first hour is critical—decisions made under pressure ripple through access control, video surveillance, alarm monitoring, and executive protection operations.
 
 **Common pain points:**
+
 - Scattered decision-making across Slack threads and spreadsheets
 - No structured audit trail for after-action review
 - Assumptions mixed with facts, creating hidden risk
@@ -38,13 +39,13 @@ This is a **training and exercise tool**—all scenarios are synthetic. The fram
 
 ## What This Is / What This Is Not
 
-| This Is | This Is Not |
-|---------|-------------|
-| A decision-support framework for GSOC operations | A SIEM, SOAR, or production security platform |
-| Training scenarios for vendor compromise response | Real incident data or threat intelligence |
-| Structured methodology for first-hour decisions | Automated decision-making or AI recommendations |
-| An educational demonstration of ESRM principles | A replacement for organizational IR procedures |
-| A TypeScript monorepo showcasing modern dev practices | Production-deployed enterprise software |
+| This Is                                               | This Is Not                                     |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| A decision-support framework for GSOC operations      | A SIEM, SOAR, or production security platform   |
+| Training scenarios for vendor compromise response     | Real incident data or threat intelligence       |
+| Structured methodology for first-hour decisions       | Automated decision-making or AI recommendations |
+| An educational demonstration of ESRM principles       | A replacement for organizational IR procedures  |
+| A TypeScript monorepo showcasing modern dev practices | Production-deployed enterprise software         |
 
 ---
 
@@ -66,14 +67,14 @@ npm run dev
 
 ### Available Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build all packages |
-| `npm test` | Run test suite (109 tests) |
-| `npm run typecheck` | TypeScript type checking |
-| `npm run lint` | ESLint code analysis |
-| `npm run format` | Prettier code formatting |
+| Command             | Description                |
+| ------------------- | -------------------------- |
+| `npm run dev`       | Start development server   |
+| `npm run build`     | Build all packages         |
+| `npm test`          | Run test suite (109 tests) |
+| `npm run typecheck` | TypeScript type checking   |
+| `npm run lint`      | ESLint code analysis       |
+| `npm run format`    | Prettier code formatting   |
 
 ---
 
@@ -84,11 +85,11 @@ graph TB
     subgraph "Apps"
         WEB[Web App<br/>Next.js 14]
     end
-    
+
     subgraph "Packages"
         CORE[Core Library<br/>TypeScript]
     end
-    
+
     subgraph "Core Modules"
         DL[Decision Log<br/>Management]
         PB[Playbook<br/>Framework]
@@ -96,14 +97,14 @@ graph TB
         EX[Export<br/>Engine]
         VAL[Schema<br/>Validation]
     end
-    
+
     WEB --> CORE
     CORE --> DL
     CORE --> PB
     CORE --> SC
     CORE --> EX
     CORE --> VAL
-    
+
     subgraph "Data Flow"
         direction LR
         SCENARIO[Scenario<br/>Selection] --> LOG[Decision Log<br/>Creation]
@@ -149,16 +150,16 @@ interface DecisionLog {
     severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
     status: 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'CLOSED';
   };
-  
-  facts: Fact[];           // Verified information with sources
+
+  facts: Fact[]; // Verified information with sources
   assumptions: Assumption[]; // Working assumptions with risk-if-wrong
-  unknowns: Unknown[];     // Questions requiring resolution
-  decisions: Decision[];   // Posture decisions with rationale
+  unknowns: Unknown[]; // Questions requiring resolution
+  decisions: Decision[]; // Posture decisions with rationale
   actionItems: ActionItem[]; // Tracked tasks
   timeline: TimelineEvent[]; // Chronological record
-  
+
   metadata: {
-    exerciseMode: boolean;  // Training indicator
+    exerciseMode: boolean; // Training indicator
     syntheticScenario: boolean; // Synthetic data flag
   };
 }
@@ -166,11 +167,11 @@ interface DecisionLog {
 
 ### Decision Postures
 
-| Posture | Description | When to Use |
-|---------|-------------|-------------|
-| **CONTINUE** | Proceed with normal operations | No immediate impact identified |
-| **DEGRADE** | Operate with reduced capability | Partial impact, compensating controls in place |
-| **PAUSE** | Halt affected operations | Critical impact, unacceptable risk |
+| Posture      | Description                     | When to Use                                    |
+| ------------ | ------------------------------- | ---------------------------------------------- |
+| **CONTINUE** | Proceed with normal operations  | No immediate impact identified                 |
+| **DEGRADE**  | Operate with reduced capability | Partial impact, compensating controls in place |
+| **PAUSE**    | Halt affected operations        | Critical impact, unacceptable risk             |
 
 ---
 
@@ -180,18 +181,23 @@ interface DecisionLog {
 <summary>View Application Screenshots</summary>
 
 ### Home Page
+
 ![Home Page](docs/images/demo-home.png)
 
 ### Scenario Selection
+
 ![Scenario Selection](docs/images/demo-scenarios.png)
 
 ### Decision Log Interface
+
 ![Decision Log](docs/images/demo-scenario.png)
 
 ### Decision Recording
+
 ![Decisions Tab](docs/images/demo-decisions.png)
 
 ### Playbook Checklist
+
 ![Playbook Tab](docs/images/demo-playbook.png)
 
 </details>
@@ -202,13 +208,13 @@ interface DecisionLog {
 
 The included playbook provides a 60-minute structured response framework:
 
-| Phase | Duration | Focus |
-|-------|----------|-------|
-| **1. Initial Assessment** | 10 min | Scope identification, initial posture |
-| **2. Stakeholder Notification** | 10 min | Communication, bridge setup |
-| **3. Operational Continuity** | 15 min | Backup procedures, compensating controls |
-| **4. Information Management** | 15 min | Data assessment, credential review |
-| **5. First Hour Checkpoint** | 10 min | Decision review, ongoing cadence |
+| Phase                           | Duration | Focus                                    |
+| ------------------------------- | -------- | ---------------------------------------- |
+| **1. Initial Assessment**       | 10 min   | Scope identification, initial posture    |
+| **2. Stakeholder Notification** | 10 min   | Communication, bridge setup              |
+| **3. Operational Continuity**   | 15 min   | Backup procedures, compensating controls |
+| **4. Information Management**   | 15 min   | Data assessment, credential review       |
+| **5. First Hour Checkpoint**    | 10 min   | Decision review, ongoing cadence         |
 
 Each phase includes objectives, key questions, and checklists with ownership assignments.
 
@@ -216,14 +222,14 @@ Each phase includes objectives, key questions, and checklists with ownership ass
 
 ## Comparison: Structured vs. Ad-Hoc Response
 
-| Aspect | Ad-Hoc (Slack/Email/Excel) | GSOC Decision Ops |
-|--------|---------------------------|-------------------|
-| **Decision Audit Trail** | Scattered across channels | Centralized, timestamped log |
-| **Facts vs. Assumptions** | Often conflated | Explicitly separated with risk documentation |
-| **Posture Clarity** | Implicit, verbal | Explicit CONTINUE/DEGRADE/PAUSE with rationale |
-| **Handoff Quality** | Dependent on individuals | Structured log with timeline |
-| **After-Action Review** | Manual reconstruction | Auto-generated reports |
-| **Training Consistency** | Variable | Repeatable synthetic scenarios |
+| Aspect                    | Ad-Hoc (Slack/Email/Excel) | GSOC Decision Ops                              |
+| ------------------------- | -------------------------- | ---------------------------------------------- |
+| **Decision Audit Trail**  | Scattered across channels  | Centralized, timestamped log                   |
+| **Facts vs. Assumptions** | Often conflated            | Explicitly separated with risk documentation   |
+| **Posture Clarity**       | Implicit, verbal           | Explicit CONTINUE/DEGRADE/PAUSE with rationale |
+| **Handoff Quality**       | Dependent on individuals   | Structured log with timeline                   |
+| **After-Action Review**   | Manual reconstruction      | Auto-generated reports                         |
+| **Training Consistency**  | Variable                   | Repeatable synthetic scenarios                 |
 
 ---
 
@@ -272,6 +278,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 Key areas for contribution:
+
 - Additional synthetic scenarios
 - Playbook enhancements
 - Accessibility improvements
@@ -282,6 +289,7 @@ Key areas for contribution:
 ## Acknowledgments
 
 This toolkit draws on established frameworks from:
+
 - ASIS Enterprise Security Risk Management (ESRM)
 - NIST Incident Response lifecycle
 - Corporate GSOC operational best practices

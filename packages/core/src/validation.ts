@@ -65,7 +65,11 @@ export function validateFact(fact: unknown, index: number): ValidationError[] {
   }
 
   if (!isNonEmptyString(f.description)) {
-    errors.push({ path: `${path}.description`, message: 'Fact description is required', value: f.description });
+    errors.push({
+      path: `${path}.description`,
+      message: 'Fact description is required',
+      value: f.description,
+    });
   }
 
   if (!isNonEmptyString(f.source)) {
@@ -73,11 +77,19 @@ export function validateFact(fact: unknown, index: number): ValidationError[] {
   }
 
   if (!VALID_CONFIDENCE.includes(f.confidence as ConfidenceLevel)) {
-    errors.push({ path: `${path}.confidence`, message: `Confidence must be one of: ${VALID_CONFIDENCE.join(', ')}`, value: f.confidence });
+    errors.push({
+      path: `${path}.confidence`,
+      message: `Confidence must be one of: ${VALID_CONFIDENCE.join(', ')}`,
+      value: f.confidence,
+    });
   }
 
   if (!isValidISODate(f.timestamp)) {
-    errors.push({ path: `${path}.timestamp`, message: 'Fact timestamp must be a valid ISO date', value: f.timestamp });
+    errors.push({
+      path: `${path}.timestamp`,
+      message: 'Fact timestamp must be a valid ISO date',
+      value: f.timestamp,
+    });
   }
 
   return errors;
@@ -102,7 +114,11 @@ export function validateAssumption(assumption: unknown, index: number): Validati
   }
 
   if (!isNonEmptyString(a.description)) {
-    errors.push({ path: `${path}.description`, message: 'Assumption description is required', value: a.description });
+    errors.push({
+      path: `${path}.description`,
+      message: 'Assumption description is required',
+      value: a.description,
+    });
   }
 
   if (!isNonEmptyString(a.basis)) {
@@ -110,7 +126,11 @@ export function validateAssumption(assumption: unknown, index: number): Validati
   }
 
   if (!isNonEmptyString(a.riskIfWrong)) {
-    errors.push({ path: `${path}.riskIfWrong`, message: 'Risk if wrong is required', value: a.riskIfWrong });
+    errors.push({
+      path: `${path}.riskIfWrong`,
+      message: 'Risk if wrong is required',
+      value: a.riskIfWrong,
+    });
   }
 
   return errors;
@@ -135,11 +155,19 @@ export function validateUnknown(unknown: unknown, index: number): ValidationErro
   }
 
   if (!isNonEmptyString(u.question)) {
-    errors.push({ path: `${path}.question`, message: 'Unknown question is required', value: u.question });
+    errors.push({
+      path: `${path}.question`,
+      message: 'Unknown question is required',
+      value: u.question,
+    });
   }
 
-  if (!VALID_PRIORITIES.includes(u.priority as typeof VALID_PRIORITIES[number])) {
-    errors.push({ path: `${path}.priority`, message: `Priority must be one of: ${VALID_PRIORITIES.join(', ')}`, value: u.priority });
+  if (!VALID_PRIORITIES.includes(u.priority as (typeof VALID_PRIORITIES)[number])) {
+    errors.push({
+      path: `${path}.priority`,
+      message: `Priority must be one of: ${VALID_PRIORITIES.join(', ')}`,
+      value: u.priority,
+    });
   }
 
   return errors;
@@ -168,11 +196,19 @@ export function validateDecision(decision: unknown, index: number): ValidationEr
   }
 
   if (!isNonEmptyString(d.description)) {
-    errors.push({ path: `${path}.description`, message: 'Decision description is required', value: d.description });
+    errors.push({
+      path: `${path}.description`,
+      message: 'Decision description is required',
+      value: d.description,
+    });
   }
 
   if (!VALID_POSTURES.includes(d.posture as DecisionPosture)) {
-    errors.push({ path: `${path}.posture`, message: `Posture must be one of: ${VALID_POSTURES.join(', ')}`, value: d.posture });
+    errors.push({
+      path: `${path}.posture`,
+      message: `Posture must be one of: ${VALID_POSTURES.join(', ')}`,
+      value: d.posture,
+    });
   }
 
   if (!isNonEmptyString(d.owner)) {
@@ -180,7 +216,11 @@ export function validateDecision(decision: unknown, index: number): ValidationEr
   }
 
   if (!isNonEmptyString(d.rationale)) {
-    errors.push({ path: `${path}.rationale`, message: 'Decision rationale is required', value: d.rationale });
+    errors.push({
+      path: `${path}.rationale`,
+      message: 'Decision rationale is required',
+      value: d.rationale,
+    });
   }
 
   return errors;
@@ -205,15 +245,23 @@ export function validateActionItem(actionItem: unknown, index: number): Validati
   }
 
   if (!isNonEmptyString(a.description)) {
-    errors.push({ path: `${path}.description`, message: 'ActionItem description is required', value: a.description });
+    errors.push({
+      path: `${path}.description`,
+      message: 'ActionItem description is required',
+      value: a.description,
+    });
   }
 
   if (!isNonEmptyString(a.owner)) {
     errors.push({ path: `${path}.owner`, message: 'ActionItem owner is required', value: a.owner });
   }
 
-  if (!VALID_PRIORITIES.includes(a.priority as typeof VALID_PRIORITIES[number])) {
-    errors.push({ path: `${path}.priority`, message: `Priority must be one of: ${VALID_PRIORITIES.join(', ')}`, value: a.priority });
+  if (!VALID_PRIORITIES.includes(a.priority as (typeof VALID_PRIORITIES)[number])) {
+    errors.push({
+      path: `${path}.priority`,
+      message: `Priority must be one of: ${VALID_PRIORITIES.join(', ')}`,
+      value: a.priority,
+    });
   }
 
   return errors;
@@ -246,7 +294,11 @@ export function validateDecisionLog(log: unknown): ValidationResult {
   }
 
   if (!isValidISODate(l.createdAt)) {
-    errors.push({ path: 'createdAt', message: 'Created timestamp must be a valid ISO date', value: l.createdAt });
+    errors.push({
+      path: 'createdAt',
+      message: 'Created timestamp must be a valid ISO date',
+      value: l.createdAt,
+    });
   }
 
   // Incident validation
@@ -256,11 +308,19 @@ export function validateDecisionLog(log: unknown): ValidationResult {
     const inc = l.incident as Record<string, unknown>;
 
     if (!isNonEmptyString(inc.title)) {
-      errors.push({ path: 'incident.title', message: 'Incident title is required', value: inc.title });
+      errors.push({
+        path: 'incident.title',
+        message: 'Incident title is required',
+        value: inc.title,
+      });
     }
 
     if (!VALID_SEVERITIES.includes(inc.severity as SeverityLevel)) {
-      errors.push({ path: 'incident.severity', message: `Severity must be one of: ${VALID_SEVERITIES.join(', ')}`, value: inc.severity });
+      errors.push({
+        path: 'incident.severity',
+        message: `Severity must be one of: ${VALID_SEVERITIES.join(', ')}`,
+        value: inc.severity,
+      });
     }
   }
 
@@ -311,7 +371,12 @@ export function validateDecisionLog(log: unknown): ValidationResult {
   }
 
   // Semantic warnings
-  if (Array.isArray(l.decisions) && l.decisions.length === 0 && Array.isArray(l.timeline) && l.timeline.length > 5) {
+  if (
+    Array.isArray(l.decisions) &&
+    l.decisions.length === 0 &&
+    Array.isArray(l.timeline) &&
+    l.timeline.length > 5
+  ) {
     warnings.push({
       path: 'decisions',
       message: 'No decisions recorded despite significant timeline activity',
