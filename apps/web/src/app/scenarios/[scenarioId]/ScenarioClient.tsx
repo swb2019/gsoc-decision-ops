@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Lock,
+  Home,
 } from 'lucide-react';
 import {
   createScenarioById,
@@ -165,8 +166,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
           <AlertTriangle className="w-12 h-12 text-ops-accent-amber mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-ops-dark-100 mb-2">Scenario Not Found</h2>
           <p className="text-ops-dark-400 mb-4">The requested scenario could not be loaded.</p>
-          <Link href="/scenarios" className="btn btn-primary">
-            Back to Scenarios
+          <Link href="/" className="btn btn-primary">
+            <Home className="w-4 h-4" />
+            Back to Home
           </Link>
         </div>
       </div>
@@ -183,8 +185,9 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <Link
-                href="/scenarios"
+                href="/"
                 className="p-2 rounded-lg hover:bg-ops-dark-800 transition-colors"
+                title="Back to scenarios"
               >
                 <ArrowLeft className="w-5 h-5 text-ops-dark-400" />
               </Link>
@@ -195,7 +198,7 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
                 <div>
                   <h1 className="text-lg font-semibold text-ops-dark-50">{log.incident.title}</h1>
                   <p className="text-xs text-ops-dark-400 font-mono">
-                    ID: {log.id} | Training Scenario
+                    Training Scenario
                   </p>
                 </div>
               </div>
