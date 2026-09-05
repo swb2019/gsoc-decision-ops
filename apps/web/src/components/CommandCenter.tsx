@@ -451,7 +451,7 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
 
     const interval = setInterval(() => {
       setDispatchResources((prev) => {
-        const updateResource = (r: typeof prev.guards) => {
+        const updateResource = (r: typeof prev.guards): typeof prev.guards => {
           const newAvailable = r.cooldown <= 1 ? Math.min(r.available + 1, r.total) : r.available;
           const ratio = newAvailable / r.total;
           const contentionLevel =
@@ -1633,7 +1633,7 @@ function InjectCard({
     resourcesNeeded &&
     (resourcesNeeded.guards || resourcesNeeded.analysts || resourcesNeeded.responders);
 
-  const getEntityChips = () => {
+  const getEntityChips = (): LinkedEntity[] | null => {
     if (!linkedEntities || linkedEntityIds.length === 0) return null;
     const entities = linkedEntities.filter((e) => linkedEntityIds.includes(e.id)).slice(0, 3);
     return entities;
@@ -1893,50 +1893,183 @@ function DecisionConsole({
             </div>
           </div>
 
-          {/* ESRM: Asset Owner Communication */}
+          {/* ESRM: Advisor → Asset Owner Workflow */}
           {selectedAsset && (
             <div
               className={clsx(
                 'p-5 rounded-2xl border transition-all',
                 assetOwnerBriefed
-                  ? 'bg-emerald-500/10 border-emerald-500/40'
+                  ? 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/40'
                   : 'bg-gray-800/30 border-gray-700/40'
               )}
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-violet-400" />
-                  <h3 className="font-semibold text-gray-200">2. Brief Asset Owner</h3>
+                  <h3 className="font-semibold text-gray-200">2. Advisor → Owner Handoff</h3>
                 </div>
                 <span className="text-xs text-emerald-400 font-medium">+75 pts</span>
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-gray-800/40">
-                <div>
-                  <p className="font-medium text-gray-200">{selectedAsset.owner.name}</p>
-                  <p className="text-xs text-gray-500">{selectedAsset.owner.title}</p>
+              {/* Owner Info Card */}
+              <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/40 mb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-200">{selectedAsset.owner.name}</p>
+                    <p className="text-sm text-gray-400">{selectedAsset.owner.title}</p>
+                    <p className="text-xs text-gray-500 mt-1">{selectedAsset.owner.organization}</p>
+                  </div>
+                  <div className="text-right">
+                    <div
+                      className={clsx(
+                        'text-xs px-2 py-1 rounded font-semibold',
+                        selectedAsset.owner.riskTolerance === 'LOW'
+                          ? 'bg-red-500/20 text-red-400'
+                          : selectedAsset.owner.riskTolerance === 'HIGH'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-amber-500/20 text-amber-400'
+                      )}
+                    >
+                      {selectedAsset.owner.riskTolerance} Tolerance
+                    </div>
+                    <p className="text-2xs text-gray-600 mt-1">{selectedAsset.owner.contactMethod}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={onToggleBriefed}
-                  className={clsx(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
-                    assetOwnerBriefed
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-gray-700/60 text-gray-300 hover:bg-gray-700'
-                  )}
-                >
-                  <Phone className="w-4 h-4" />
-                  {assetOwnerBriefed ? 'Briefed ✓' : 'Brief Now'}
-                </button>
               </div>
 
-              <p className="text-xs text-gray-500 mt-2 italic">
-                Security advises; asset owner owns the risk. Document the briefing.
-              </p>
+              {/* Briefing Workflow Steps */}
+              <div className="space-y-2 mb-4">
+                <div
+                  className={clsx(
+                    'flex items-center gap-3 p-2 rounded-lg transition-all',
+                    assetOwnerBriefed ? 'bg-emerald-500/10' : 'bg-gray-800/30'
+                  )}
+                >
+                  <div
+                    className={clsx(
+                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                      assetOwnerBriefed
+                        ? 'bg-emerald-500/30 text-emerald-400'
+                        : 'bg-gray-700 text-gray-500'
+                    )}
+                  >
+                    {assetOwnerBriefed ? '✓' : '1'}
+                  </div>
+                  <div className="flex-1">
+                    <span className={assetOwnerBriefed ? 'text-emerald-400' : 'text-gray-400'}>
+                      Communicate risk assessment to owner
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className={clsx(
+                    'flex items-center gap-3 p-2 rounded-lg transition-all',
+                    assetOwnerBriefed ? 'bg-emerald-500/10' : 'bg-gray-800/30'
+                  )}
+                >
+                  <div
+                    className={clsx(
+                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                      assetOwnerBriefed
+                        ? 'bg-emerald-500/30 text-emerald-400'
+                        : 'bg-gray-700 text-gray-500'
+                    )}
+                  >
+                    {assetOwnerBriefed ? '✓' : '2'}
+                  </div>
+                  <div className="flex-1">
+                    <span className={assetOwnerBriefed ? 'text-emerald-400' : 'text-gray-400'}>
+                      Receive owner acknowledgment
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Brief Button */}
+              <button
+                onClick={onToggleBriefed}
+                className={clsx(
+                  'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all',
+                  assetOwnerBriefed
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                    : 'bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30'
+                )}
+              >
+                <Phone className="w-5 h-5" />
+                {assetOwnerBriefed ? 'Owner Briefed & Affirmed ✓' : 'Brief Asset Owner Now'}
+              </button>
+
+              {/* ESRM Principle Reminder */}
+              <div className="mt-3 p-2 rounded-lg bg-violet-500/10 border border-violet-500/30">
+                <p className="text-xs text-violet-300 italic text-center">
+                  &ldquo;Security advises; asset owner owns the risk.&rdquo; — ESRM Core Principle
+                </p>
+              </div>
             </div>
           )}
 
-          {/* ESRM: Posture Selection with Risk Treatment */}
+          {/* ESRM: Risk Assessment Quick View */}
+          {selectedAsset && (
+            <div className="p-5 rounded-2xl bg-gray-800/30 border border-gray-700/40">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <h3 className="font-semibold text-gray-200">Risk Assessment</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-center">
+                  <div className="text-xs text-cyan-400 font-semibold mb-1">Threat</div>
+                  <div className="text-lg font-bold text-cyan-300">
+                    {(inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE'
+                      ? 'HIGH'
+                      : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'URGENT'
+                        ? 'MEDIUM'
+                        : 'LOW'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+                  <div className="text-xs text-amber-400 font-semibold mb-1">Vulnerability</div>
+                  <div className="text-lg font-bold text-amber-300">
+                    {selectedAsset.criticality === 'CRITICAL' ? 'HIGH' : selectedAsset.criticality === 'HIGH' ? 'MEDIUM' : 'LOW'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
+                  <div className="text-xs text-red-400 font-semibold mb-1">Impact</div>
+                  <div className="text-lg font-bold text-red-300">
+                    {selectedAsset.criticality === 'CRITICAL'
+                      ? 'MAJOR'
+                      : selectedAsset.criticality === 'HIGH'
+                        ? 'MODERATE'
+                        : 'MINOR'}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 p-2 rounded-lg bg-gray-800/60 flex items-center justify-between">
+                <span className="text-xs text-gray-400">Calculated Risk Level:</span>
+                <span
+                  className={clsx(
+                    'text-sm font-bold px-2 py-0.5 rounded',
+                    (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' &&
+                      selectedAsset.criticality === 'CRITICAL'
+                      ? 'bg-red-500/20 text-red-400'
+                      : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' ||
+                          selectedAsset.criticality === 'CRITICAL'
+                        ? 'bg-orange-500/20 text-orange-400'
+                        : 'bg-amber-500/20 text-amber-400'
+                  )}
+                >
+                  {(inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' &&
+                  selectedAsset.criticality === 'CRITICAL'
+                    ? 'CRITICAL'
+                    : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE' ||
+                        selectedAsset.criticality === 'CRITICAL'
+                      ? 'HIGH'
+                      : 'MEDIUM'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ESRM: Treatment Selection - All 4 Options */}
           {selectedAsset && (
             <div className="p-5 rounded-2xl bg-gray-800/30 border border-gray-700/40">
               <div className="flex items-center gap-2 mb-4">
@@ -1944,39 +2077,78 @@ function DecisionConsole({
                 <h3 className="font-semibold text-gray-200">3. Select Risk Treatment</h3>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                {(['CONTINUE', 'DEGRADE', 'PAUSE'] as const).map((posture) => {
-                  const cfg = POSTURE_CONFIG[posture];
-
-                  return (
-                    <button
-                      key={posture}
-                      onClick={() => onCommit(posture)}
-                      disabled={!selectedAsset}
-                      className={clsx(
-                        'relative p-6 rounded-2xl border-2 transition-all duration-200 group overflow-hidden',
-                        'hover:scale-[1.02] active:scale-[0.98]',
-                        cfg.borderColor,
-                        'bg-gradient-to-br from-gray-800/60 to-gray-900/40',
-                        'hover:from-gray-800/80 hover:to-gray-800/60'
-                      )}
-                    >
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                {[
+                  {
+                    posture: 'CONTINUE' as DecisionPosture,
+                    treatment: 'ACCEPT',
+                    desc: 'Risk within tolerance',
+                    color: 'emerald',
+                    key: 'C',
+                    isTransfer: false,
+                  },
+                  {
+                    posture: 'DEGRADE' as DecisionPosture,
+                    treatment: 'MITIGATE',
+                    desc: 'Apply controls',
+                    color: 'amber',
+                    key: 'D',
+                    isTransfer: false,
+                  },
+                  {
+                    posture: 'DEGRADE' as DecisionPosture,
+                    treatment: 'TRANSFER',
+                    desc: 'Shift to third party',
+                    color: 'blue',
+                    key: 'T',
+                    isTransfer: true,
+                  },
+                  {
+                    posture: 'PAUSE' as DecisionPosture,
+                    treatment: 'AVOID',
+                    desc: 'Eliminate exposure',
+                    color: 'red',
+                    key: 'P',
+                    isTransfer: false,
+                  },
+                ].map((option) => (
+                  <button
+                    key={option.treatment}
+                    onClick={() => onCommit(option.posture)}
+                    disabled={!selectedAsset}
+                    className={clsx(
+                      'relative p-4 rounded-xl border-2 transition-all duration-200 group overflow-hidden text-left',
+                      'hover:scale-[1.02] active:scale-[0.98]',
+                      option.color === 'emerald' && 'border-emerald-500/40 hover:bg-emerald-500/10',
+                      option.color === 'amber' && 'border-amber-500/40 hover:bg-amber-500/10',
+                      option.color === 'blue' && 'border-blue-500/40 hover:bg-blue-500/10',
+                      option.color === 'red' && 'border-red-500/40 hover:bg-red-500/10',
+                      'bg-gradient-to-br from-gray-800/60 to-gray-900/40'
+                    )}
+                  >
+                    <div className="relative z-10">
                       <div
                         className={clsx(
-                          'absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300',
-                          `bg-gradient-to-br ${cfg.bgColor}`
+                          'text-lg font-black mb-0.5',
+                          option.color === 'emerald' && 'text-emerald-400',
+                          option.color === 'amber' && 'text-amber-400',
+                          option.color === 'blue' && 'text-blue-400',
+                          option.color === 'red' && 'text-red-400'
                         )}
-                      />
-
-                      <div className="relative z-10">
-                        <div className={clsx('text-2xl font-black mb-1', cfg.color)}>{posture}</div>
-                        <div className="text-xs text-gray-400 mb-2">{cfg.treatment}</div>
-                        <p className="text-2xs text-gray-500">{cfg.riskAction}</p>
-                        <div className="mt-3 text-2xs text-gray-600 font-mono">[{posture[0]}]</div>
+                      >
+                        {option.treatment}
                       </div>
-                    </button>
-                  );
-                })}
+                      <div className="text-xs text-gray-400 mb-2">→ {option.posture}</div>
+                      <p className="text-2xs text-gray-500">{option.desc}</p>
+                      <div className="mt-2 text-2xs text-gray-600 font-mono">[{option.key}]</div>
+                    </div>
+                    {option.isTransfer && (
+                      <div className="absolute top-2 right-2 text-2xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold">
+                        NEW
+                      </div>
+                    )}
+                  </button>
+                ))}
               </div>
 
               {/* Residual Risk Note */}
@@ -1987,7 +2159,7 @@ function DecisionConsole({
                 <textarea
                   value={residualRiskNote}
                   onChange={(e) => onResidualRiskChange(e.target.value)}
-                  placeholder="Document residual risk accepted with this posture..."
+                  placeholder="Document residual risk accepted with this treatment (e.g., 'Manual processes introduce 15-min delays; vendor SLA invoked for coverage')..."
                   className="w-full px-4 py-3 rounded-xl bg-gray-900/60 border border-gray-700/50 text-gray-200 placeholder:text-gray-600 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50"
                   rows={2}
                 />
@@ -2358,7 +2530,7 @@ GSOC Leadership • Crisis Management • Security Intelligence
         </div>
 
         {/* Breakdown */}
-        <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
+        <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
           <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
             <h4 className="text-gray-400 mb-2">Score Breakdown</h4>
             <div className="space-y-1.5">
@@ -2394,6 +2566,84 @@ GSOC Leadership • Crisis Management • Security Intelligence
                 <span className="text-gray-300 font-mono">{gameState.assetOwnersBriefed}</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ESRM Lessons Learned */}
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-violet-600/5 border border-violet-500/30">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-5 h-5 text-violet-400" />
+            <h4 className="text-violet-400 font-semibold">Lessons Learned — Continuous Improvement</h4>
+          </div>
+          <div className="space-y-2 text-sm">
+            {esrmRate >= 80 ? (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-500/10">
+                <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-emerald-400 font-medium">Strong ESRM Discipline</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Consistent asset owner engagement demonstrates proper governance.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10">
+                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-amber-400 font-medium">Improve Owner Engagement</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Brief asset owners before treatment decisions. Security advises; owner owns risk.
+                  </p>
+                </div>
+              </div>
+            )}
+            {accuracy >= 80 ? (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-500/10">
+                <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-emerald-400 font-medium">Accurate Risk Assessment</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Treatment decisions aligned with expected postures. Good threat × impact analysis.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10">
+                <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-amber-400 font-medium">Review Risk Assessment</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Some treatments diverged from expected postures. Consider T×V×I more carefully.
+                  </p>
+                </div>
+              </div>
+            )}
+            {gameState.maxStreak >= 5 ? (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-emerald-500/10">
+                <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-emerald-400 font-medium">Sustained Performance</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Maintained decision quality under pressure. Good operational rhythm.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-blue-500/10">
+                <Activity className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-blue-400 font-medium">Build Decision Rhythm</span>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Focus on consistent tempo. ESRM cycle discipline builds over time.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 p-2 rounded-lg bg-gray-800/50 text-center">
+            <p className="text-xs text-gray-500 italic">
+              &ldquo;The ESRM cycle is continuous—lessons from each response improve future decisions.&rdquo;
+            </p>
           </div>
         </div>
 
@@ -2471,17 +2721,24 @@ function StatCard({
 
 function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   const [activeSection, setActiveSection] = useState<
-    'loop' | 'postures' | 'domains' | 'esrm' | 'scoring' | 'playbook' | 'entities' | 'resources'
-  >('loop');
+    | 'overview'
+    | 'cycle'
+    | 'assets'
+    | 'risks'
+    | 'treatments'
+    | 'advisor'
+    | 'response'
+    | 'scoring'
+  >('overview');
 
   const sections = [
-    { id: 'loop' as const, label: 'Core Loop', icon: <Hourglass className="w-4 h-4" /> },
-    { id: 'playbook' as const, label: 'Playbook', icon: <FileText className="w-4 h-4" /> },
-    { id: 'entities' as const, label: 'Entities', icon: <Link2 className="w-4 h-4" /> },
-    { id: 'resources' as const, label: 'Resources', icon: <Users className="w-4 h-4" /> },
-    { id: 'postures' as const, label: 'Postures', icon: <Target className="w-4 h-4" /> },
-    { id: 'domains' as const, label: 'Domains', icon: <Layers className="w-4 h-4" /> },
-    { id: 'esrm' as const, label: 'ESRM', icon: <Briefcase className="w-4 h-4" /> },
+    { id: 'overview' as const, label: 'Overview', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'cycle' as const, label: 'ESRM Cycle', icon: <Hourglass className="w-4 h-4" /> },
+    { id: 'assets' as const, label: 'Assets', icon: <Target className="w-4 h-4" /> },
+    { id: 'risks' as const, label: 'Risk Assessment', icon: <AlertTriangle className="w-4 h-4" /> },
+    { id: 'treatments' as const, label: 'Treatments', icon: <TrendingUp className="w-4 h-4" /> },
+    { id: 'advisor' as const, label: 'Advisor Model', icon: <Users className="w-4 h-4" /> },
+    { id: 'response' as const, label: 'Response & Review', icon: <FileText className="w-4 h-4" /> },
     { id: 'scoring' as const, label: 'Scoring', icon: <Zap className="w-4 h-4" /> },
   ];
 
@@ -2491,12 +2748,12 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
         {/* Header */}
         <div className="p-5 border-b border-gray-800/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Field Guide</h2>
-              <p className="text-xs text-gray-500">Hourglass Command Operations Manual</p>
+              <h2 className="text-lg font-bold text-white">ESRM Field Guide</h2>
+              <p className="text-xs text-gray-500">Enterprise Security Risk Management Training</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-800 transition-colors">
@@ -2525,353 +2782,535 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
         {/* Content */}
         <div className="p-5 overflow-y-auto max-h-[60vh]">
-          {activeSection === 'loop' && (
+          {activeSection === 'overview' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">The Core Loop</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Hourglass Command simulates the first hour of a security incident. Your job: make
-                fast, defensible decisions under pressure with incomplete information.
-              </p>
-              <div className="grid grid-cols-5 gap-2 py-4">
-                {['Intel', 'Triage', 'Decide', 'Execute', 'Debrief'].map((step, i) => (
-                  <div key={step} className="text-center">
-                    <div
-                      className={clsx(
-                        'w-10 h-10 mx-auto rounded-xl flex items-center justify-center font-bold text-lg mb-1',
-                        i === 2 ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-800 text-gray-400'
-                      )}
-                    >
-                      {i + 1}
-                    </div>
-                    <span className="text-2xs text-gray-500">{step}</span>
-                  </div>
-                ))}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Hourglass Command</h3>
+                  <p className="text-xs text-gray-500">ESRM Training Simulation</p>
+                </div>
               </div>
+
+              <div className="p-4 rounded-xl bg-gradient-to-br from-gray-800/60 to-gray-900/40 border border-gray-700/50">
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  This simulation trains first-hour decision-making using{' '}
+                  <strong className="text-emerald-400">Enterprise Security Risk Management (ESRM)</strong>{' '}
+                  principles from ASIS International guidelines and industry best practices.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                <h4 className="text-violet-400 font-semibold mb-2 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  Core ESRM Principle
+                </h4>
+                <p className="text-sm text-gray-300 italic">
+                  &ldquo;Security serves as trusted advisor to asset owners who own the risk.&rdquo;
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  — ASIS ESRM Guidelines; Allen & Loyear
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-gray-300">What You&apos;ll Practice:</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    'Asset identification & prioritization',
+                    'Risk assessment (Threat × Vulnerability × Impact)',
+                    'Treatment selection (Accept/Mitigate/Transfer/Avoid)',
+                    'Advisor → Owner communication',
+                    'Residual risk documentation',
+                    'Post-incident review',
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="p-2 rounded-lg bg-gray-800/40 text-xs text-gray-400 flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <p className="text-sm text-amber-200">
-                  <strong>Fast-paced:</strong> Intel arrives every 15-45 seconds. No time to
-                  overthink—trust your training.
+                  <strong>Fast-Casual Tempo:</strong> Intel arrives every 15-45 seconds. Make decisions
+                  under pressure—ESRM discipline keeps you grounded.
                 </p>
               </div>
             </div>
           )}
 
-          {activeSection === 'playbook' && (
+          {activeSection === 'cycle' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Playbook Phases</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">The ESRM Cycle</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                The simulation follows a structured 60-minute playbook with five phases. Progress
-                through phases to maximize your score.
+                ESRM follows a continuous cycle. In this simulation, you&apos;ll practice each step
+                under time pressure, building muscle memory for real incidents.
               </p>
+
+              <div className="relative">
+                <div className="absolute left-5 top-8 bottom-8 w-0.5 bg-gradient-to-b from-emerald-500 via-amber-500 to-red-500 opacity-30" />
+                <div className="space-y-4">
+                  {[
+                    {
+                      num: 1,
+                      title: 'Establish Context',
+                      desc: 'Understand the scenario, mission, and stakeholders',
+                      color: 'emerald',
+                      detail: 'Each scenario frames the business context and key stakeholders',
+                    },
+                    {
+                      num: 2,
+                      title: 'Identify & Prioritize Assets',
+                      desc: 'What\'s at risk? Who owns it? What\'s the criticality?',
+                      color: 'cyan',
+                      detail: 'Select the affected asset before making treatment decisions',
+                    },
+                    {
+                      num: 3,
+                      title: 'Identify & Prioritize Risks',
+                      desc: 'Assess threats, vulnerabilities, and potential impact',
+                      color: 'amber',
+                      detail: 'Each inject presents risk indicators for rapid assessment',
+                    },
+                    {
+                      num: 4,
+                      title: 'Treat the Risk',
+                      desc: 'Accept, Mitigate, Transfer, or Avoid',
+                      color: 'orange',
+                      detail: 'Choose your treatment and operational posture',
+                    },
+                    {
+                      num: 5,
+                      title: 'Advise Asset Owner',
+                      desc: 'Brief the owner; document their acknowledgment',
+                      color: 'violet',
+                      detail: 'Owner briefing earns ESRM bonus points',
+                    },
+                    {
+                      num: 6,
+                      title: 'Response & Review',
+                      desc: 'Execute, monitor residual risk, debrief',
+                      color: 'red',
+                      detail: 'AAR export captures lessons learned',
+                    },
+                  ].map((step) => (
+                    <div key={step.num} className="flex items-start gap-4 pl-1">
+                      <div
+                        className={clsx(
+                          'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 z-10',
+                          `bg-${step.color}-500/20 text-${step.color}-400 border border-${step.color}-500/40`
+                        )}
+                      >
+                        {step.num}
+                      </div>
+                      <div className="flex-1 pb-2">
+                        <h4 className={`text-${step.color}-400 font-semibold`}>{step.title}</h4>
+                        <p className="text-sm text-gray-300 mt-0.5">{step.desc}</p>
+                        <p className="text-xs text-gray-500 mt-1 italic">{step.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
+                <div className="flex items-center gap-2 text-emerald-400 text-sm mb-1">
+                  <Activity className="w-4 h-4" />
+                  <strong>Continuous Improvement</strong>
+                </div>
+                <p className="text-xs text-gray-300">
+                  The cycle repeats. Lessons from each response feed back into better context and
+                  risk understanding for future incidents.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'assets' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Asset Identification & Prioritization</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Before treating risk, identify <strong>what&apos;s at risk</strong>. Assets have owners,
+                criticality levels, and current exposure status.
+              </p>
+
               <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Criticality Levels</h4>
                 {[
                   {
-                    name: 'Assessment',
-                    time: '0-10 min',
-                    desc: 'Rapidly assess scope and establish initial posture',
-                    color: 'emerald',
+                    level: 'CRITICAL',
+                    desc: 'Loss causes severe business impact, regulatory breach, or life safety risk',
+                    color: 'red',
                   },
                   {
-                    name: 'Bridge',
-                    time: '10-20 min',
-                    desc: 'Coordinate with stakeholders, clarify decision authority',
-                    color: 'cyan',
+                    level: 'HIGH',
+                    desc: 'Significant operational disruption or financial loss',
+                    color: 'orange',
                   },
                   {
-                    name: 'Continuity',
-                    time: '20-35 min',
-                    desc: 'Implement backup procedures and compensating controls',
+                    level: 'MEDIUM',
+                    desc: 'Moderate impact; workarounds exist but costly',
                     color: 'amber',
                   },
                   {
-                    name: 'Information',
-                    time: '35-50 min',
-                    desc: 'Assess data exposure, coordinate credential reviews',
-                    color: 'violet',
+                    level: 'LOW',
+                    desc: 'Minimal impact; easily recoverable',
+                    color: 'gray',
                   },
-                  {
-                    name: 'Checkpoint',
-                    time: '50-60 min',
-                    desc: 'Review decisions, validate assumptions, plan next steps',
-                    color: 'blue',
-                  },
+                ].map((item) => (
+                  <div
+                    key={item.level}
+                    className={clsx(
+                      'p-3 rounded-xl border flex items-center gap-3',
+                      `bg-${item.color}-500/10 border-${item.color}-500/30`
+                    )}
+                  >
+                    <span
+                      className={clsx(
+                        'text-xs font-bold px-2 py-1 rounded',
+                        `bg-${item.color}-500/20 text-${item.color}-400`
+                      )}
+                    >
+                      {item.level}
+                    </span>
+                    <p className="text-xs text-gray-300">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <h4 className="text-amber-400 font-semibold mb-2">Asset Owner Model</h4>
+                <p className="text-sm text-gray-300 mb-2">
+                  Each asset has a designated <strong>owner</strong> who bears ultimate accountability
+                  for risk decisions affecting that asset.
+                </p>
+                <div className="text-xs text-gray-400 space-y-1">
+                  <p>• <strong>Owner&apos;s Role:</strong> Accept or reject recommended treatment</p>
+                  <p>• <strong>Security&apos;s Role:</strong> Advise on risk, recommend treatment, document</p>
+                  <p>• <strong>Risk Tolerance:</strong> Owner&apos;s threshold for acceptable risk</p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                <p className="text-sm text-violet-200">
+                  <strong>In-Sim:</strong> Select the affected asset before choosing treatment.
+                  Briefing the asset owner earns +75 bonus points.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'risks' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Risk Assessment</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                ESRM uses a structured approach: <strong>Threat × Vulnerability × Impact</strong> determines
+                risk level and informs treatment selection.
+              </p>
+
+              <div className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50">
+                <h4 className="text-sm font-semibold text-gray-300 mb-3">5×5 Risk Matrix</h4>
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-6 gap-1 text-center min-w-[320px]">
+                    <div className="text-2xs text-gray-500 p-1"></div>
+                    {['Insignif.', 'Minor', 'Moderate', 'Major', 'Catastrophic'].map((h) => (
+                      <div key={h} className="text-2xs text-gray-500 p-1 font-medium">{h}</div>
+                    ))}
+
+                    {[
+                      { label: 'Almost Certain', cells: ['M', 'H', 'H', 'C', 'C'] },
+                      { label: 'Likely', cells: ['M', 'M', 'H', 'H', 'C'] },
+                      { label: 'Possible', cells: ['L', 'M', 'M', 'H', 'H'] },
+                      { label: 'Unlikely', cells: ['L', 'L', 'M', 'M', 'H'] },
+                      { label: 'Rare', cells: ['L', 'L', 'L', 'M', 'M'] },
+                    ].map((row) => (
+                      <>
+                        <div key={row.label} className="text-2xs text-gray-400 p-1 text-right">{row.label}</div>
+                        {row.cells.map((cell, i) => (
+                          <div
+                            key={`${row.label}-${i}`}
+                            className={clsx(
+                              'text-2xs font-bold p-1.5 rounded',
+                              cell === 'C' && 'bg-red-500/30 text-red-400',
+                              cell === 'H' && 'bg-orange-500/30 text-orange-400',
+                              cell === 'M' && 'bg-amber-500/30 text-amber-400',
+                              cell === 'L' && 'bg-emerald-500/30 text-emerald-400'
+                            )}
+                          >
+                            {cell === 'C' ? 'CRIT' : cell === 'H' ? 'HIGH' : cell === 'M' ? 'MED' : 'LOW'}
+                          </div>
+                        ))}
+                      </>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-2xs text-gray-500 mt-2 text-center">
+                  Rows: Likelihood • Columns: Impact
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                  <h5 className="text-cyan-400 font-semibold text-xs mb-1">Threat</h5>
+                  <p className="text-2xs text-gray-400">
+                    Actor capability and intent to exploit
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <h5 className="text-amber-400 font-semibold text-xs mb-1">Vulnerability</h5>
+                  <p className="text-2xs text-gray-400">
+                    Weakness that can be exploited
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <h5 className="text-red-400 font-semibold text-xs mb-1">Impact</h5>
+                  <p className="text-2xs text-gray-400">
+                    Consequence if risk materializes
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 mt-4">
+                <p className="text-sm text-violet-200">
+                  <strong>In-Sim:</strong> Each inject signals risk level through urgency badges
+                  (IMMEDIATE/URGENT/ROUTINE) and domain indicators.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'treatments' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Risk Treatment Options</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                ESRM provides four treatment options. Each maps to an operational posture.
+                All four are first-class choices—select based on risk level and context.
+              </p>
+
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-400 font-bold">ACCEPT</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                        → CONTINUE
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Risk is within tolerance. Proceed with awareness and monitoring.
+                  </p>
+                  <div className="text-xs text-gray-500">
+                    <strong>When:</strong> Low risk, cost of treatment exceeds impact, business opportunity outweighs concern
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 font-bold">MITIGATE</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                        → DEGRADE
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Apply compensating controls to reduce likelihood and/or impact.
+                  </p>
+                  <div className="text-xs text-gray-500">
+                    <strong>When:</strong> Risk exceeds tolerance but elimination not feasible; controls exist that reduce exposure
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-400 font-bold">TRANSFER</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
+                        → DEGRADE
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Shift risk to third party via insurance, contracts, or outsourcing.
+                  </p>
+                  <div className="text-xs text-gray-500">
+                    <strong>When:</strong> Insurance coverage exists; vendor can better manage risk; contractual shift appropriate
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-400 font-bold">AVOID</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+                        → PAUSE
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-2">
+                    Eliminate the risk source entirely. Most protective but highest business impact.
+                  </p>
+                  <div className="text-xs text-gray-500">
+                    <strong>When:</strong> CRITICAL risk; life safety at stake; no adequate mitigation exists
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 mt-4">
+                <h4 className="text-gray-300 font-semibold text-sm mb-2">Residual Risk</h4>
+                <p className="text-xs text-gray-400">
+                  No treatment eliminates all risk. Document what remains after your decision.
+                  This is critical for owner acknowledgment and audit trail.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'advisor' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">The Advisor → Owner Model</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                ESRM&apos;s core governance principle: Security advises, asset owners decide.
+                This model ensures accountability and prevents security overreach.
+              </p>
+
+              <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/15 to-violet-600/5 border border-violet-500/40">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-violet-400 font-semibold">The Handoff</h4>
+                    <p className="text-xs text-gray-400">Security → Asset Owner</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">1.</span>
+                    <span className="text-gray-300">
+                      <strong>Assess:</strong> Evaluate threat, vulnerability, impact
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-cyan-400 font-bold">2.</span>
+                    <span className="text-gray-300">
+                      <strong>Recommend:</strong> Propose treatment based on assessment
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">3.</span>
+                    <span className="text-gray-300">
+                      <strong>Brief:</strong> Communicate risk clearly to asset owner
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-violet-400 font-bold">4.</span>
+                    <span className="text-gray-300">
+                      <strong>Affirm:</strong> Owner acknowledges and accepts (or modifies)
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-red-400 font-bold">5.</span>
+                    <span className="text-gray-300">
+                      <strong>Document:</strong> Record decision and residual risk
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <h5 className="text-emerald-400 font-semibold text-sm mb-1">Security&apos;s Authority</h5>
+                  <ul className="text-xs text-gray-400 space-y-1">
+                    <li>• Risk assessment</li>
+                    <li>• Treatment recommendations</li>
+                    <li>• Control implementation</li>
+                    <li>• Monitoring & escalation</li>
+                  </ul>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                  <h5 className="text-amber-400 font-semibold text-sm mb-1">Owner&apos;s Authority</h5>
+                  <ul className="text-xs text-gray-400 space-y-1">
+                    <li>• Accept/reject treatment</li>
+                    <li>• Own residual risk</li>
+                    <li>• Resource decisions</li>
+                    <li>• Business tradeoffs</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <p className="text-sm text-amber-200">
+                  <strong>In-Sim:</strong> Click &ldquo;Brief Now&rdquo; to notify the asset owner.
+                  This earns +75 ESRM bonus points and demonstrates proper governance.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'response' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Response & Post-Incident Review</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                ESRM includes structured incident response and After-Action Review (AAR)
+                to close the cycle and feed continuous improvement.
+              </p>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">60-Minute Playbook Phases</h4>
+                {[
+                  { name: 'Assessment', time: '0-10m', desc: 'Establish scope, initial posture', color: 'emerald' },
+                  { name: 'Bridge', time: '10-20m', desc: 'Stakeholder coordination', color: 'cyan' },
+                  { name: 'Continuity', time: '20-35m', desc: 'Compensating controls', color: 'amber' },
+                  { name: 'Information', time: '35-50m', desc: 'Data exposure assessment', color: 'violet' },
+                  { name: 'Checkpoint', time: '50-60m', desc: 'Review, validate, plan', color: 'blue' },
                 ].map((phase) => (
                   <div
                     key={phase.name}
                     className={clsx(
-                      'p-3 rounded-xl border',
+                      'p-2.5 rounded-lg border flex items-center justify-between',
                       `bg-${phase.color}-500/10 border-${phase.color}-500/30`
                     )}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-${phase.color}-400 font-semibold`}>{phase.name}</span>
-                      <span className="text-xs text-gray-500">{phase.time}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-${phase.color}-400 font-semibold text-sm`}>{phase.name}</span>
+                      <span className="text-xs text-gray-500">{phase.desc}</span>
                     </div>
-                    <p className="text-xs text-gray-400">{phase.desc}</p>
+                    <span className="text-2xs text-gray-500 font-mono">{phase.time}</span>
                   </div>
                 ))}
               </div>
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
-                <p className="text-sm text-emerald-200">
-                  <strong>Phase Bonus:</strong> Completing decisions during earlier phases
-                  (Assessment, Bridge, Continuity) earns +25 bonus points.
-                </p>
-              </div>
-            </div>
-          )}
 
-          {activeSection === 'entities' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Entity Linking</h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Injects reference linked entities—people, places, assets, organizations, and systems
-                that connect across the incident. Recognizing these connections improves situational
-                awareness.
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-4 h-4 text-blue-400" />
-                    <span className="text-blue-400 font-medium text-sm">Person</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Individuals involved: targets, subjects, contacts
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <DoorOpen className="w-4 h-4 text-emerald-400" />
-                    <span className="text-emerald-400 font-medium text-sm">Location</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Physical locations: buildings, floors, sites
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Briefcase className="w-4 h-4 text-amber-400" />
-                    <span className="text-amber-400 font-medium text-sm">Asset</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Valuable items: data, credentials, equipment
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-violet-400" />
-                    <span className="text-violet-400 font-medium text-sm">Organization</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Entities: vendors, threat actors, agencies
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 col-span-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Cpu className="w-4 h-4 text-orange-400" />
-                    <span className="text-orange-400 font-medium text-sm">System</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Technical systems: badge systems, BMS, malware
-                  </p>
+              <div className="p-4 rounded-xl bg-gray-800/50 border border-gray-700/50 mt-4">
+                <h4 className="text-gray-300 font-semibold text-sm mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-gray-400" />
+                  After-Action Review (AAR)
+                </h4>
+                <div className="text-xs text-gray-400 space-y-1.5">
+                  <p>• <strong>What was supposed to happen?</strong> — Learning objective</p>
+                  <p>• <strong>What actually happened?</strong> — Decisions made, outcomes</p>
+                  <p>• <strong>What went well?</strong> — Sustains to continue</p>
+                  <p>• <strong>What can improve?</strong> — Lessons learned</p>
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 mt-4">
-                <div className="flex items-center gap-2 text-cyan-400 text-sm mb-2">
-                  <Link2 className="w-4 h-4" />
-                  <strong>Entity Map</strong>
+
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
+                <div className="flex items-center gap-2 text-emerald-400 text-sm mb-1">
+                  <Activity className="w-4 h-4" />
+                  <strong>Continuous Improvement</strong>
                 </div>
                 <p className="text-xs text-gray-300">
-                  Click the link icon in the header to open the Entity Map. Select an entity to
-                  highlight all injects where it appears. Entities with more connections are more
-                  central to the incident.
+                  AAR findings feed back into the ESRM cycle—improving asset identification,
+                  risk assessment, and treatment selection for future incidents.
                 </p>
-              </div>
-            </div>
-          )}
-
-          {activeSection === 'resources' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Dispatch & Resources</h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Managing resources is critical. Guards, analysts, and responders have limited
-                availability. Deploying resources puts them on cooldown.
-              </p>
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-cyan-400 font-semibold">Guards (4 total)</span>
-                  </div>
-                  <p className="text-xs text-gray-300">
-                    Physical security officers. Deploy for access control, surveillance, escort.
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-violet-400 font-semibold">Analysts (3 total)</span>
-                  </div>
-                  <p className="text-xs text-gray-300">
-                    Intel and cyber analysts. Deploy for investigation, correlation, research.
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-orange-400 font-semibold">Responders (2 total)</span>
-                  </div>
-                  <p className="text-xs text-gray-300">
-                    Incident responders. Deploy for critical actions, containment, recovery.
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-2 mt-4">
-                <h4 className="text-sm font-semibold text-gray-300">Contention Levels</h4>
-                <div className="p-2 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Normal</span>
-                  <span className="text-xs text-emerald-400">&gt;50% available</span>
-                </div>
-                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
-                  <span className="text-xs text-amber-400">Strained</span>
-                  <span className="text-xs text-amber-400">25-50% available</span>
-                </div>
-                <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
-                  <span className="text-xs text-red-400">Critical</span>
-                  <span className="text-xs text-red-400">&lt;25% available</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
-                <p className="text-sm text-amber-200">
-                  <strong>Contention Penalty:</strong> Making decisions with insufficient resources
-                  incurs -30 points. Resources regenerate over time.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {activeSection === 'postures' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Decision Postures</h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Every decision maps to one of three postures. These translate directly to ESRM risk
-                treatments.
-              </p>
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-emerald-400 font-bold">CONTINUE</span>
-                    <span className="text-xs text-gray-500">→ ACCEPT risk</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Risk is within tolerance. Proceed with normal operations and monitoring.
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-amber-400 font-bold">DEGRADE</span>
-                    <span className="text-xs text-gray-500">→ MITIGATE risk</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Apply compensating controls. Operate with reduced capability to manage exposure.
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-red-400 font-bold">PAUSE</span>
-                    <span className="text-xs text-gray-500">→ AVOID risk</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Stop operations to eliminate exposure. Use when risk exceeds tolerance.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSection === 'domains' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">Security Domains</h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Modern incidents span multiple domains. Fused GSOC operations require cross-domain
-                awareness.
-              </p>
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <DoorOpen className="w-5 h-5 text-cyan-400" />
-                    <span className="text-cyan-400 font-bold">PHYSICAL</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Access control, surveillance, guards, site security, badge systems, mantraps.
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Brain className="w-5 h-5 text-violet-400" />
-                    <span className="text-violet-400 font-bold">INTELLIGENCE</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Threat intel, OSINT, law enforcement liaison, source handling, risk assessment.
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/30">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Cpu className="w-5 h-5 text-orange-400" />
-                    <span className="text-orange-400 font-bold">CYBER</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    Network security, endpoint, SOC coordination, malware, C2 detection, DLP.
-                  </p>
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 mt-4">
-                <div className="flex items-center gap-2 text-gray-300 text-sm">
-                  <Link2 className="w-4 h-4 text-gray-500" />
-                  <span>Cross-domain injects link entities across all three domains.</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSection === 'esrm' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">ESRM Framework</h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Enterprise Security Risk Management (ESRM) principles govern all decisions.
-              </p>
-              <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30 mb-4">
-                <h4 className="text-violet-400 font-semibold mb-2">Key Principle</h4>
-                <p className="text-sm text-gray-300">
-                  <strong>Security advises; asset owners own the risk.</strong> GSOC provides
-                  risk-informed recommendations. The asset owner makes the final call and accepts
-                  residual risk.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
-                  <Target className="w-5 h-5 text-amber-400 mt-0.5" />
-                  <div>
-                    <span className="text-white font-medium">1. Identify Asset</span>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      What&apos;s at risk? Who owns it?
-                    </p>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-violet-400 mt-0.5" />
-                  <div>
-                    <span className="text-white font-medium">2. Brief Owner</span>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      Communicate risk clearly. Get acknowledgment.
-                    </p>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-start gap-3">
-                  <TrendingUp className="w-5 h-5 text-emerald-400 mt-0.5" />
-                  <div>
-                    <span className="text-white font-medium">3. Document Residual Risk</span>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      What risk remains after your decision?
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -2880,49 +3319,76 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white mb-3">How Scoring Works</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Your score reflects decision quality, speed, and ESRM discipline.
+                Your score reflects ESRM discipline: decision quality, stakeholder engagement,
+                and risk documentation—not just speed.
               </p>
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-gray-300">Correct posture decision</span>
-                  <span className="text-emerald-400 font-mono">+150 base</span>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-gray-300">Time bonus (faster = more)</span>
-                  <span className="text-amber-400 font-mono">+2/sec remaining</span>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-gray-300">Asset owner briefed</span>
-                  <span className="text-violet-400 font-mono">+75</span>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-gray-300">Residual risk documented</span>
-                  <span className="text-blue-400 font-mono">+50</span>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-gray-300">Decision streak multiplier</span>
-                  <span className="text-orange-400 font-mono">up to 2.5x</span>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-800/50 flex items-center justify-between">
-                  <span className="text-gray-300">Decision timeout</span>
-                  <span className="text-red-400 font-mono">-50</span>
+
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-gray-300">Point Values</h4>
+                {[
+                  { label: 'Correct treatment decision', value: '+150', color: 'emerald' },
+                  { label: 'Time bonus (faster = more)', value: '+2/sec', color: 'amber' },
+                  { label: 'Asset owner briefed', value: '+75', color: 'violet' },
+                  { label: 'Residual risk documented', value: '+50', color: 'blue' },
+                  { label: 'Early phase bonus', value: '+25', color: 'cyan' },
+                  { label: 'Entity linking bonus', value: '+20', color: 'orange' },
+                  { label: 'Decision timeout', value: '-50', color: 'red' },
+                  { label: 'Resource contention', value: '-30', color: 'red' },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="p-2.5 rounded-lg bg-gray-800/50 flex items-center justify-between"
+                  >
+                    <span className="text-gray-300 text-sm">{item.label}</span>
+                    <span className={`text-${item.color}-400 font-mono font-bold`}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 mt-4">
+                <h4 className="text-gray-300 font-semibold text-sm mb-2">Multipliers</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded bg-gray-800/60">
+                    <span className="text-amber-400">Decision Streak</span>
+                    <span className="text-gray-400 block">up to 2.5×</span>
+                  </div>
+                  <div className="p-2 rounded bg-gray-800/60">
+                    <span className="text-red-400">Escalation Level</span>
+                    <span className="text-gray-400 block">1.0× → 1.5×</span>
+                  </div>
                 </div>
               </div>
+
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mt-4">
-                <p className="text-sm text-emerald-200">
-                  <strong>Grades:</strong> S (Legend), A (Commander), B (Operator), C (Learning), D
-                  (Needs Work), F (Mission Failed)
-                </p>
+                <h4 className="text-emerald-400 font-semibold text-sm mb-2">Grade Scale</h4>
+                <div className="grid grid-cols-6 gap-1 text-center">
+                  {[
+                    { grade: 'S', title: 'Legend', color: 'purple' },
+                    { grade: 'A', title: 'Commander', color: 'emerald' },
+                    { grade: 'B', title: 'Operator', color: 'blue' },
+                    { grade: 'C', title: 'Learning', color: 'amber' },
+                    { grade: 'D', title: 'Needs Work', color: 'orange' },
+                    { grade: 'F', title: 'Failed', color: 'red' },
+                  ].map((g) => (
+                    <div key={g.grade} className="p-1.5">
+                      <div className={`text-${g.color}-400 font-black text-lg`}>{g.grade}</div>
+                      <div className="text-2xs text-gray-500">{g.title}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-800/60 flex justify-end">
+        <div className="p-4 border-t border-gray-800/60 flex items-center justify-between">
+          <p className="text-xs text-gray-600">
+            Based on ASIS ESRM Guidelines • Allen & Loyear
+          </p>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl bg-amber-500/15 text-amber-400 font-semibold hover:bg-amber-500/25 transition-all"
+            className="px-6 py-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 font-semibold hover:bg-emerald-500/25 transition-all"
           >
             Got It
           </button>

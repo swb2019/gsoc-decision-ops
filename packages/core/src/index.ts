@@ -137,6 +137,11 @@ export {
   treatmentToPosture,
   postureToTreatment,
   calculateESRMScore,
+  calculateRiskLevel,
+  calculateAssetPriorityScore,
+  RISK_MATRIX,
+  RISK_LEVEL_VALUES,
+  TREATMENT_DESCRIPTIONS,
   EXECUTIVE_THREAT_ASSETS,
   SUPPLY_CHAIN_ASSETS,
   INSIDER_THREAT_ASSETS,
@@ -145,13 +150,20 @@ export {
 export type {
   AssetCriticality,
   RiskTreatmentOption,
+  ExtendedPosture,
+  RiskLikelihood,
+  RiskImpact,
+  RiskLevel,
   ProtectedAsset,
   AssetOwner,
+  OwnerAffirmation,
   RiskAssessment,
   ESRMDecisionContext,
   RiskCommunication,
   ScenarioESRMConfig,
   ESRMScorecard,
+  LessonLearned,
+  ContinuousImprovementState,
 } from './esrm.js';
 
 // Validation

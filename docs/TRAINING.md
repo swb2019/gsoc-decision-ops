@@ -1,22 +1,67 @@
 # Hourglass Command — Training Methodology
 
-> **Version:** 1.0  
+> **Version:** 2.0 (ESRM Textbook-Faithful)  
 > **Effective:** September 2026  
-> **Purpose:** Document the pedagogical foundations that make this first-hour decision training effective.
+> **Purpose:** Document the ESRM textbook-faithful pedagogical foundations for first-hour decision training.
 
 ---
 
 ## Training Philosophy
 
-Hourglass Command is built on **enterprise incident management patterns**, **SOTA ESRM (ASIS) risk methodology**, and **evidence-based decision training** — not gamification or engagement farming. The goal is skill transfer: what you practice here should improve your judgment in actual first-hour incidents.
+Hourglass Command is a **leading ESRM textbook-faithful** training simulation built on:
 
-**Foundation stack:**
+1. **ASIS ESRM Guidelines** — International framework where asset owners own risk
+2. **Allen & Loyear's "Enterprise Security Risk Management: Concepts and Applications"**
+3. **Loyear's "Enterprise Security Risk Management in the Real World"**
 
-1. Enterprise workflow fidelity (decision log, timeline, ownership, escalation, COP)
-2. ASIS ESRM risk principles (asset owner owns risk, security as trusted advisor)
-3. Evidence-based pedagogy (Klein RPD, military AAR, tabletop design)
+The simulation operationalizes the complete ESRM cycle as playable mechanics — not brochureware, but actual gameplay where you practice each step under time pressure.
+
+**Foundation Stack:**
+
+| Layer          | Foundation                                      | Application in Simulation                                    |
+| -------------- | ----------------------------------------------- | ------------------------------------------------------------ |
+| **Workflow**   | Enterprise incident management patterns         | Decision log, timeline, ownership, escalation cues, COP      |
+| **Risk**       | ASIS ESRM principles                            | Asset owner owns risk; GSOC = trusted advisor; all 4 treatments |
+| **Pedagogy**   | Klein RPD, military AAR, HSEEP tabletop         | Injects, structured debrief, treatment framing               |
+| **First-Hour** | NIST/CISA incident guidance                     | 5-phase playbook progression                                 |
 
 This document maps each feature to its pedagogical foundation, enabling trainers to understand _why_ the tool works, not just _how_ to use it.
+
+---
+
+## §0 The ESRM Cycle (Practiced In-Sim)
+
+The complete ESRM cycle is playable, not brochure content. Each step has corresponding game mechanics:
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  1. CONTEXT │ ──► │ 2. IDENTIFY &    │ ──► │ 3. IDENTIFY &    │
+│  (Scenario  │     │    PRIORITIZE    │     │    PRIORITIZE    │
+│   Framing)  │     │    ASSETS        │     │    RISKS         │
+└─────────────┘     └──────────────────┘     └──────────────────┘
+                              │                        │
+                              ▼                        ▼
+┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│ 6. RESPONSE │ ◄── │ 5. ADVISOR →     │ ◄── │ 4. TREAT THE     │
+│    & REVIEW │     │    ASSET OWNER   │     │    RISK          │
+│    (AAR)    │     │    (Briefing)    │     │ (Accept/Mit/Xfr) │
+└─────────────┘     └──────────────────┘     └──────────────────┘
+        │
+        └──────────► Continuous Improvement (Lessons feed back) ──┐
+                                                                  │
+        ┌─────────────────────────────────────────────────────────┘
+        ▼
+    Next Incident
+```
+
+| Cycle Step                        | In-Sim Mechanic                                              | Scoring Impact |
+| --------------------------------- | ------------------------------------------------------------ | -------------- |
+| 1. Context                        | Scenario framing, learning objective visible                 | —              |
+| 2. Identify & Prioritize Assets   | Asset selection with criticality badges, owner info          | Required       |
+| 3. Identify & Prioritize Risks    | T×V×I quick view, urgency badges, risk level calculation     | Informs decision |
+| 4. Treat the Risk                 | All 4 treatments playable: Accept/Mitigate/Transfer/Avoid    | +150 base      |
+| 5. Advisor → Asset Owner          | Brief button, affirmation workflow, governance reminder       | +75 ESRM bonus |
+| 6. Response & Review              | Residual risk documentation, AAR export, lessons learned     | +50 residual bonus |
 
 ---
 
@@ -49,25 +94,35 @@ This document maps each feature to its pedagogical foundation, enabling trainers
 
 ### 1.2 ASIS ESRM Risk Principles
 
-**Source:** ASIS International _Enterprise Security Risk Management_ (2019); ISO 31000 risk management framework
+**Source:** ASIS International _Enterprise Security Risk Management_ (2019); Allen & Loyear textbooks; ISO 31000
 
 **Core ESRM principles applied:**
 
 | ESRM Principle                 | Training Implementation                                            |
 | ------------------------------ | ------------------------------------------------------------------ |
-| **Asset owner owns the risk**  | Decision framing: "Advising [asset owner] on residual risk"        |
+| **Asset owner owns the risk**  | Explicit advisor → owner handoff workflow with affirmation         |
 | **Security = trusted advisor** | GSOC posture is recommendation to business, not unilateral control |
-| **Residual risk explicit**     | Every posture includes "risk remaining after this treatment"       |
-| **Treatment options**          | CONTINUE/DEGRADE/PAUSE map to accept/mitigate/avoid                |
+| **Residual risk explicit**     | Required documentation: "risk remaining after this treatment"      |
+| **All 4 treatments first-class** | Accept/Mitigate/Transfer/Avoid all playable in UI                |
 
-**ESRM treatment → Posture mapping:**
+**ESRM treatment → Posture mapping (All 4 Treatments Playable):**
 
-| ESRM Treatment | Posture             | When Applied                                     |
-| -------------- | ------------------- | ------------------------------------------------ |
-| **Accept**     | CONTINUE            | Risk within tolerance; proceed with awareness    |
-| **Mitigate**   | DEGRADE             | Reduce exposure through compensating controls    |
-| **Avoid**      | PAUSE               | Halt activity to eliminate exposure              |
-| **Transfer**   | (Context-dependent) | Insurance, vendor liability — noted in rationale |
+| ESRM Treatment | Posture    | When Applied                                              |
+| -------------- | ---------- | --------------------------------------------------------- |
+| **Accept**     | CONTINUE   | Risk within tolerance; proceed with awareness             |
+| **Mitigate**   | DEGRADE    | Apply compensating controls to reduce exposure            |
+| **Transfer**   | DEGRADE    | Shift risk to third party (insurance, vendor liability)   |
+| **Avoid**      | PAUSE      | Eliminate the risk source entirely                        |
+
+**Transfer Treatment (New):**
+
+TRANSFER is now a first-class playable option. Use when:
+- Insurance coverage exists for the risk type
+- Vendor/contractor can better manage the risk
+- Contractual liability shift is appropriate
+- Specialized expertise needed beyond internal capability
+
+**Note:** Responsibility for managing the risk may transfer, but accountability to stakeholders often remains. Document counterparty risk.
 
 **Key insight:** GSOC doesn't own business risk — we advise asset owners on security implications. Training should reinforce this advisory role, not security overreach.
 
@@ -75,10 +130,11 @@ This document maps each feature to its pedagogical foundation, enabling trainers
 
 ```
 Posture: DEGRADE
-Treatment: Mitigate
-Residual Risk: Manual visitor process introduces 15-30 minute delays;
-               temporary credential issuance gap at remote sites.
-Recommendation to: Facilities Director (asset owner)
+Treatment: Transfer
+Residual Risk: Vendor SLA invoked for 4-hour response; counterparty 
+               risk if vendor fails to perform. Insurance claim 
+               initiated for breach costs.
+Recommendation to: VP Infrastructure (asset owner)
 ```
 
 ---
@@ -201,22 +257,29 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ## §3 Feature-to-Pedagogy Mapping
 
-| Feature                           | Primary Foundation     | Secondary Foundations               |
-| --------------------------------- | ---------------------- | ----------------------------------- |
-| Decision log with timestamp/owner | Enterprise workflow    | Military AAR                        |
-| Timeline event tracking           | Enterprise workflow    | NIST first-hour discipline          |
-| Learning objective per scenario   | Tabletop design        | —                                   |
-| Timed injects                     | Tabletop design        | RPD (situation reassessment)        |
-| Facts/Assumptions/Unknowns panels | COP                    | RPD (cue recognition)               |
-| Required risk-if-wrong            | COP                    | ESRM (residual risk explicit)       |
-| CONTINUE/DEGRADE/PAUSE postures   | ESRM treatment mapping | RPD (satisficing)                   |
-| Residual risk in decisions        | ESRM principles        | Enterprise workflow                 |
-| Asset owner framing               | ESRM principles        | ASIS ESRM guidelines                |
-| RPD decision prompts              | RPD                    | Tabletop design (force decisions)   |
-| Playbook phases                   | NIST first-hour        | Tabletop design (structure)         |
-| Joint-bridge checklist            | Joint coordination     | NIST (communication requirements)   |
-| AAR export (sustains/improves)    | Military AAR           | Tabletop design (immediate debrief) |
-| Action items with owner/due       | Military AAR           | ESRM (ownership)                    |
+| Feature                              | Primary Foundation        | Secondary Foundations                |
+| ------------------------------------ | ------------------------- | ------------------------------------ |
+| Decision log with timestamp/owner    | Enterprise workflow       | Military AAR                         |
+| Timeline event tracking              | Enterprise workflow       | NIST first-hour discipline           |
+| Learning objective per scenario      | Tabletop design           | —                                    |
+| Timed injects with urgency badges    | Tabletop design           | RPD (situation reassessment)         |
+| Facts/Assumptions/Unknowns panels    | COP                       | RPD (cue recognition)                |
+| Risk Matrix quick view (T×V×I)       | ASIS ESRM risk assessment | ISO 31000                            |
+| All 4 treatments playable            | ASIS ESRM textbook        | Allen & Loyear                       |
+| CONTINUE/DEGRADE/PAUSE postures      | ESRM treatment mapping    | RPD (satisficing)                    |
+| TRANSFER treatment option            | ESRM risk transfer        | Insurance/contract best practices    |
+| Asset selection with criticality     | ESRM asset prioritization | Allen & Loyear                       |
+| Advisor → Owner handoff workflow     | ESRM core principle       | ASIS governance model                |
+| Owner affirmation tracking           | ESRM accountability       | Audit trail requirements             |
+| Residual risk documentation          | ESRM principles           | Enterprise workflow                  |
+| Asset owner briefing bonus           | ESRM discipline           | Tabletop design (force decisions)    |
+| Playbook phases (5-phase)            | NIST first-hour           | Tabletop design (structure)          |
+| Entity linking across injects        | COP                       | Intel analysis tradecraft            |
+| Dispatch pressure/resources          | Tabletop realism          | Resource management                  |
+| Escalation path indicators           | Enterprise workflow       | ESRM escalation governance           |
+| AAR with lessons learned             | Military AAR              | ESRM continuous improvement          |
+| Continuous improvement tracking      | ESRM cycle completion     | Allen & Loyear maturity model        |
+| ESRM Field Guide (textbook chapters) | ESRM pedagogy             | Adult learning principles            |
 
 ---
 
@@ -234,20 +297,30 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ## §4 References
 
-### Primary Sources
+### ESRM Primary Sources
 
-1. Klein, G. (1998). _Sources of Power: How People Make Decisions._ MIT Press.
-2. Klein, G. (2017). _Seeing What Others Don't: The Remarkable Ways We Gain Insights._ PublicAffairs.
-3. U.S. Army. (2020). _A Leader's Guide to After-Action Reviews._ Center for Army Lessons Learned.
-4. FEMA. (2020). _Homeland Security Exercise and Evaluation Program (HSEEP)._ Department of Homeland Security.
-5. NIST. (2018). _Framework for Improving Critical Infrastructure Cybersecurity._ NIST Cybersecurity Framework 1.1.
-6. CISA. (2021). _Federal Government Cybersecurity Incident and Vulnerability Response Playbooks._
+1. **ASIS International. (2019). _Enterprise Security Risk Management: A Context-Based Approach._** — The foundational ESRM framework this simulation implements.
+2. **Allen, B., & Loyear, R. (2016). _Enterprise Security Risk Management: Concepts and Applications._ Rothstein Publishing.** — Comprehensive textbook on ESRM implementation.
+3. **Loyear, R. (2020). _Enterprise Security Risk Management in the Real World._ Rothstein Publishing.** — Practical application of ESRM principles.
+
+### Decision Science Sources
+
+4. Klein, G. (1998). _Sources of Power: How People Make Decisions._ MIT Press.
+5. Klein, G. (2017). _Seeing What Others Don't: The Remarkable Ways We Gain Insights._ PublicAffairs.
+6. Kahneman, D. (2011). _Thinking, Fast and Slow._ Farrar, Straus and Giroux.
+
+### Incident Management Sources
+
+7. U.S. Army. (2020). _A Leader's Guide to After-Action Reviews._ Center for Army Lessons Learned.
+8. FEMA. (2020). _Homeland Security Exercise and Evaluation Program (HSEEP)._ Department of Homeland Security.
+9. NIST. (2018). _Framework for Improving Critical Infrastructure Cybersecurity._ NIST Cybersecurity Framework 1.1.
+10. CISA. (2021). _Federal Government Cybersecurity Incident and Vulnerability Response Playbooks._
 
 ### Supporting Research
 
-- Kahneman, D. (2011). _Thinking, Fast and Slow._ Farrar, Straus and Giroux.
 - Weick, K. E., & Sutcliffe, K. M. (2015). _Managing the Unexpected._ Wiley.
 - Woods, D. D., & Hollnagel, E. (2006). _Joint Cognitive Systems: Patterns in Cognitive Systems Engineering._ CRC Press.
+- ISO 31000:2018. _Risk management — Guidelines._ International Organization for Standardization.
 
 ---
 
@@ -273,4 +346,34 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ---
 
-_Hourglass Command — Training Methodology v1.0_
+## §6 ESRM Textbook Coverage Map
+
+This simulation now covers the following ESRM textbook content:
+
+| ESRM Concept | Textbook Reference | In-Sim Status |
+| --- | --- | --- |
+| Asset Identification | Allen & Loyear Ch. 3 | ✅ Playable |
+| Asset Prioritization (Criticality) | Allen & Loyear Ch. 3 | ✅ Playable |
+| Risk Assessment (T×V×I) | ASIS ESRM §4.2 | ✅ Visual |
+| 5×5 Risk Matrix | ISO 31000; ASIS | ✅ Field Guide |
+| Accept Treatment | Allen & Loyear Ch. 5 | ✅ Playable |
+| Mitigate Treatment | Allen & Loyear Ch. 5 | ✅ Playable |
+| Transfer Treatment | Allen & Loyear Ch. 5 | ✅ Playable (NEW) |
+| Avoid Treatment | Allen & Loyear Ch. 5 | ✅ Playable |
+| Advisor → Owner Model | ASIS ESRM §2.1 | ✅ Playable |
+| Residual Risk Documentation | Allen & Loyear Ch. 6 | ✅ Playable |
+| Post-Incident Review | Allen & Loyear Ch. 8 | ✅ AAR |
+| Continuous Improvement | ASIS ESRM §7 | ✅ Lessons Learned |
+
+### Still Thin (Future PRD)
+
+| ESRM Concept | Textbook Reference | Status |
+| --- | --- | --- |
+| Formal Risk Register | Allen & Loyear Ch. 4 | ⏸️ Closed (scope) |
+| Quantitative Risk Assessment | ISO 31000 | ⏸️ Closed (complexity) |
+| Multi-scenario Campaigns | HSEEP | ⏸️ Closed (PRD 2.0) |
+| Security Metrics Dashboard | Loyear Ch. 7 | ⏸️ Closed (invariant) |
+
+---
+
+_Hourglass Command — Training Methodology v2.0 (ESRM Textbook-Faithful)_
