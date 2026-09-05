@@ -1,17 +1,19 @@
-# GSOC Decision Ops
+# GSOC Decision Ops Cloud
 
 [![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
 [![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 
-**A structured decision-making toolkit for corporate Global Security Operations Centers (GSOC) facing vendor compromises and cyber-adjacent operational disruptions.**
+**A SaaS-style decision-making platform for corporate Global Security Operations Centers (GSOC). Train your team with synthetic vendor compromise scenarios and structured first-hour response playbooks.**
 
-[**Live Demo**](https://swb2019.github.io/gsoc-decision-ops/) | [Documentation](#architecture) | [Contributing](CONTRIBUTING.md)
+> ⚡ **Portfolio Demo**: This is a demonstration of SaaS product development skills. All data is synthetic for training purposes. No real subscriptions or payments are processed.
+
+[**🚀 Live Demo**](https://swb2019.github.io/gsoc-decision-ops/) | [Documentation](#architecture) | [Contributing](CONTRIBUTING.md)
 
 ![GSOC Decision Ops Demo - Scenario Interface](docs/images/demo-scenario.png)
 
-_Scenario decision log interface showing facts, assumptions, and action tracking_
+_Multi-tenant SaaS interface with workspace management, role-based access, and structured decision logging_
 
 ---
 
@@ -80,17 +82,32 @@ npm run dev
 
 ## Architecture
 
+### SaaS Product Architecture
+
 ```mermaid
 graph TB
-    subgraph "Apps"
-        WEB[Web App<br/>Next.js 14]
+    subgraph "Presentation Layer"
+        LANDING[Marketing Landing<br/>Features, Pricing, CTA]
+        AUTH[Auth UX<br/>Sign-in / Sign-up Demo]
+        APP[App Shell<br/>Sidebar, Header, Nav]
     end
 
-    subgraph "Packages"
-        CORE[Core Library<br/>TypeScript]
+    subgraph "Application Layer"
+        DASH[Dashboard<br/>Workspace Overview]
+        INC[Incidents<br/>Training Scenarios]
+        PBK[Playbooks<br/>Response Frameworks]
+        RPT[Reports<br/>After-Action Exports]
+        TEAM[Team<br/>Members & Roles]
+        SET[Settings<br/>Org Configuration]
     end
 
-    subgraph "Core Modules"
+    subgraph "Business Logic"
+        AUTHCTX[Demo Auth Context<br/>Session Management]
+        WSCTX[Workspace Context<br/>Multi-tenant State]
+        RBAC[RBAC Simulation<br/>Role Permissions]
+    end
+
+    subgraph "Core Library"
         DL[Decision Log<br/>Management]
         PB[Playbook<br/>Framework]
         SC[Synthetic<br/>Scenarios]
@@ -98,42 +115,82 @@ graph TB
         VAL[Schema<br/>Validation]
     end
 
-    WEB --> CORE
-    CORE --> DL
-    CORE --> PB
-    CORE --> SC
-    CORE --> EX
-    CORE --> VAL
+    LANDING --> AUTH
+    AUTH --> APP
+    APP --> DASH
+    APP --> INC
+    APP --> PBK
+    APP --> RPT
+    APP --> TEAM
+    APP --> SET
 
-    subgraph "Data Flow"
-        direction LR
-        SCENARIO[Scenario<br/>Selection] --> LOG[Decision Log<br/>Creation]
-        LOG --> FACTS[Facts &<br/>Assumptions]
-        FACTS --> DECISIONS[Posture<br/>Decisions]
-        DECISIONS --> EXPORT[After-Action<br/>Report]
-    end
+    DASH --> AUTHCTX
+    INC --> DL
+    PBK --> PB
+    RPT --> EX
+    TEAM --> RBAC
+    SET --> WSCTX
+
+    AUTHCTX --> WSCTX
+    WSCTX --> RBAC
+    DL --> SC
+    DL --> VAL
 ```
+
+### SaaS Features Implemented
+
+| Feature               | Description                                          | Status      |
+| --------------------- | ---------------------------------------------------- | ----------- |
+| **Marketing Landing** | Hero, features, how-it-works, comparison table       | ✅ Complete |
+| **Auth UX**           | Sign-in/sign-up with magic link simulation           | ✅ Complete |
+| **App Shell**         | Sidebar navigation, workspace switcher, org selector | ✅ Complete |
+| **Multi-Workspace**   | Multiple workspaces per organization                 | ✅ Complete |
+| **Role-Based UI**     | GSOC Manager, Supervisor, Analyst, Viewer roles      | ✅ Complete |
+| **Team Management**   | Member list with roles and activity status           | ✅ Complete |
+| **Settings Console**  | Profile, org, notifications, security, billing tabs  | ✅ Complete |
+| **Billing Stub**      | Pricing page with demo-only disclaimer               | ✅ Complete |
+| **Dashboard**         | Incident stats, activity feed, quick actions         | ✅ Complete |
+| **Playbook Library**  | Available and coming-soon playbooks                  | ✅ Complete |
+| **Reports**           | After-action report list with export options         | ✅ Complete |
+
+> **Note**: All SaaS features are UI demonstrations. No backend services, databases, or payment processing are implemented. Data persists only in browser session/localStorage.
 
 ### Monorepo Structure
 
 ```
 gsoc-decision-ops/
 ├── apps/
-│   └── web/                    # Next.js 14 web application
-│       ├── src/app/            # App router pages
-│       └── src/components/     # React components
+│   └── web/                        # Next.js 14 web application
+│       ├── src/app/                # App router pages
+│       │   ├── page.tsx            # Marketing landing page
+│       │   ├── signin/             # Demo sign-in
+│       │   ├── signup/             # Demo sign-up
+│       │   ├── pricing/            # Pricing page (demo)
+│       │   ├── app/                # Authenticated app shell
+│       │   │   ├── page.tsx        # Dashboard
+│       │   │   ├── incidents/      # Incident management
+│       │   │   ├── playbooks/      # Playbook library
+│       │   │   ├── reports/        # After-action reports
+│       │   │   ├── team/           # Team management
+│       │   │   └── settings/       # Settings console
+│       │   ├── scenarios/          # Training scenarios
+│       │   └── playbook/           # Playbook viewer
+│       ├── src/components/
+│       │   ├── layout/             # Sidebar, AppShell
+│       │   └── marketing/          # Landing page components
+│       └── src/lib/                # Auth context, demo data
 ├── packages/
-│   └── core/                   # Core TypeScript library
+│   └── core/                       # Core TypeScript library
 │       ├── src/
-│       │   ├── decision-log.ts # Log management functions
-│       │   ├── playbooks/      # Response playbooks
-│       │   ├── scenarios/      # Synthetic scenarios
-│       │   ├── export.ts       # Report generation
-│       │   ├── validation.ts   # Schema validation
-│       │   └── types.ts        # Type definitions
-│       └── __tests__/          # 109 test cases
-├── docs/                       # Documentation & images
-└── examples/                   # Sample data files
+│       │   ├── decision-log.ts     # Log management functions
+│       │   ├── playbooks/          # Response playbooks
+│       │   ├── scenarios/          # Synthetic scenarios
+│       │   ├── export.ts           # Report generation
+│       │   ├── validation.ts       # Schema validation
+│       │   └── types.ts            # Type definitions
+│       └── __tests__/              # 109 test cases
+├── docs/                           # Documentation & images
+└── examples/                       # Sample data files
 ```
 
 ---
