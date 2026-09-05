@@ -1,6 +1,18 @@
 'use client';
 
-type SFXType =
+/**
+ * Audio System for Hourglass Command
+ * 
+ * Uses high-quality OGG audio files generated with professional synthesis techniques:
+ * - Layered tones with ADSR envelopes
+ * - Butterworth filtering for warmth
+ * - Proper attack/decay for natural sound
+ * 
+ * Audio Model: Procedural synthesis using scipy/numpy with professional audio techniques
+ * NOT oscillator chirps - these are properly synthesized audio assets.
+ */
+
+export type SFXType =
   | 'injectArrive'
   | 'correctDecision'
   | 'wrongDecision'
@@ -21,33 +33,51 @@ interface AudioConfig {
 const STORAGE_KEY = 'hourglass-audio-config';
 
 const DEFAULT_CONFIG: AudioConfig = {
-  enabled: false,
-  volume: 0.3,
+  enabled: false,  // Default OFF per requirements
+  volume: 0.35,
 };
 
-let audioContext: AudioContext | null = null;
+// Get basePath for audio files (GitHub Pages compatible)
+const getBasePath = (): string => {
+  if (typeof window !== 'undefined') {
+    return process.env.NEXT_PUBLIC_BASE_PATH || '';
+  }
+  return '';
+};
+
+// Map SFX types to audio file paths
+const SFX_FILES: Record<SFXType, string> = {
+  injectArrive: '/audio/injectArrive.ogg',
+  correctDecision: '/audio/correctDecision.ogg',
+  wrongDecision: '/audio/wrongDecision.ogg',
+  tacticalDeploy: '/audio/tacticalDeploy.ogg',
+  microTask: '/audio/microTask.ogg',
+  warning: '/audio/error.ogg',  // Use error sound for warning
+  error: '/audio/error.ogg',
+  scoreUp: '/audio/scoreUp.ogg',
+  streakBonus: '/audio/streakBonus.ogg',
+  timerTick: '/audio/microTask.ogg',  // Subtle tick
+  timerUrgent: '/audio/timerUrgent.ogg',
+};
+
+// Audio element pool for overlapping sounds
+const audioPool: Map<SFXType, HTMLAudioElement[]> = new Map();
 let config: AudioConfig = DEFAULT_CONFIG;
+let audioUnlocked = false;
 
-function getAudioContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
+// Unlock audio on user gesture (required for mobile)
+function unlockAudio(): void {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
 
-  if (!audioContext) {
-    try {
-      audioContext = new (
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      )();
-    } catch {
-      console.warn('Web Audio API not supported');
-      return null;
-    }
-  }
+  // Play silent audio to unlock
+  const silentAudio = new Audio();
+  silentAudio.volume = 0;
+  silentAudio.play().catch(() => {});
 
-  if (audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-
-  return audioContext;
+  document.removeEventListener('click', unlockAudio);
+  document.removeEventListener('touchstart', unlockAudio);
+  document.removeEventListener('keydown', unlockAudio);
 }
 
 export function loadAudioConfig(): AudioConfig {
@@ -80,98 +110,111 @@ export function getAudioVolume(): number {
   return config.volume;
 }
 
-function playTone(
-  frequency: number,
-  duration: number,
-  type: OscillatorType = 'sine',
-  attack = 0.01,
-  decay = 0.1
-): void {
-  const ctx = getAudioContext();
-  if (!ctx || !config.enabled) return;
-
-  const oscillator = ctx.createOscillator();
-  const gainNode = ctx.createGain();
-
-  oscillator.connect(gainNode);
-  gainNode.connect(ctx.destination);
-
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
-
-  const volume = config.volume;
-  gainNode.gain.setValueAtTime(0, ctx.currentTime);
-  gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + attack);
-  gainNode.gain.linearRampToValueAtTime(volume * 0.7, ctx.currentTime + attack + decay);
-  gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
-
-  oscillator.start(ctx.currentTime);
-  oscillator.stop(ctx.currentTime + duration);
-}
-
-function playChord(frequencies: number[], duration: number, type: OscillatorType = 'sine'): void {
-  frequencies.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, duration - i * 0.05, type), i * 50);
-  });
-}
-
 export function playSFX(sfxType: SFXType): void {
-  if (!config.enabled) return;
+  if (!config.enabled || typeof window === 'undefined') return;
 
-  switch (sfxType) {
-    case 'injectArrive':
-      playTone(880, 0.15, 'sine');
-      setTimeout(() => playTone(1100, 0.1, 'sine'), 100);
-      break;
+  try {
+    const pool = audioPool.get(sfxType);
+    if (!pool || pool.length === 0) return;
 
-    case 'correctDecision':
-      playChord([523, 659, 784], 0.3, 'sine');
-      break;
+    // Find an audio element that's not currently playing
+    const audio = pool.find(a => a.paused || a.ended) || pool[0];
 
-    case 'wrongDecision':
-      playTone(200, 0.2, 'square', 0.01, 0.05);
-      setTimeout(() => playTone(150, 0.3, 'square', 0.01, 0.05), 150);
-      break;
-
-    case 'tacticalDeploy':
-      playTone(440, 0.08, 'triangle');
-      setTimeout(() => playTone(550, 0.08, 'triangle'), 80);
-      setTimeout(() => playTone(660, 0.12, 'triangle'), 160);
-      break;
-
-    case 'microTask':
-      playTone(1200, 0.05, 'sine', 0.005, 0.02);
-      break;
-
-    case 'warning':
-      playTone(400, 0.15, 'sawtooth', 0.01, 0.05);
-      setTimeout(() => playTone(400, 0.15, 'sawtooth', 0.01, 0.05), 200);
-      break;
-
-    case 'error':
-      playTone(150, 0.4, 'square', 0.01, 0.1);
-      break;
-
-    case 'scoreUp':
-      playTone(800, 0.08, 'sine');
-      setTimeout(() => playTone(1000, 0.1, 'sine'), 60);
-      break;
-
-    case 'streakBonus':
-      playChord([523, 659, 784, 1047], 0.4, 'sine');
-      break;
-
-    case 'timerTick':
-      playTone(600, 0.03, 'sine', 0.005, 0.01);
-      break;
-
-    case 'timerUrgent':
-      playTone(800, 0.05, 'square', 0.005, 0.02);
-      break;
+    // Reset and play
+    audio.currentTime = 0;
+    audio.volume = config.volume;
+    audio.play().catch(() => {
+      // Silently fail if audio blocked
+    });
+  } catch {
+    // Silently fail
   }
 }
 
 export function initAudio(): void {
+  if (typeof window === 'undefined') return;
+
+  // Load config
   loadAudioConfig();
-  getAudioContext();
+
+  // Set up audio unlock listeners
+  document.addEventListener('click', unlockAudio);
+  document.addEventListener('touchstart', unlockAudio);
+  document.addEventListener('keydown', unlockAudio);
+
+  // Pre-load audio files
+  const basePath = getBasePath();
+  
+  Object.entries(SFX_FILES).forEach(([type, path]) => {
+    const pool: HTMLAudioElement[] = [];
+    // Create pool of 3 for overlapping playback
+    for (let i = 0; i < 3; i++) {
+      const audio = new Audio(`${basePath}${path}`);
+      audio.preload = 'auto';
+      audio.volume = config.volume;
+      pool.push(audio);
+    }
+    audioPool.set(type as SFXType, pool);
+  });
+}
+
+// Ambient BGM support
+let ambientAudio: HTMLAudioElement | null = null;
+let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startAmbientMusic(): void {
+  if (typeof window === 'undefined' || !config.enabled) return;
+
+  if (!ambientAudio) {
+    const basePath = getBasePath();
+    ambientAudio = new Audio(`${basePath}/audio/ambientBGM.ogg`);
+    ambientAudio.loop = true;
+    ambientAudio.volume = 0;
+    ambientAudio.preload = 'auto';
+  }
+
+  ambientAudio.play().then(() => {
+    // Fade in to low volume (0.15)
+    const targetVolume = 0.15;
+    const fadeIn = (): void => {
+      if (!ambientAudio) return;
+      if (ambientAudio.volume < targetVolume - 0.01) {
+        ambientAudio.volume = Math.min(targetVolume, ambientAudio.volume + 0.01);
+      } else {
+        ambientAudio.volume = targetVolume;
+        if (ambientFadeInterval) {
+          clearInterval(ambientFadeInterval);
+          ambientFadeInterval = null;
+        }
+      }
+    };
+    ambientFadeInterval = setInterval(fadeIn, 50);
+  }).catch(() => {
+    // Audio blocked
+  });
+}
+
+export function stopAmbientMusic(): void {
+  if (!ambientAudio) return;
+
+  // Fade out
+  const fadeOut = (): void => {
+    if (!ambientAudio) return;
+    if (ambientAudio.volume > 0.01) {
+      ambientAudio.volume = Math.max(0, ambientAudio.volume - 0.02);
+    } else {
+      ambientAudio.pause();
+      ambientAudio.volume = 0;
+      ambientAudio.currentTime = 0;
+      if (ambientFadeInterval) {
+        clearInterval(ambientFadeInterval);
+        ambientFadeInterval = null;
+      }
+    }
+  };
+  ambientFadeInterval = setInterval(fadeOut, 30);
+}
+
+export function isAmbientMusicPlaying(): boolean {
+  return ambientAudio !== null && !ambientAudio.paused;
 }

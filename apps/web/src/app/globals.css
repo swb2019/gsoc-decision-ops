@@ -139,13 +139,38 @@
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
-  /* Mobile bottom navigation */
+  /* Mobile bottom navigation - z-50 to be above content but below modals */
   .mobile-nav {
     @apply fixed bottom-0 left-0 right-0 z-50 border-t;
     background-color: rgba(8, 8, 14, 0.97);
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-color: rgba(55, 65, 81, 0.5);
     padding-bottom: env(safe-area-inset-bottom, 0);
+    isolation: isolate;
+  }
+
+  /* Ensure dropdowns and portals escape stacking context */
+  .portal-escape {
+    position: fixed;
+    z-index: 200;
+    isolation: isolate;
+  }
+
+  /* Prevent panels from overflowing viewport */
+  .panel-overflow-safe {
+    max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 140px);
+    overflow-y: auto;
+  }
+
+  /* Fix for mobile Safari notch clipping */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .safe-area-inset {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
   }
 
   .mobile-nav-item {

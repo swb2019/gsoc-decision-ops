@@ -5524,7 +5524,7 @@ function ConsequenceTheatreOverlay({
   return (
     <div
       className={clsx(
-        'fixed inset-0 pointer-events-none z-40',
+        'fixed inset-0 pointer-events-none z-30',
         !reducedMotion && 'animate-fade-in-fast'
       )}
     >
@@ -9133,7 +9133,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
 function CoachMarks({ onDismiss }: { onDismiss: () => void }): JSX.Element {
   return (
-    <div className="fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-80 z-40 animate-slide-in">
+    <div className="fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-80 z-[45] animate-slide-in">
       <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-xl">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
@@ -9818,7 +9818,7 @@ function MicroTaskCard({
   return (
     <div
       className={clsx(
-        'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-[420px] z-40',
+        'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-[420px] z-[45]',
         !reducedMotion && animating && 'animate-microtask-enter'
       )}
     >
