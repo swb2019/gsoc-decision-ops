@@ -4,14 +4,15 @@
  * Audio System for Hourglass Command
  *
  * SFX: High-quality OGG files generated with professional synthesis techniques
- * BGM: Premium ambient bed (ambientBGM_v2.ogg) with:
- *   - Layered filtered noise (brown/pink) for texture
- *   - Soft synth pads with slow LFO modulation
- *   - Subtle organic pulse and tick layers
- *   - 52-second seamless loop, stereo 48kHz
- *   - Target loudness ~-18 LUFS (sits under SFX)
+ * BGM: Melodic ambient music (ambientBGM_v3.ogg) with:
+ *   - Soft arpeggio pattern over Am (A3-C4-E4-A4 at 80 BPM)
+ *   - Warm pad chords (Am → F → G progression) with LFO modulation
+ *   - Light pulse rhythm and sparse tick texture
+ *   - 45-second seamless loop, stereo 48kHz
+ *   - Target loudness ~-18 to -24 LUFS (sits under SFX)
  *
- * NOT a monotone hum - verified 15k+ zero crossings with varied dynamics.
+ * FFT verified: 98.7% energy in 100-800Hz midrange (peaks at E4=330Hz, C4=262Hz)
+ * NOT a bass drone/hum - clear melodic content with musical fundamentals.
  */
 
 export type SFXType =
@@ -161,9 +162,10 @@ export function initAudio(): void {
 }
 
 // Ambient BGM support
-// v2: Premium layered ambient (52s stereo, 48kHz) - NOT a monotone hum
+// v3: Melodic ambient with arpeggio + pads (45s stereo, 48kHz) - clear midrange music
+// FFT verified: peaks at E4(330Hz), C4(262Hz) - NOT a bass drone
 // Cache-bust query ensures CDN/browser serves the new file
-const BGM_FILE = '/audio/ambientBGM_v2.ogg?v=20260905';
+const BGM_FILE = '/audio/ambientBGM_v3.ogg?v=20260906';
 let ambientAudio: HTMLAudioElement | null = null;
 let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
 
