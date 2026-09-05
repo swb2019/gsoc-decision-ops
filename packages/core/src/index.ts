@@ -107,3 +107,16 @@ export {
   groupBy,
   countWhere,
 } from './utils.js';
+
+// Validation
+export {
+  validateDecisionLog,
+  validateFact,
+  validateAssumption as validateAssumptionSchema,
+  validateUnknown as validateUnknownSchema,
+  validateDecision as validateDecisionSchema,
+  validateActionItem as validateActionItemSchema,
+  assertValidDecisionLog,
+} from './validation.js';
+
+export type { ValidationResult, ValidationError, ValidationWarning } from './validation.js';

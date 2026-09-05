@@ -1,112 +1,55 @@
 # GSOC Decision Ops
 
-**First-hour operational decision toolkit for corporate Global Security Operations Center (GSOC) leaders facing vendor compromises and cyber-adjacent disruptions.**
-
+[![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
+[![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](#testing)
+
+**A structured decision-making toolkit for corporate Global Security Operations Centers (GSOC) facing vendor compromises and cyber-adjacent operational disruptions.**
+
+[**Live Demo**](https://swb2019.github.io/gsoc-decision-ops/) | [Documentation](#architecture) | [Contributing](CONTRIBUTING.md)
+
+![GSOC Decision Ops Demo - Scenario Interface](docs/images/demo-scenario.png)
+
+_Scenario decision log interface showing facts, assumptions, and action tracking_
 
 ---
 
-## The Problem
+## The Challenge
 
-When a critical security vendor experiences a breach, ransomware attack, or significant operational disruption, corporate GSOC leaders face a cascade of decisions under conditions of **incomplete information** and **time pressure**.
+When a critical vendor experiences a security incident or service disruption, GSOC leaders must make rapid operational decisions with incomplete information. The first hour is critical—decisions made under pressure ripple through access control, video surveillance, alarm monitoring, and executive protection operations.
 
-Traditional incident response frameworks focus on the technical investigation. But for GSOC operations, the first hour is about something different:
+**Common pain points:**
 
-- **Can we continue operating?** Badge systems, video surveillance, alarm monitoring—what still works?
-- **What do we actually know vs. what are we assuming?** The vendor says "investigating"—what does that mean for our operations?
-- **Who needs to know, and what do we tell them?** Executive briefing in 30 minutes—what's the message?
-- **When do we revisit this decision?** What would change our posture?
+- Scattered decision-making across Slack threads and spreadsheets
+- No structured audit trail for after-action review
+- Assumptions mixed with facts, creating hidden risk
+- Inconsistent handoffs between shifts and stakeholders
 
-This toolkit provides a structured framework for making and documenting these operational decisions.
+## The Solution
 
----
+GSOC Decision Ops provides a **structured framework** for first-hour response that:
 
-## Thesis
+1. **Separates facts from assumptions** with explicit risk documentation
+2. **Enforces decision postures** (CONTINUE / DEGRADE / PAUSE) with rationale capture
+3. **Guides response** through a vendor compromise playbook with phase-by-phase checklists
+4. **Generates audit-ready exports** in Markdown and JSON for after-action review
 
-> **Decision quality in the first hour is not about having perfect information—it's about knowing what you don't know and making defensible choices anyway.**
+This is a **training and exercise tool**—all scenarios are synthetic. The framework demonstrates operational decision-making methodology applicable to real-world GSOC environments.
 
-The GSOC Decision Ops toolkit embodies three principles:
+## What This Is / What This Is Not
 
-1. **Separate facts from assumptions from unknowns.** Under pressure, teams conflate what they know with what they're guessing. This toolkit forces explicit categorization.
-
-2. **Document decisions with posture and rationale.** Every decision is CONTINUE, DEGRADE, or PAUSE—with clear reasoning that can be reviewed and revised.
-
-3. **Maintain audit trail for after-action.** When the incident is over, you have structured data for lessons learned, not scattered Slack messages.
-
----
-
-## Architecture
-
-```mermaid
-graph TB
-    subgraph "Core Library"
-        Types[Type Definitions]
-        DecisionLog[Decision Log Manager]
-        Playbooks[Response Playbooks]
-        Export[After-Action Export]
-        Scenarios[Training Scenarios]
-    end
-
-    subgraph "Web Application"
-        UI[Dark Ops UI]
-        ScenarioView[Scenario Runner]
-        PlaybookView[Playbook Viewer]
-        ExportView[Export Manager]
-    end
-
-    subgraph "Data Flow"
-        Input[Incident Input] --> DecisionLog
-        DecisionLog --> Facts[Facts]
-        DecisionLog --> Assumptions[Assumptions]
-        DecisionLog --> Unknowns[Unknowns]
-        DecisionLog --> Decisions[Decisions]
-        Decisions --> Export
-        Export --> Markdown[Markdown Report]
-        Export --> JSON[JSON Export]
-    end
-
-    Types --> DecisionLog
-    Playbooks --> ScenarioView
-    DecisionLog --> UI
-    Scenarios --> ScenarioView
-```
-
-### Decision Posture Model
-
-| Posture      | Meaning                         | When to Use                                                           |
-| ------------ | ------------------------------- | --------------------------------------------------------------------- |
-| **CONTINUE** | Proceed with normal operations  | Risk understood and acceptable; enhanced monitoring may be warranted  |
-| **DEGRADE**  | Operate with reduced capability | Accept temporary limitations to manage risk; backup procedures active |
-| **PAUSE**    | Halt affected operations        | Risk unacceptable or critical unknowns require resolution first       |
-
-### Information Quality Framework
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    INFORMATION QUALITY                          │
-├─────────────────┬─────────────────┬─────────────────────────────┤
-│     FACTS       │   ASSUMPTIONS   │         UNKNOWNS            │
-│  (Confirmed)    │  (Working)      │    (Must Resolve)           │
-├─────────────────┼─────────────────┼─────────────────────────────┤
-│ • Source noted  │ • Basis stated  │ • Priority assigned         │
-│ • Confidence    │ • Risk if wrong │ • Owner designated          │
-│ • Verification  │ • Validation    │ • Target resolution         │
-│   tracked       │   plan          │   time                      │
-└─────────────────┴─────────────────┴─────────────────────────────┘
-```
+| This Is                                               | This Is Not                                     |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| A decision-support framework for GSOC operations      | A SIEM, SOAR, or production security platform   |
+| Training scenarios for vendor compromise response     | Real incident data or threat intelligence       |
+| Structured methodology for first-hour decisions       | Automated decision-making or AI recommendations |
+| An educational demonstration of ESRM principles       | A replacement for organizational IR procedures  |
+| A TypeScript monorepo showcasing modern dev practices | Production-deployed enterprise software         |
 
 ---
 
 ## Quick Start
-
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-
-### Installation
 
 ```bash
 # Clone the repository
@@ -116,221 +59,239 @@ cd gsoc-decision-ops
 # Install dependencies
 npm install
 
-# Build the core library
-npm run build --workspace=packages/core
-
-# Start the development server
+# Run the development server
 npm run dev
+
+# Open http://localhost:3000
 ```
 
-The web application will be available at `http://localhost:3000`.
+### Available Commands
 
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage --workspace=packages/core
-```
+| Command             | Description                |
+| ------------------- | -------------------------- |
+| `npm run dev`       | Start development server   |
+| `npm run build`     | Build all packages         |
+| `npm test`          | Run test suite (109 tests) |
+| `npm run typecheck` | TypeScript type checking   |
+| `npm run lint`      | ESLint code analysis       |
+| `npm run format`    | Prettier code formatting   |
 
 ---
 
-## Project Structure
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "Apps"
+        WEB[Web App<br/>Next.js 14]
+    end
+
+    subgraph "Packages"
+        CORE[Core Library<br/>TypeScript]
+    end
+
+    subgraph "Core Modules"
+        DL[Decision Log<br/>Management]
+        PB[Playbook<br/>Framework]
+        SC[Synthetic<br/>Scenarios]
+        EX[Export<br/>Engine]
+        VAL[Schema<br/>Validation]
+    end
+
+    WEB --> CORE
+    CORE --> DL
+    CORE --> PB
+    CORE --> SC
+    CORE --> EX
+    CORE --> VAL
+
+    subgraph "Data Flow"
+        direction LR
+        SCENARIO[Scenario<br/>Selection] --> LOG[Decision Log<br/>Creation]
+        LOG --> FACTS[Facts &<br/>Assumptions]
+        FACTS --> DECISIONS[Posture<br/>Decisions]
+        DECISIONS --> EXPORT[After-Action<br/>Report]
+    end
+```
+
+### Monorepo Structure
 
 ```
 gsoc-decision-ops/
-├── packages/
-│   └── core/                    # TypeScript core library
-│       ├── src/
-│       │   ├── types.ts         # Type definitions
-│       │   ├── decision-log.ts  # Decision log management
-│       │   ├── export.ts        # After-action report generation
-│       │   ├── utils.ts         # Utility functions
-│       │   ├── playbooks/       # Response playbooks
-│       │   └── scenarios/       # Synthetic training scenarios
-│       └── package.json
 ├── apps/
-│   └── web/                     # Next.js web application
+│   └── web/                    # Next.js 14 web application
+│       ├── src/app/            # App router pages
+│       └── src/components/     # React components
+├── packages/
+│   └── core/                   # Core TypeScript library
 │       ├── src/
-│       │   └── app/             # App router pages
-│       └── package.json
-├── examples/                    # Sample after-action reports
-├── .github/
-│   └── workflows/               # CI/CD configuration
-└── package.json                 # Workspace root
+│       │   ├── decision-log.ts # Log management functions
+│       │   ├── playbooks/      # Response playbooks
+│       │   ├── scenarios/      # Synthetic scenarios
+│       │   ├── export.ts       # Report generation
+│       │   ├── validation.ts   # Schema validation
+│       │   └── types.ts        # Type definitions
+│       └── __tests__/          # 109 test cases
+├── docs/                       # Documentation & images
+└── examples/                   # Sample data files
 ```
 
 ---
 
-## Core Library Usage
+## Decision Log Schema
 
-### Creating a Decision Log
+The core data model captures structured incident response data:
 
 ```typescript
-import { createDecisionLog, addFact, recordDecision } from '@gsoc-decision-ops/core';
+interface DecisionLog {
+  id: string;
+  incident: {
+    title: string;
+    severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+    status: 'ACTIVE' | 'MONITORING' | 'RESOLVED' | 'CLOSED';
+  };
 
-// Initialize a new decision log
-let log = createDecisionLog({
-  title: 'Access Control Vendor Security Incident',
-  description: 'Vendor reports potential unauthorized access to cloud infrastructure',
-  severity: 'HIGH',
-  impactCategories: ['ACCESS_CONTROL', 'PHYSICAL_SECURITY'],
-  reportedBy: 'Vendor Account Manager',
-  createdBy: 'GSOC Manager',
-  organization: 'Your Organization',
-});
+  facts: Fact[]; // Verified information with sources
+  assumptions: Assumption[]; // Working assumptions with risk-if-wrong
+  unknowns: Unknown[]; // Questions requiring resolution
+  decisions: Decision[]; // Posture decisions with rationale
+  actionItems: ActionItem[]; // Tracked tasks
+  timeline: TimelineEvent[]; // Chronological record
 
-// Add verified facts
-log = addFact(
-  log,
-  'Vendor confirmed incident at 14:32 UTC',
-  'Vendor email notification',
-  'CONFIRMED'
-);
-
-// Record a decision
-log = recordDecision(log, {
-  title: 'Suspend automated badge provisioning',
-  description: 'Halt all automated badge credential creation pending vendor all-clear',
-  posture: 'DEGRADE',
-  owner: 'GSOC Manager',
-  ownerRole: 'Incident Commander',
-  rationale: 'Precautionary measure until scope of vendor breach is understood',
-  reviewTrigger: 'Vendor provides scope assessment',
-});
+  metadata: {
+    exerciseMode: boolean; // Training indicator
+    syntheticScenario: boolean; // Synthetic data flag
+  };
+}
 ```
 
-### Generating After-Action Reports
+### Decision Postures
 
-```typescript
-import { generateAfterActionReport, exportToMarkdown, exportToJSON } from '@gsoc-decision-ops/core';
-
-const report = generateAfterActionReport(
-  log,
-  ['Vendor communication SLA was not met'],
-  ['Establish secondary contact method for critical vendors']
-);
-
-// Export as Markdown
-const markdown = exportToMarkdown(report);
-
-// Export as JSON
-const json = exportToJSON(report);
-```
-
-### Using the Vendor Compromise Playbook
-
-```typescript
-import { getVendorCompromisePlaybook, getPhaseChecklist } from '@gsoc-decision-ops/core';
-
-const playbook = getVendorCompromisePlaybook();
-
-// Get Phase 1 checklist items
-const phase1Checklist = getPhaseChecklist('PHASE_1_ASSESSMENT');
-```
-
----
-
-## Synthetic Training Scenarios
-
-The toolkit includes three synthetic scenarios for training purposes:
-
-| Scenario                         | Severity | Description                                             |
-| -------------------------------- | -------- | ------------------------------------------------------- |
-| Access Control Vendor Ransomware | HIGH     | Badge system vendor experiences ransomware attack       |
-| Video Management Supply Chain    | HIGH     | Anomalous VMS behavior suggests supply chain compromise |
-| Alarm Monitoring Outage          | CRITICAL | Third-party alarm monitoring infrastructure failure     |
-
-All scenarios are explicitly marked as synthetic/fictional. Vendor names are fictional.
-
----
-
-## Design Principles
-
-### 1. Human-in-the-Loop Governance
-
-This toolkit supports human decision-makers—it does not replace them. All decisions require human judgment, organizational authority, and contextual awareness that no framework can provide.
-
-### 2. Defensible Decision Documentation
-
-Every decision captures:
-
-- What was decided (posture and scope)
-- Who made the decision (owner and role)
-- Why it was made (rationale)
-- What would change it (review triggers)
-
-### 3. Information Quality Awareness
-
-The framework forces explicit acknowledgment of:
-
-- What we know (facts with sources)
-- What we're assuming (with risks if wrong)
-- What we don't know (prioritized unknowns)
-
-### 4. After-Action Utility
-
-Decision logs are designed to produce useful after-action reports—not bureaucratic paperwork, but genuine learning artifacts.
-
----
-
-## What This Is NOT
-
-- **Not a SIEM or security monitoring tool.** This toolkit doesn't detect threats or collect logs.
-- **Not an incident response automation platform.** It documents human decisions, not automated responses.
-- **Not a vendor management system.** It focuses on the decision moment, not ongoing vendor relationships.
-- **Not a replacement for organizational policies.** Your organization's procedures take precedence.
-- **Not production incident documentation.** These are training scenarios only.
+| Posture      | Description                     | When to Use                                    |
+| ------------ | ------------------------------- | ---------------------------------------------- |
+| **CONTINUE** | Proceed with normal operations  | No immediate impact identified                 |
+| **DEGRADE**  | Operate with reduced capability | Partial impact, compensating controls in place |
+| **PAUSE**    | Halt affected operations        | Critical impact, unacceptable risk             |
 
 ---
 
 ## Screenshots
 
-### Dashboard
+<details>
+<summary>View Application Screenshots</summary>
 
-Dark ops aesthetic with real-time incident status, decision metrics, and timeline.
+### Home Page
+
+![Home Page](docs/images/demo-home.png)
+
+### Scenario Selection
+
+![Scenario Selection](docs/images/demo-scenarios.png)
+
+### Decision Log Interface
+
+![Decision Log](docs/images/demo-scenario.png)
 
 ### Decision Recording
 
-Structured decision capture with posture selection, rationale documentation, and review triggers.
+![Decisions Tab](docs/images/demo-decisions.png)
 
-### Playbook Execution
+### Playbook Checklist
 
-Interactive checklist with phase progression, key questions, and escalation triggers.
+![Playbook Tab](docs/images/demo-playbook.png)
 
-### After-Action Export
-
-Generate comprehensive Markdown and JSON reports for documentation and analysis.
+</details>
 
 ---
 
-## Contributing
+## Vendor Compromise Playbook
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on contributing to this project.
+The included playbook provides a 60-minute structured response framework:
+
+| Phase                           | Duration | Focus                                    |
+| ------------------------------- | -------- | ---------------------------------------- |
+| **1. Initial Assessment**       | 10 min   | Scope identification, initial posture    |
+| **2. Stakeholder Notification** | 10 min   | Communication, bridge setup              |
+| **3. Operational Continuity**   | 15 min   | Backup procedures, compensating controls |
+| **4. Information Management**   | 15 min   | Data assessment, credential review       |
+| **5. First Hour Checkpoint**    | 10 min   | Decision review, ongoing cadence         |
+
+Each phase includes objectives, key questions, and checklists with ownership assignments.
 
 ---
 
-## Security
+## Comparison: Structured vs. Ad-Hoc Response
 
-See [SECURITY.md](./SECURITY.md) for security policy and vulnerability reporting.
+| Aspect                    | Ad-Hoc (Slack/Email/Excel) | GSOC Decision Ops                              |
+| ------------------------- | -------------------------- | ---------------------------------------------- |
+| **Decision Audit Trail**  | Scattered across channels  | Centralized, timestamped log                   |
+| **Facts vs. Assumptions** | Often conflated            | Explicitly separated with risk documentation   |
+| **Posture Clarity**       | Implicit, verbal           | Explicit CONTINUE/DEGRADE/PAUSE with rationale |
+| **Handoff Quality**       | Dependent on individuals   | Structured log with timeline                   |
+| **After-Action Review**   | Manual reconstruction      | Auto-generated reports                         |
+| **Training Consistency**  | Variable                   | Repeatable synthetic scenarios                 |
+
+---
+
+## Training Scenarios
+
+Three synthetic scenarios are included for practice:
+
+1. **Access Control Vendor Ransomware** - Critical vendor providing badge access systems reports ransomware infection
+2. **Video Management Compromise** - Security camera vendor discovers unauthorized access to cloud infrastructure
+3. **Alarm Monitoring Outage** - Central station monitoring service experiences suspicious service degradation
+
+All scenarios are **fictional** and designed for educational purposes. Vendor names are synthetic.
+
+---
+
+## Technology Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript 5.3
+- **Styling**: Tailwind CSS
+- **Testing**: Vitest (109 tests)
+- **Build**: npm workspaces monorepo
+- **CI/CD**: GitHub Actions
+- **Deployment**: GitHub Pages (static export)
+
+---
+
+## Author
+
+**Shannon Brown**  
+GSOC Manager | Harvard ALM/ALB | Cyber Graduate Certificate  
+CompTIA CySA+ | CompTIA Security+
+
+This project demonstrates structured operational decision-making methodology for corporate security operations, combining GSOC domain expertise with modern software engineering practices.
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](./LICENSE) for details.
+MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Key areas for contribution:
+
+- Additional synthetic scenarios
+- Playbook enhancements
+- Accessibility improvements
+- Documentation
 
 ---
 
 ## Acknowledgments
 
-This toolkit was developed to support training and professional development in corporate security operations. It reflects real operational challenges faced by GSOC teams during vendor-related disruptions.
+This toolkit draws on established frameworks from:
 
----
+- ASIS Enterprise Security Risk Management (ESRM)
+- NIST Incident Response lifecycle
+- Corporate GSOC operational best practices
 
-<p align="center">
-  <strong>GSOC Decision Ops</strong><br/>
-  <em>Structured decisions under incomplete information.</em>
-</p>
+The structured decision log approach is influenced by military after-action review methodology and high-reliability organization (HRO) principles.
