@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Shield,
   AlertTriangle,
@@ -63,7 +64,6 @@ import {
 
 // Session storage key for persistence
 const SESSION_STORAGE_KEY = 'hourglass-command-session';
-const MUSIC_PREF_KEY = 'hourglass-command-music-enabled';
 
 // Get basePath for navigation (GitHub Pages compatible)
 const getBasePath = (): string => {
@@ -86,6 +86,48 @@ const SOUND_EFFECTS = {
   microTaskComplete:
     'data:audio/wav;base64,UklGRlIFAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YS4FAACAgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v8PHy8/T19vf4+fr7/P3+/w==',
 };
+
+// Ambient music storage key
+const AMBIENT_MUSIC_KEY = 'hourglass-command-ambient-music';
+
+// Structured residual risk options (no free text)
+const RESIDUAL_RISK_OPTIONS = [
+  { id: 'low-manual', level: 'LOW', label: 'Low — manual workaround in place', rationale: 'Manual processes introduce minor delays but maintain full coverage' },
+  { id: 'low-vendor', level: 'LOW', label: 'Low — vendor SLA provides coverage', rationale: 'Third-party agreement ensures backup response within acceptable timeframe' },
+  { id: 'medium-gap', level: 'MEDIUM', label: 'Medium — temporary coverage gap', rationale: 'Reduced monitoring capability for limited duration; escalation path clear' },
+  { id: 'medium-delay', level: 'MEDIUM', label: 'Medium — response time increased', rationale: 'Detection intact but response will take 15-30 minutes longer than normal' },
+  { id: 'high-blind', level: 'HIGH', label: 'High — partial blind spot accepted', rationale: 'Some assets unmonitored temporarily; business owner acknowledges risk' },
+  { id: 'high-manual', level: 'HIGH', label: 'High — relying on manual checks only', rationale: 'Automated detection offline; guard rounds are sole detection method' },
+  { id: 'critical-exposure', level: 'CRITICAL', label: 'Critical — significant exposure accepted', rationale: 'Known vulnerability remains open; executive sign-off required' },
+] as const;
+
+// Concrete treatment options by category
+const TREATMENT_OPTIONS = {
+  ACCEPT: [
+    { id: 'accept-monitor', label: 'Continue with enhanced monitoring', detail: 'Risk within tolerance; add logging/alerting' },
+    { id: 'accept-asis', label: 'Accept current state', detail: 'No action needed; existing controls adequate' },
+    { id: 'accept-document', label: 'Document and proceed', detail: 'Note risk in log; maintain normal operations' },
+  ],
+  MITIGATE: [
+    { id: 'mitigate-isolate', label: 'Network isolation', detail: 'Segment affected systems from production' },
+    { id: 'mitigate-disable', label: 'Disable compromised accounts/badges', detail: 'Revoke access for affected credentials' },
+    { id: 'mitigate-patrol', label: 'Increase patrol frequency', detail: 'Double guard rounds in affected areas' },
+    { id: 'mitigate-backup', label: 'Activate backup system', detail: 'Switch to redundant monitoring/access' },
+    { id: 'mitigate-manual', label: 'Manual verification required', detail: 'Add human check to automated process' },
+  ],
+  TRANSFER: [
+    { id: 'transfer-vendor', label: 'Escalate to vendor support', detail: 'Invoke vendor SLA for incident response' },
+    { id: 'transfer-insurance', label: 'Notify insurance carrier', detail: 'Trigger cyber/liability coverage process' },
+    { id: 'transfer-le', label: 'Involve law enforcement', detail: 'File report; transfer investigation authority' },
+    { id: 'transfer-third', label: 'Engage third-party responder', detail: 'Bring in external IR team per contract' },
+  ],
+  AVOID: [
+    { id: 'avoid-shutdown', label: 'Shut down affected system', detail: 'Take system offline to eliminate exposure' },
+    { id: 'avoid-evacuate', label: 'Evacuate/secure area', detail: 'Remove personnel from affected zone' },
+    { id: 'avoid-disconnect', label: 'Disconnect from network', detail: 'Sever all external connectivity' },
+    { id: 'avoid-cancel', label: 'Cancel/postpone activity', detail: 'Delay planned operation until resolved' },
+  ],
+} as const;
 
 // Micro-task challenge types
 type MicroTaskType = 'MULTIPLE_CHOICE' | 'RANKING' | 'TRADEOFF' | 'SCENARIO';
@@ -444,141 +486,6 @@ function useSoundEffects(
   return { playSound };
 }
 
-// Custom hook for procedural background music using WebAudio
-function useBackgroundMusic(
-  enabled: boolean,
-  reducedMotion: boolean
-): {
-  unlockAudio: () => void;
-} {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-
-  const stopMusic = useCallback(() => {
-    oscillatorsRef.current.forEach((osc) => {
-      try {
-        osc.stop();
-        osc.disconnect();
-      } catch {
-        // Already stopped
-      }
-    });
-    oscillatorsRef.current = [];
-    setIsPlaying(false);
-  }, []);
-
-  const startMusic = useCallback(() => {
-    if (!audioContextRef.current || reducedMotion) return;
-
-    try {
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      // Create master gain for volume control
-      if (!gainNodeRef.current) {
-        gainNodeRef.current = ctx.createGain();
-        gainNodeRef.current.connect(ctx.destination);
-      }
-      gainNodeRef.current.gain.setValueAtTime(0.08, ctx.currentTime);
-
-      // Create ambient drone oscillators (low volume, atmospheric)
-      const frequencies = [55, 82.5, 110, 165]; // A1, E2, A2, E3 - subtle power chord
-      const oscs: OscillatorNode[] = [];
-
-      frequencies.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const oscGain = ctx.createGain();
-
-        osc.type = i === 0 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-        // Subtle detuning for warmth
-        osc.detune.setValueAtTime((i - 1.5) * 3, ctx.currentTime);
-
-        // Individual oscillator volumes
-        const vol = i === 0 ? 0.4 : i === 1 ? 0.25 : i === 2 ? 0.2 : 0.15;
-        oscGain.gain.setValueAtTime(vol, ctx.currentTime);
-
-        // Slow LFO modulation for movement
-        const lfo = ctx.createOscillator();
-        const lfoGain = ctx.createGain();
-        lfo.frequency.setValueAtTime(0.1 + i * 0.05, ctx.currentTime);
-        lfoGain.gain.setValueAtTime(freq * 0.002, ctx.currentTime);
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start();
-        oscs.push(lfo);
-
-        osc.connect(oscGain);
-        oscGain.connect(gainNodeRef.current!);
-        osc.start();
-        oscs.push(osc);
-      });
-
-      oscillatorsRef.current = oscs;
-      setIsPlaying(true);
-    } catch {
-      // Audio not supported
-    }
-  }, [reducedMotion]);
-
-  // Unlock audio on first user interaction
-  const unlockAudio = useCallback(() => {
-    if (hasInteracted) return;
-
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-        )();
-      }
-
-      // Resume if suspended (browser autoplay policy)
-      if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-
-      setHasInteracted(true);
-
-      // Start music if enabled
-      if (enabled && !reducedMotion) {
-        startMusic();
-      }
-    } catch {
-      // Audio not supported
-    }
-  }, [hasInteracted, enabled, reducedMotion, startMusic]);
-
-  // Handle enable/disable changes
-  useEffect(() => {
-    if (!hasInteracted) return;
-
-    if (enabled && !isPlaying && !reducedMotion) {
-      startMusic();
-    } else if (!enabled && isPlaying) {
-      stopMusic();
-    }
-  }, [enabled, isPlaying, hasInteracted, reducedMotion, startMusic, stopMusic]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopMusic();
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
-      }
-    };
-  }, [stopMusic]);
-
-  return { unlockAudio };
-}
-
 // Custom hook for haptic feedback
 function useHaptics(reducedMotion: boolean): {
   tapFeedback: () => void;
@@ -607,6 +514,149 @@ function useHaptics(reducedMotion: boolean): {
   const urgentFeedback = useCallback((): void => vibrate([50, 100, 50]), [vibrate]);
 
   return { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback };
+}
+
+// Custom hook for ambient music - pleasant procedural loop, not a drone hum
+function useAmbientMusic(
+  enabled: boolean,
+  reducedMotion: boolean
+): {
+  startMusic: () => void;
+  stopMusic: () => void;
+  isPlaying: boolean;
+} {
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const oscillatorsRef = useRef<OscillatorNode[]>([]);
+  const lfoRef = useRef<OscillatorNode | null>(null);
+  const filterRef = useRef<BiquadFilterNode | null>(null);
+  const isPlayingRef = useRef(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const stopMusic = useCallback(() => {
+    if (!audioContextRef.current || !isPlayingRef.current) return;
+
+    try {
+      const now = audioContextRef.current.currentTime;
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.linearRampToValueAtTime(0, now + 0.5);
+      }
+
+      setTimeout(() => {
+        oscillatorsRef.current.forEach((osc) => {
+          try {
+            osc.stop();
+            osc.disconnect();
+          } catch { /* Oscillator already stopped */ }
+        });
+        if (lfoRef.current) {
+          try {
+            lfoRef.current.stop();
+            lfoRef.current.disconnect();
+          } catch { /* LFO already stopped */ }
+        }
+        oscillatorsRef.current = [];
+        lfoRef.current = null;
+        isPlayingRef.current = false;
+        setIsPlaying(false);
+      }, 600);
+    } catch { /* Audio context error */ }
+  }, []);
+
+  const startMusic = useCallback(() => {
+    if (reducedMotion || isPlayingRef.current) return;
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        )();
+      }
+
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0;
+      masterGain.connect(ctx.destination);
+      gainNodeRef.current = masterGain;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 800;
+      filter.Q.value = 0.5;
+      filter.connect(masterGain);
+      filterRef.current = filter;
+
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.08;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 200;
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+      lfo.start();
+      lfoRef.current = lfo;
+
+      const chordNotes = [
+        { freq: 130.81, type: 'sine' as OscillatorType },
+        { freq: 164.81, type: 'sine' as OscillatorType },
+        { freq: 196.00, type: 'triangle' as OscillatorType },
+        { freq: 261.63, type: 'sine' as OscillatorType },
+      ];
+
+      const oscs: OscillatorNode[] = [];
+      chordNotes.forEach(({ freq, type }, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = type;
+        osc.frequency.value = freq;
+
+        const oscGain = ctx.createGain();
+        oscGain.gain.value = 0.04 - i * 0.008;
+
+        const detune = ctx.createOscillator();
+        detune.type = 'sine';
+        detune.frequency.value = 0.1 + i * 0.02;
+        const detuneGain = ctx.createGain();
+        detuneGain.gain.value = 3;
+        detune.connect(detuneGain);
+        detuneGain.connect(osc.detune);
+        detune.start();
+
+        osc.connect(oscGain);
+        oscGain.connect(filter);
+        osc.start();
+        oscs.push(osc, detune);
+      });
+
+      oscillatorsRef.current = oscs;
+
+      masterGain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2);
+
+      isPlayingRef.current = true;
+      setIsPlaying(true);
+    } catch { /* Audio not supported */ }
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    if (!enabled && isPlayingRef.current) {
+      stopMusic();
+    }
+  }, [enabled, stopMusic]);
+
+  useEffect(() => {
+    return () => {
+      stopMusic();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [stopMusic]);
+
+  return { startMusic, stopMusic, isPlaying };
 }
 
 // Session state interface for persistence
@@ -840,7 +890,6 @@ export default function CommandCenter({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
-  const [musicEnabled, setMusicEnabled] = useState(false);
   const [showDebrief, setShowDebrief] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<ScenarioInject | null>(null);
   const [decisionTimer, setDecisionTimer] = useState(0);
@@ -886,6 +935,22 @@ export default function CommandCenter({
     'pending' | 'correct' | 'wrong' | 'partial' | null
   >(null);
   const [microTaskExplanationShown, setMicroTaskExplanationShown] = useState(false);
+  
+  // Skipped micro-tasks (can return later, separate from completed)
+  const [skippedMicroTasks, setSkippedMicroTasks] = useState<{ id: string; skippedAt: number }[]>([]);
+
+  // Ambient music state (default OFF, persisted)
+  const [ambientMusicEnabled, setAmbientMusicEnabled] = useState(false);
+  const [ambientMusicUnlocked, setAmbientMusicUnlocked] = useState(false);
+
+  // Structured risk treatment selection
+  const [selectedTreatmentCategory, setSelectedTreatmentCategory] = useState<'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | null>(null);
+  const [selectedTreatmentOption, setSelectedTreatmentOption] = useState<string | null>(null);
+  const [selectedResidualRisk, setSelectedResidualRisk] = useState<string | null>(null);
+
+  // Mobile menu button ref for portal positioning
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const [mobileMenuPosition, setMobileMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
   // Animation tracking
   const [tabAnimating, setTabAnimating] = useState(false);
@@ -959,28 +1024,39 @@ export default function CommandCenter({
   // Sound and haptic hooks
   const { playSound } = useSoundEffects(soundEnabled, reducedMotion);
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
-  const { unlockAudio } = useBackgroundMusic(musicEnabled, reducedMotion);
+  const { startMusic, stopMusic, isPlaying: isMusicPlaying } = useAmbientMusic(ambientMusicEnabled, reducedMotion);
 
-  // Initialize music preference from localStorage (default OFF)
+  // Load ambient music preference from localStorage
   useEffect(() => {
     try {
-      const savedPref = localStorage.getItem(MUSIC_PREF_KEY);
-      if (savedPref === 'true') {
-        setMusicEnabled(true);
+      const saved = localStorage.getItem(AMBIENT_MUSIC_KEY);
+      if (saved === 'true') {
+        setAmbientMusicEnabled(true);
       }
-    } catch {
-      // Ignore localStorage errors
-    }
+    } catch { /* localStorage not available */ }
   }, []);
 
-  // Persist music preference
+  // Persist ambient music preference
   useEffect(() => {
     try {
-      localStorage.setItem(MUSIC_PREF_KEY, musicEnabled ? 'true' : 'false');
-    } catch {
-      // Ignore localStorage errors
+      localStorage.setItem(AMBIENT_MUSIC_KEY, ambientMusicEnabled ? 'true' : 'false');
+    } catch { /* localStorage not available */ }
+  }, [ambientMusicEnabled]);
+
+  // Handle ambient music toggle - requires user gesture to unlock
+  const handleAmbientMusicToggle = useCallback(() => {
+    if (!ambientMusicUnlocked) {
+      setAmbientMusicUnlocked(true);
+      setAmbientMusicEnabled(true);
+      startMusic();
+    } else if (ambientMusicEnabled) {
+      setAmbientMusicEnabled(false);
+      stopMusic();
+    } else {
+      setAmbientMusicEnabled(true);
+      startMusic();
     }
-  }, [musicEnabled]);
+  }, [ambientMusicEnabled, ambientMusicUnlocked, startMusic, stopMusic]);
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -1080,7 +1156,6 @@ export default function CommandCenter({
   // Resume session handler
   const handleResumeSession = useCallback(() => {
     if (savedSession) {
-      unlockAudio();
       setLog(savedSession.log);
       setElapsedSeconds(savedSession.elapsedSeconds);
       setGameState(savedSession.gameState);
@@ -1094,7 +1169,7 @@ export default function CommandCenter({
       setShowResumePrompt(false);
       setSavedSession(null);
     }
-  }, [savedSession, unlockAudio]);
+  }, [savedSession]);
 
   // Start fresh handler
   const handleStartFresh = useCallback(() => {
@@ -1220,6 +1295,9 @@ export default function CommandCenter({
           setSelectedAsset(null);
           setAssetOwnerBriefed(false);
           setResidualRiskNote('');
+          setSelectedTreatmentCategory(null);
+          setSelectedTreatmentOption(null);
+          setSelectedResidualRisk(null);
         }
         break;
       }
@@ -1241,6 +1319,16 @@ export default function CommandCenter({
     }
   }, [elapsedSeconds, isRunning, lastInjectTime, log, pendingDecision, urgentFeedback]);
 
+  // Check if a skipped task can return (45 second cooldown)
+  const canSkippedTaskReturn = useCallback(
+    (taskId: string): boolean => {
+      const skipped = skippedMicroTasks.find((s) => s.id === taskId);
+      if (!skipped) return true;
+      return elapsedSeconds - skipped.skippedAt >= 45;
+    },
+    [skippedMicroTasks, elapsedSeconds]
+  );
+
   // Micro-task system for filling wait gaps (no dead air > 20s)
   useEffect(() => {
     if (!isRunning || pendingDecision || activeMicroTask) return;
@@ -1249,7 +1337,10 @@ export default function CommandCenter({
 
     // If more than 20 seconds of inactivity, spawn a micro-task
     if (timeSinceActivity > 20) {
-      const availableTasks = ESRM_MICRO_TASKS.filter((t) => !completedMicroTasks.includes(t.id));
+      // Exclude completed tasks, but allow skipped tasks to return after cooldown
+      const availableTasks = ESRM_MICRO_TASKS.filter(
+        (t) => !completedMicroTasks.includes(t.id) && canSkippedTaskReturn(t.id)
+      );
       if (availableTasks.length > 0) {
         const randomTask = availableTasks[Math.floor(Math.random() * availableTasks.length)];
         setActiveMicroTask(randomTask);
@@ -1269,6 +1360,7 @@ export default function CommandCenter({
     activeMicroTask,
     lastActivityTime,
     completedMicroTasks,
+    canSkippedTaskReturn,
     playSound,
   ]);
 
@@ -1382,10 +1474,11 @@ export default function CommandCenter({
     setLastActivityTime(elapsedSeconds);
   }, [activeMicroTask, elapsedSeconds]);
 
-  // Skip micro-task handler (small opportunity cost - counts as seen but no points)
+  // Skip micro-task handler (0 points, but task can return after cooldown)
   const skipMicroTask = useCallback(() => {
     if (!activeMicroTask) return;
-    setCompletedMicroTasks((prev) => [...prev, activeMicroTask.id]);
+    // Add to skipped list with timestamp - NOT to completed, so it can return
+    setSkippedMicroTasks((prev) => [...prev, { id: activeMicroTask.id, skippedAt: elapsedSeconds }]);
     setActiveMicroTask(null);
     setMicroTaskAnswer(null);
     setMicroTaskResult(null);
@@ -1723,6 +1816,9 @@ export default function CommandCenter({
     setPendingDecision(null);
     setSelectedAsset(null);
     setAssetOwnerBriefed(false);
+    setSelectedTreatmentCategory(null);
+    setSelectedTreatmentOption(null);
+    setSelectedResidualRisk(null);
   }, [pendingDecision, playSound, errorFeedback]);
 
   useEffect(() => {
@@ -1792,7 +1888,8 @@ export default function CommandCenter({
       const baseScore = isCorrect ? 150 : 50;
       const timeBonus = Math.floor(decisionTimer * 2);
       const esrmBonus = assetOwnerBriefed ? 75 : 0;
-      const residualBonus = residualRiskNote.length > 20 ? 50 : 0;
+      // Residual risk bonus now based on structured selection (not free text)
+      const residualBonus = selectedResidualRisk ? 50 : 0;
       const newStreak = isCorrect ? gameState.streak + 1 : 0;
       const streakMultiplier = Math.min(1 + newStreak * 0.1, 2.5);
 
@@ -1862,13 +1959,33 @@ export default function CommandCenter({
       setScreenFlash(isCorrect ? 'green' : 'amber');
       setTimeout(() => setScreenFlash(null), 200);
 
-      // Play sound and haptic
+      // Determine correct treatment for feedback
+      const correctTreatmentMap: Record<DecisionPosture, string> = {
+        CONTINUE: 'ACCEPT',
+        DEGRADE: 'MITIGATE',
+        PAUSE: 'AVOID',
+      };
+      const correctTreatment = expectedPosture ? correctTreatmentMap[expectedPosture] : null;
+      const playerTreatment = selectedTreatmentCategory || correctTreatmentMap[posture];
+
+      // Play sound and haptic with enhanced feedback
       playSound('decisionConfirm');
       if (isCorrect) {
         confirmFeedback();
+        setShowScorePopup({
+          points: totalPoints,
+          message: `Correct! ${playerTreatment} was right.`,
+        });
       } else {
         tapFeedback();
+        setShowScorePopup({
+          points: totalPoints,
+          message: correctTreatment
+            ? `${playerTreatment} chosen. Best: ${correctTreatment}`
+            : `${playerTreatment} decision logged`,
+        });
       }
+      setTimeout(() => setShowScorePopup(null), 3000);
 
       // Rotate decision prompt variation for next decision
       setDecisionPromptIndex((prev) => (prev + 1) % DECISION_PROMPT_VARIATIONS.length);
@@ -1891,6 +2008,9 @@ export default function CommandCenter({
       setSelectedAsset(null);
       setAssetOwnerBriefed(false);
       setResidualRiskNote('');
+      setSelectedTreatmentCategory(null);
+      setSelectedTreatmentOption(null);
+      setSelectedResidualRisk(null);
 
       // Auto-queue next unhandled inject
       setTimeout(() => {
@@ -1909,12 +2029,17 @@ export default function CommandCenter({
       gameState,
       assetOwnerBriefed,
       residualRiskNote,
+      selectedResidualRisk,
+      selectedTreatmentCategory,
       decisionTimer,
       revealedInjects,
       checkResourceAvailability,
       deployResources,
       currentPlaybookPhase,
       cascadeMultiplier,
+      playSound,
+      confirmFeedback,
+      tapFeedback,
     ]
   );
 
@@ -2234,30 +2359,24 @@ export default function CommandCenter({
 
             {/* Sound toggle - always visible */}
             <button
-              onClick={() => {
-                setSoundEnabled(!soundEnabled);
-                unlockAudio();
-              }}
+              onClick={() => setSoundEnabled(!soundEnabled)}
               className="flex p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0"
               aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
             >
               {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
 
-            {/* Background music toggle */}
+            {/* Ambient music toggle */}
             <button
-              onClick={() => {
-                unlockAudio();
-                setMusicEnabled(!musicEnabled);
-              }}
+              onClick={handleAmbientMusicToggle}
               className={clsx(
                 'flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
-                musicEnabled
+                ambientMusicEnabled && isMusicPlaying
                   ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
                   : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
               )}
-              aria-label={musicEnabled ? 'Disable background music' : 'Enable background music'}
-              title={musicEnabled ? 'Music ON' : 'Music OFF'}
+              aria-label={ambientMusicEnabled ? 'Disable ambient music' : 'Enable ambient music'}
+              title={ambientMusicEnabled ? 'Ambient music on' : 'Ambient music off'}
             >
               <Music className="w-5 h-5" />
             </button>
@@ -2392,10 +2511,32 @@ export default function CommandCenter({
               </button>
             </div>
 
+            {/* Ambient Music Toggle */}
+            <button
+              onClick={handleAmbientMusicToggle}
+              className={clsx(
+                'hidden sm:flex p-2 rounded-xl transition-all items-center justify-center min-w-[40px] min-h-[40px] flex-shrink-0',
+                ambientMusicEnabled && isMusicPlaying
+                  ? 'text-violet-400 hover:text-violet-300 hover:bg-violet-500/10'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+              )}
+              aria-label={ambientMusicEnabled ? 'Disable ambient music' : 'Enable ambient music'}
+              title={ambientMusicEnabled ? 'Ambient music on' : 'Ambient music off'}
+            >
+              <Music className="w-5 h-5" />
+            </button>
+
             {/* Mobile overflow menu button */}
-            <div className="relative lg:hidden flex-shrink-0">
+            <div className="lg:hidden flex-shrink-0">
               <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                ref={mobileMenuButtonRef}
+                onClick={() => {
+                  if (!showMobileMenu && mobileMenuButtonRef.current) {
+                    const rect = mobileMenuButtonRef.current.getBoundingClientRect();
+                    setMobileMenuPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+                  }
+                  setShowMobileMenu(!showMobileMenu);
+                }}
                 className={clsx(
                   'p-2 rounded-xl transition-all flex items-center justify-center min-w-[40px] min-h-[40px] relative',
                   showMobileMenu
@@ -2411,177 +2552,204 @@ export default function CommandCenter({
                   <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                 ) : null}
               </button>
-
-              {/* Mobile dropdown menu - z-[100] ensures visibility above all panels */}
-              {showMobileMenu && (
-                <div
-                  className="absolute top-full right-0 mt-2 w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[100] animate-scale-in-fast"
-                  role="menu"
-                >
-                  <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
-                    Dashboards
-                  </div>
-
-                  {log.linkedEntities && log.linkedEntities.length > 0 && (
-                    <button
-                      onClick={() => {
-                        setShowEntityPanel(true);
-                        setShowMobileMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
-                      role="menuitem"
-                    >
-                      <Link2 className="w-4 h-4" />
-                      Entity Map
-                      {highlightedEntityId && (
-                        <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
-                      )}
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setShowValuePanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      valueMetrics && valueMetrics.compositeValueScore >= 0.7
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : valueMetrics && valueMetrics.compositeValueScore >= 0.4
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Value Metrics
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowKRIPanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      kriDashboard?.overallHealth === 'GREEN'
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : kriDashboard?.overallHealth === 'AMBER'
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : kriDashboard?.overallHealth === 'RED'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                    KRI Dashboard
-                    {kriDashboard && kriDashboard.criticalCount > 0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
-                        {kriDashboard.criticalCount}
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowPipelinePanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      pipelineHealth?.overallStatus === 'HEALTHY'
-                        ? 'text-emerald-400 hover:bg-emerald-500/10'
-                        : pipelineHealth?.overallStatus === 'DEGRADED'
-                          ? 'text-amber-400 hover:bg-amber-500/10'
-                          : pipelineHealth?.overallStatus === 'CRITICAL'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Activity className="w-4 h-4" />
-                    Pipeline Health
-                    {pipelineHealth && pipelineHealth.alerts.length > 0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
-                        {pipelineHealth.alerts.length}
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="border-t border-gray-800 my-1" />
-
-                  <button
-                    onClick={() => {
-                      setShowTacticalPanel(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                      tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
-                        ? 'text-cyan-400 hover:bg-cyan-500/10'
-                        : 'text-gray-400 hover:bg-gray-800/50'
-                    )}
-                    role="menuitem"
-                  >
-                    <Crosshair className="w-4 h-4" />
-                    Tactical Actions
-                    {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
-                      0 && (
-                      <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
-                        {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length}{' '}
-                        active
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowFieldGuide(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
-                    role="menuitem"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Field Guide
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowDebrief(true);
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
-                    role="menuitem"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Debrief
-                  </button>
-
-                  <div className="border-t border-gray-800 my-1" />
-
-                  <div className="px-3 py-2 flex items-center justify-between">
-                    <span className="text-2xs text-gray-500 uppercase tracking-wider">
-                      {escalationLevel}
-                    </span>
-                    <span
-                      className={clsx(
-                        'text-2xs px-1.5 py-0.5 rounded font-semibold',
-                        escalationLevel === 'INVESTIGATION'
-                          ? 'bg-red-500/20 text-red-400'
-                          : escalationLevel === 'INCIDENT'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-gray-700 text-gray-400'
-                      )}
-                    >
-                      Level
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {/* Mobile dropdown menu - rendered via portal to escape stacking context */}
+            {showMobileMenu && typeof document !== 'undefined' && createPortal(
+              <div
+                className="fixed w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[200] animate-scale-in-fast"
+                role="menu"
+                style={{
+                  top: mobileMenuPosition?.top ?? 60,
+                  right: mobileMenuPosition?.right ?? 8,
+                }}
+              >
+                <div className="px-3 py-1.5 text-2xs text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-800 mb-1">
+                  Dashboards
+                </div>
+
+                {log.linkedEntities && log.linkedEntities.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setShowEntityPanel(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                    role="menuitem"
+                  >
+                    <Link2 className="w-4 h-4" />
+                    Entity Map
+                    {highlightedEntityId && (
+                      <span className="ml-auto w-2 h-2 rounded-full bg-cyan-400" />
+                    )}
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setShowValuePanel(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className={clsx(
+                    'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                    valueMetrics && valueMetrics.compositeValueScore >= 0.7
+                      ? 'text-emerald-400 hover:bg-emerald-500/10'
+                      : valueMetrics && valueMetrics.compositeValueScore >= 0.4
+                        ? 'text-amber-400 hover:bg-amber-500/10'
+                        : 'text-gray-400 hover:bg-gray-800/50'
+                  )}
+                  role="menuitem"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Value Metrics
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowKRIPanel(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className={clsx(
+                    'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                    kriDashboard?.overallHealth === 'GREEN'
+                      ? 'text-emerald-400 hover:bg-emerald-500/10'
+                      : kriDashboard?.overallHealth === 'AMBER'
+                        ? 'text-amber-400 hover:bg-amber-500/10'
+                        : kriDashboard?.overallHealth === 'RED'
+                          ? 'text-red-400 hover:bg-red-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                  )}
+                  role="menuitem"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  KRI Dashboard
+                  {kriDashboard && kriDashboard.criticalCount > 0 && (
+                    <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">
+                      {kriDashboard.criticalCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowPipelinePanel(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className={clsx(
+                    'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                    pipelineHealth?.overallStatus === 'HEALTHY'
+                      ? 'text-emerald-400 hover:bg-emerald-500/10'
+                      : pipelineHealth?.overallStatus === 'DEGRADED'
+                        ? 'text-amber-400 hover:bg-amber-500/10'
+                        : pipelineHealth?.overallStatus === 'CRITICAL'
+                          ? 'text-red-400 hover:bg-red-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                  )}
+                  role="menuitem"
+                >
+                  <Activity className="w-4 h-4" />
+                  Pipeline Health
+                  {pipelineHealth && pipelineHealth.alerts.length > 0 && (
+                    <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                      {pipelineHealth.alerts.length}
+                    </span>
+                  )}
+                </button>
+
+                <div className="border-t border-gray-800 my-1" />
+
+                <button
+                  onClick={() => {
+                    setShowTacticalPanel(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className={clsx(
+                    'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                    tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length > 0
+                      ? 'text-cyan-400 hover:bg-cyan-500/10'
+                      : 'text-gray-400 hover:bg-gray-800/50'
+                  )}
+                  role="menuitem"
+                >
+                  <Crosshair className="w-4 h-4" />
+                  Tactical Actions
+                  {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length >
+                    0 && (
+                    <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                      {tacticalState.deployedActions.filter((d) => d.status === 'ACTIVE').length}{' '}
+                      active
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowFieldGuide(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-all"
+                  role="menuitem"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Field Guide
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowDebrief(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-800/50 transition-all"
+                  role="menuitem"
+                >
+                  <FileText className="w-4 h-4" />
+                  Debrief
+                </button>
+
+                {/* Ambient Music Toggle in mobile menu */}
+                <button
+                  onClick={() => {
+                    handleAmbientMusicToggle();
+                  }}
+                  className={clsx(
+                    'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                    ambientMusicEnabled && isMusicPlaying
+                      ? 'text-violet-400 hover:bg-violet-500/10'
+                      : 'text-gray-400 hover:bg-gray-800/50'
+                  )}
+                  role="menuitem"
+                >
+                  <Music className="w-4 h-4" />
+                  Ambient Music
+                  {ambientMusicEnabled && isMusicPlaying && (
+                    <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
+                      On
+                    </span>
+                  )}
+                </button>
+
+                <div className="border-t border-gray-800 my-1" />
+
+                <div className="px-3 py-2 flex items-center justify-between">
+                  <span className="text-2xs text-gray-500 uppercase tracking-wider">
+                    {escalationLevel}
+                  </span>
+                  <span
+                    className={clsx(
+                      'text-2xs px-1.5 py-0.5 rounded font-semibold',
+                      escalationLevel === 'INVESTIGATION'
+                        ? 'bg-red-500/20 text-red-400'
+                        : escalationLevel === 'INCIDENT'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-gray-700 text-gray-400'
+                    )}
+                  >
+                    Level
+                  </span>
+                </div>
+              </div>,
+              document.body
+            )}
           </div>
         </div>
 
@@ -2711,6 +2879,9 @@ export default function CommandCenter({
                         setSelectedAsset(null);
                         setAssetOwnerBriefed(false);
                         setResidualRiskNote('');
+                        setSelectedTreatmentCategory(null);
+                        setSelectedTreatmentOption(null);
+                        setSelectedResidualRisk(null);
                       }
                     }}
                     reducedMotion={reducedMotion}
@@ -2738,16 +2909,19 @@ export default function CommandCenter({
                 decisionTimer={decisionTimer}
                 onCommit={handlePostureCommit}
                 reducedMotion={reducedMotion}
+                selectedTreatmentCategory={selectedTreatmentCategory}
+                onSelectTreatmentCategory={setSelectedTreatmentCategory}
+                selectedTreatmentOption={selectedTreatmentOption}
+                onSelectTreatmentOption={setSelectedTreatmentOption}
+                selectedResidualRisk={selectedResidualRisk}
+                onSelectResidualRisk={setSelectedResidualRisk}
               />
             ) : (
               <IdleState
                 isRunning={isRunning}
                 revealedInjects={revealedInjects}
                 decisions={log.decisions}
-                onStart={() => {
-                  unlockAudio();
-                  setIsRunning(true);
-                }}
+                onStart={() => setIsRunning(true)}
                 onSelectInject={(inject) => {
                   setPendingDecision(inject);
                   setSelectedAsset(null);
@@ -2987,6 +3161,9 @@ export default function CommandCenter({
                           setSelectedAsset(null);
                           setAssetOwnerBriefed(false);
                           setResidualRiskNote('');
+                          setSelectedTreatmentCategory(null);
+                          setSelectedTreatmentOption(null);
+                          setSelectedResidualRisk(null);
                           setMobileTab('decision');
                         }
                       }}
@@ -3022,16 +3199,19 @@ export default function CommandCenter({
                   decisionTimer={decisionTimer}
                   onCommit={handlePostureCommit}
                   reducedMotion={reducedMotion}
+                  selectedTreatmentCategory={selectedTreatmentCategory}
+                  onSelectTreatmentCategory={setSelectedTreatmentCategory}
+                  selectedTreatmentOption={selectedTreatmentOption}
+                  onSelectTreatmentOption={setSelectedTreatmentOption}
+                  selectedResidualRisk={selectedResidualRisk}
+                  onSelectResidualRisk={setSelectedResidualRisk}
                 />
               ) : (
                 <IdleState
                   isRunning={isRunning}
                   revealedInjects={revealedInjects}
                   decisions={log.decisions}
-                  onStart={() => {
-                    unlockAudio();
-                    setIsRunning(true);
-                  }}
+                  onStart={() => setIsRunning(true)}
                   onSelectInject={(inject) => {
                     setPendingDecision(inject);
                     setSelectedAsset(null);
@@ -3619,12 +3799,18 @@ function DecisionConsole({
   onSelectAsset,
   assetOwnerBriefed,
   onToggleBriefed,
-  residualRiskNote,
+  residualRiskNote: _residualRiskNote,
   onResidualRiskChange,
   decisionTimer,
   onCommit,
   reducedMotion,
   decisionPromptVariation,
+  selectedTreatmentCategory,
+  onSelectTreatmentCategory,
+  selectedTreatmentOption,
+  onSelectTreatmentOption,
+  selectedResidualRisk,
+  onSelectResidualRisk,
 }: {
   inject: ScenarioInject;
   assets: ProtectedAsset[];
@@ -3638,12 +3824,21 @@ function DecisionConsole({
   onCommit: (posture: DecisionPosture) => void;
   reducedMotion: boolean;
   decisionPromptVariation?: { header: string; subtext: string };
+  selectedTreatmentCategory: 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | null;
+  onSelectTreatmentCategory: (category: 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | null) => void;
+  selectedTreatmentOption: string | null;
+  onSelectTreatmentOption: (option: string | null) => void;
+  selectedResidualRisk: string | null;
+  onSelectResidualRisk: (risk: string | null) => void;
 }): JSX.Element {
-  const extendedInject = inject as unknown as { domain?: SecurityDomain };
+  const extendedInject = inject as unknown as { domain?: SecurityDomain; expectedPostureImpact?: DecisionPosture };
   const domain = extendedInject.domain;
   const config = domain ? DOMAIN_CONFIG[domain] : null;
   const isTimeCritical = decisionTimer <= 15;
   const promptVariation = decisionPromptVariation || DECISION_PROMPT_VARIATIONS[0];
+  
+  // Note: residualRiskNote passed to parent; we use structured selection here
+  void _residualRiskNote;
 
   return (
     <div
@@ -3964,52 +4159,56 @@ function DecisionConsole({
                 <h3 className="font-semibold text-gray-200">3. Select Risk Treatment</h3>
               </div>
 
+              {/* Step 1: Select Treatment Category */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                {[
+                {([
                   {
                     posture: 'CONTINUE' as DecisionPosture,
-                    treatment: 'ACCEPT',
+                    treatment: 'ACCEPT' as const,
                     desc: 'Risk within tolerance',
                     color: 'emerald',
                     key: 'C',
-                    isTransfer: false,
                   },
                   {
                     posture: 'DEGRADE' as DecisionPosture,
-                    treatment: 'MITIGATE',
+                    treatment: 'MITIGATE' as const,
                     desc: 'Apply controls',
                     color: 'amber',
                     key: 'D',
-                    isTransfer: false,
                   },
                   {
                     posture: 'DEGRADE' as DecisionPosture,
-                    treatment: 'TRANSFER',
+                    treatment: 'TRANSFER' as const,
                     desc: 'Shift to third party',
                     color: 'blue',
                     key: 'T',
-                    isTransfer: true,
                   },
                   {
                     posture: 'PAUSE' as DecisionPosture,
-                    treatment: 'AVOID',
+                    treatment: 'AVOID' as const,
                     desc: 'Eliminate exposure',
                     color: 'red',
                     key: 'P',
-                    isTransfer: false,
                   },
-                ].map((option) => (
+                ] as const).map((option) => (
                   <button
                     key={option.treatment}
-                    onClick={() => onCommit(option.posture)}
+                    onClick={() => {
+                      onSelectTreatmentCategory(option.treatment);
+                      onSelectTreatmentOption(null);
+                    }}
                     disabled={!selectedAsset}
                     className={clsx(
                       'relative p-4 rounded-xl border-2 transition-all duration-200 group overflow-hidden text-left',
                       'hover:scale-[1.02] active:scale-[0.98]',
-                      option.color === 'emerald' && 'border-emerald-500/40 hover:bg-emerald-500/10',
-                      option.color === 'amber' && 'border-amber-500/40 hover:bg-amber-500/10',
-                      option.color === 'blue' && 'border-blue-500/40 hover:bg-blue-500/10',
-                      option.color === 'red' && 'border-red-500/40 hover:bg-red-500/10',
+                      selectedTreatmentCategory === option.treatment && option.color === 'emerald' && 'border-emerald-500 bg-emerald-500/20 ring-2 ring-emerald-500/50',
+                      selectedTreatmentCategory === option.treatment && option.color === 'amber' && 'border-amber-500 bg-amber-500/20 ring-2 ring-amber-500/50',
+                      selectedTreatmentCategory === option.treatment && option.color === 'blue' && 'border-blue-500 bg-blue-500/20 ring-2 ring-blue-500/50',
+                      selectedTreatmentCategory === option.treatment && option.color === 'red' && 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50',
+                      selectedTreatmentCategory !== option.treatment && option.color === 'emerald' && 'border-emerald-500/40 hover:bg-emerald-500/10',
+                      selectedTreatmentCategory !== option.treatment && option.color === 'amber' && 'border-amber-500/40 hover:bg-amber-500/10',
+                      selectedTreatmentCategory !== option.treatment && option.color === 'blue' && 'border-blue-500/40 hover:bg-blue-500/10',
+                      selectedTreatmentCategory !== option.treatment && option.color === 'red' && 'border-red-500/40 hover:bg-red-500/10',
                       'bg-gradient-to-br from-gray-800/60 to-gray-900/40'
                     )}
                   >
@@ -4032,28 +4231,117 @@ function DecisionConsole({
                       <p className="text-2xs text-gray-500">{option.desc}</p>
                       <div className="mt-2 text-2xs text-gray-600 font-mono">[{option.key}]</div>
                     </div>
-                    {option.isTransfer && (
-                      <div className="absolute top-2 right-2 text-2xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-semibold">
-                        NEW
+                    {selectedTreatmentCategory === option.treatment && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle2 className="w-5 h-5 text-white" />
                       </div>
                     )}
                   </button>
                 ))}
               </div>
 
-              {/* Residual Risk Note */}
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">
-                  Residual Risk Note <span className="text-emerald-400">(+50 pts)</span>
-                </label>
-                <textarea
-                  value={residualRiskNote}
-                  onChange={(e) => onResidualRiskChange(e.target.value)}
-                  placeholder="Document residual risk accepted with this treatment (e.g., 'Manual processes introduce 15-min delays; vendor SLA invoked for coverage')..."
-                  className="w-full px-4 py-3 rounded-xl bg-gray-900/60 border border-gray-700/50 text-gray-200 placeholder:text-gray-600 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50"
-                  rows={2}
-                />
-              </div>
+              {/* Step 2: Select Concrete Action (shown when category selected) */}
+              {selectedTreatmentCategory && (
+                <div className="mb-4 p-4 rounded-xl bg-gray-800/50 border border-gray-700/40">
+                  <label className="block text-xs text-gray-400 mb-3">
+                    Select specific action for {selectedTreatmentCategory}:
+                  </label>
+                  <div className="space-y-2">
+                    {TREATMENT_OPTIONS[selectedTreatmentCategory].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => onSelectTreatmentOption(opt.id)}
+                        className={clsx(
+                          'w-full p-3 rounded-lg border text-left transition-all',
+                          selectedTreatmentOption === opt.id
+                            ? 'border-emerald-500 bg-emerald-500/15 ring-1 ring-emerald-500/50'
+                            : 'border-gray-700/50 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-600'
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {selectedTreatmentOption === opt.id ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <CircleDot className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-gray-200">{opt.label}</div>
+                            <div className="text-2xs text-gray-500">{opt.detail}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Structured Residual Risk (no free text) */}
+              {selectedTreatmentCategory && selectedTreatmentOption && (
+                <div className="mb-4 p-4 rounded-xl bg-gray-800/50 border border-gray-700/40">
+                  <label className="block text-xs text-gray-400 mb-3">
+                    Residual Risk Level <span className="text-emerald-400">(+50 pts)</span>
+                  </label>
+                  <div className="space-y-2">
+                    {RESIDUAL_RISK_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => {
+                          onSelectResidualRisk(opt.id);
+                          onResidualRiskChange(opt.rationale);
+                        }}
+                        className={clsx(
+                          'w-full p-3 rounded-lg border text-left transition-all',
+                          selectedResidualRisk === opt.id
+                            ? 'border-emerald-500 bg-emerald-500/15 ring-1 ring-emerald-500/50'
+                            : 'border-gray-700/50 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-600'
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          {selectedResidualRisk === opt.id ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <CircleDot className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-200">{opt.label}</span>
+                              <span className={clsx(
+                                'text-2xs px-1.5 py-0.5 rounded font-semibold',
+                                opt.level === 'LOW' && 'bg-emerald-500/20 text-emerald-400',
+                                opt.level === 'MEDIUM' && 'bg-amber-500/20 text-amber-400',
+                                opt.level === 'HIGH' && 'bg-orange-500/20 text-orange-400',
+                                opt.level === 'CRITICAL' && 'bg-red-500/20 text-red-400',
+                              )}>{opt.level}</span>
+                            </div>
+                            <div className="text-2xs text-gray-500 mt-0.5">{opt.rationale}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Commit Button */}
+              {selectedTreatmentCategory && selectedTreatmentOption && selectedResidualRisk && (
+                <button
+                  onClick={() => {
+                    const postureMap: Record<string, DecisionPosture> = {
+                      ACCEPT: 'CONTINUE',
+                      MITIGATE: 'DEGRADE',
+                      TRANSFER: 'DEGRADE',
+                      AVOID: 'PAUSE',
+                    };
+                    onCommit(postureMap[selectedTreatmentCategory]);
+                  }}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    Commit Decision
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
