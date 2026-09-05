@@ -35,6 +35,17 @@ import {
   Layers,
   Link2,
   Hourglass,
+  Video,
+  Building,
+  Package,
+  Crown,
+  MessageSquare,
+  Paperclip,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Signal,
+  CircleDot,
 } from 'lucide-react';
 import {
   recordDecision,
@@ -43,10 +54,13 @@ import {
   revealInject,
   getRevealedInjects,
   postureToTreatment,
+  INTAKE_CHANNELS,
   type ProtectedAsset,
   type ScenarioESRMConfig,
   type LinkedEntity,
   type EntityType,
+  type IntakeMetadata,
+  type IntakeChannel,
 } from '@gsoc-decision-ops/core';
 import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decision-ops/core';
 import Link from 'next/link';
@@ -1597,6 +1611,45 @@ export default function CommandCenter({ initialLog, esrmConfig }: CommandCenterP
   );
 }
 
+/**
+ * Get icon component for intake channel
+ */
+function getChannelIcon(channel: IntakeChannel): typeof Shield {
+  const iconMap: Record<IntakeChannel, typeof Shield> = {
+    ACS: DoorOpen,
+    VMS: Video,
+    ALARM: AlertTriangle,
+    SIEM: Cpu,
+    OSINT: Brain,
+    TIP: MessageSquare,
+    RADIO: Radio,
+    FACILITIES: Building,
+    VENDOR: Package,
+    EXECUTIVE: Crown,
+    LE: Shield,
+  };
+  return iconMap[channel] || Radio;
+}
+
+/**
+ * Get confidence indicator color and icon
+ */
+function getConfidenceDisplay(confidence: string): {
+  color: string;
+  bgColor: string;
+  label: string;
+} {
+  const displays: Record<string, { color: string; bgColor: string; label: string }> = {
+    VERIFIED: { color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', label: 'Verified' },
+    HIGH: { color: 'text-blue-400', bgColor: 'bg-blue-500/20', label: 'High' },
+    MEDIUM: { color: 'text-amber-400', bgColor: 'bg-amber-500/20', label: 'Med' },
+    LOW: { color: 'text-orange-400', bgColor: 'bg-orange-500/20', label: 'Low' },
+    UNVERIFIED: { color: 'text-red-400', bgColor: 'bg-red-500/20', label: 'Unverified' },
+    CONFLICTING: { color: 'text-purple-400', bgColor: 'bg-purple-500/20', label: 'Conflicting' },
+  };
+  return displays[confidence] || displays.MEDIUM;
+}
+
 function InjectCard({
   inject,
   index,
@@ -1622,6 +1675,7 @@ function InjectCard({
     linkedEntityIds?: string[];
     triagePriority?: string;
     resourcesRequired?: { guards?: number; analysts?: number; responders?: number };
+    intake?: IntakeMetadata;
   };
   const domain = extendedInject.domain;
   const config = domain ? DOMAIN_CONFIG[domain] : null;
@@ -1632,6 +1686,16 @@ function InjectCard({
   const hasResourceRequirement =
     resourcesNeeded &&
     (resourcesNeeded.guards || resourcesNeeded.analysts || resourcesNeeded.responders);
+
+  // Intake channel metadata
+  const intake = extendedInject.intake;
+  const channelConfig = intake?.channel ? INTAKE_CHANNELS[intake.channel] : null;
+  const ChannelIcon = intake?.channel ? getChannelIcon(intake.channel) : Radio;
+  const confidenceDisplay = intake?.confidence ? getConfidenceDisplay(intake.confidence) : null;
+  const hasAttachments = intake?.attachments && intake.attachments.length > 0;
+  const isCorrection = intake?.isCorrection;
+  const isNoise = intake?.isNoise;
+  const isPendingVerification = intake?.pendingVerification;
 
   const getEntityChips = (): LinkedEntity[] | null => {
     if (!linkedEntities || linkedEntityIds.length === 0) return null;
@@ -1649,22 +1713,49 @@ function InjectCard({
         'w-full text-left p-4 rounded-xl border transition-all duration-200',
         !reducedMotion && index === 0 && 'animate-slide-in',
         hasHighlightedEntity && 'ring-2 ring-cyan-500/50',
+        isNoise && !isHandled && 'opacity-70',
         isHandled
           ? 'bg-gray-800/20 border-gray-800/40 opacity-60'
           : isActive
             ? 'bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border-emerald-500/50 ring-2 ring-emerald-500/30'
-            : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60 hover:bg-gray-800/50'
+            : isCorrection
+              ? 'bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/40 hover:border-purple-400/60'
+              : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60 hover:bg-gray-800/50'
       )}
     >
+      {/* Top row: Channel badge and urgency */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          {urgency === 'IMMEDIATE' && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Intake Channel Badge */}
+          {channelConfig && (
+            <span
+              className={clsx(
+                'flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded',
+                channelConfig.bgColor,
+                channelConfig.color
+              )}
+              title={`${channelConfig.name}${intake?.sourceSystem ? ` - ${intake.sourceSystem}` : ''}`}
+            >
+              <ChannelIcon className="w-3 h-3" />
+              {channelConfig.shortName}
+            </span>
+          )}
+          {/* Correction/Update badge */}
+          {isCorrection && (
+            <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
+              <RefreshCw className="w-3 h-3" />
+              UPDATE
+            </span>
+          )}
+          {/* Urgency badge */}
+          {urgency === 'IMMEDIATE' && !isNoise && (
             <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 animate-pulse">
               <AlertCircle className="w-3 h-3" />
               URGENT
             </span>
           )}
-          {config && (
+          {/* Domain badge (only if no channel or for context) */}
+          {config && !channelConfig && (
             <span
               className={clsx(
                 'text-2xs font-semibold px-2 py-0.5 rounded',
@@ -1675,17 +1766,64 @@ function InjectCard({
               {config.label}
             </span>
           )}
-          {hasResourceRequirement && !isHandled && (
-            <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
-              <Users className="w-3 h-3" />
-              {(resourcesNeeded?.guards || 0) +
-                (resourcesNeeded?.analysts || 0) +
-                (resourcesNeeded?.responders || 0)}
+          {/* Noise/Low-priority indicator */}
+          {isNoise && (
+            <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-500">
+              <EyeOff className="w-3 h-3" />
+              Routine
             </span>
           )}
         </div>
-        {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
+        <div className="flex items-center gap-1.5">
+          {/* Confidence indicator */}
+          {confidenceDisplay && !isHandled && (
+            <span
+              className={clsx(
+                'flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded',
+                confidenceDisplay.bgColor,
+                confidenceDisplay.color
+              )}
+              title={`Confidence: ${intake?.confidence}`}
+            >
+              <Signal className="w-2.5 h-2.5" />
+              {confidenceDisplay.label}
+            </span>
+          )}
+          {/* Attachments indicator */}
+          {hasAttachments && !isHandled && (
+            <span
+              className="flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400"
+              title={`${intake?.attachments?.length} attachment(s)`}
+            >
+              <Paperclip className="w-2.5 h-2.5" />
+              {intake?.attachments?.length}
+            </span>
+          )}
+          {/* Pending verification indicator */}
+          {isPendingVerification && !isHandled && (
+            <span
+              className="flex items-center text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400"
+              title="Pending verification"
+            >
+              <Eye className="w-2.5 h-2.5" />
+            </span>
+          )}
+          {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
+        </div>
       </div>
+
+      {/* Resource requirements */}
+      {hasResourceRequirement && !isHandled && (
+        <div className="flex items-center gap-1 mb-2">
+          <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
+            <Users className="w-3 h-3" />
+            Requires:
+            {resourcesNeeded?.guards ? ` ${resourcesNeeded.guards}G` : ''}
+            {resourcesNeeded?.analysts ? ` ${resourcesNeeded.analysts}A` : ''}
+            {resourcesNeeded?.responders ? ` ${resourcesNeeded.responders}R` : ''}
+          </span>
+        </div>
+      )}
 
       <h4
         className={clsx(
@@ -1732,8 +1870,14 @@ function InjectCard({
         </div>
       )}
 
+      {/* Footer: Source system and timestamp */}
       <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
-        <span className="text-2xs text-gray-500">{inject.source}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-2xs text-gray-500">{intake?.sourceSystem || inject.source}</span>
+          {intake?.sourceId && (
+            <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
+          )}
+        </div>
         {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
       </div>
     </button>
@@ -2732,12 +2876,21 @@ function StatCard({
 
 function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
   const [activeSection, setActiveSection] = useState<
-    'overview' | 'cycle' | 'assets' | 'risks' | 'treatments' | 'advisor' | 'response' | 'scoring'
+    | 'overview'
+    | 'cycle'
+    | 'intake'
+    | 'assets'
+    | 'risks'
+    | 'treatments'
+    | 'advisor'
+    | 'response'
+    | 'scoring'
   >('overview');
 
   const sections = [
     { id: 'overview' as const, label: 'Overview', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'cycle' as const, label: 'ESRM Cycle', icon: <Hourglass className="w-4 h-4" /> },
+    { id: 'intake' as const, label: 'Intake Channels', icon: <Radio className="w-4 h-4" /> },
     { id: 'assets' as const, label: 'Assets', icon: <Target className="w-4 h-4" /> },
     { id: 'risks' as const, label: 'Risk Assessment', icon: <AlertTriangle className="w-4 h-4" /> },
     { id: 'treatments' as const, label: 'Treatments', icon: <TrendingUp className="w-4 h-4" /> },
@@ -2932,6 +3085,176 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                 <p className="text-xs text-gray-300">
                   The cycle repeats. Lessons from each response feed back into better context and
                   risk understanding for future incidents.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'intake' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white mb-3">
+                How Data Arrives on the Floor
+              </h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                Injects don&apos;t just &quot;appear&quot; — they arrive through believable{' '}
+                <strong className="text-cyan-400">intake channels</strong> with channel-faithful
+                metadata, urgency, noise, and routing. Understanding your source systems helps you
+                assess confidence and prioritize response.
+              </p>
+
+              <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 mb-4">
+                <h4 className="text-cyan-400 font-semibold mb-2 flex items-center gap-2">
+                  <Radio className="w-4 h-4" />
+                  Real GSOC Floor Operations
+                </h4>
+                <p className="text-sm text-gray-300">
+                  This simulation mirrors how data actually flows into a Global Security Operations
+                  Center. Each channel has distinct characteristics that affect confidence,
+                  completeness, and urgency.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-gray-300">Intake Channels</h4>
+                <div className="grid gap-2">
+                  {[
+                    {
+                      id: 'ACS',
+                      icon: <DoorOpen className="w-4 h-4" />,
+                      name: 'Access Control',
+                      desc: 'Badge denies, forced doors, anti-passback, visitor timeouts',
+                      confidence: 'HIGH',
+                      color: 'cyan',
+                    },
+                    {
+                      id: 'VMS',
+                      icon: <Video className="w-4 h-4" />,
+                      name: 'Video Management',
+                      desc: 'Motion alerts, analytics, camera offline, operator call-ups',
+                      confidence: 'MEDIUM',
+                      color: 'purple',
+                    },
+                    {
+                      id: 'ALARM',
+                      icon: <AlertTriangle className="w-4 h-4" />,
+                      name: 'Alarm & Intrusion',
+                      desc: 'Zone alarms, duress, panic, supervisory signals',
+                      confidence: 'HIGH',
+                      color: 'red',
+                    },
+                    {
+                      id: 'SIEM',
+                      icon: <Cpu className="w-4 h-4" />,
+                      name: 'SIEM / Cyber',
+                      desc: 'Phishing, identity anomalies, endpoint, VPN issues',
+                      confidence: 'MEDIUM',
+                      color: 'orange',
+                    },
+                    {
+                      id: 'OSINT',
+                      icon: <Brain className="w-4 h-4" />,
+                      name: 'OSINT / Intel Desk',
+                      desc: 'Dark web, media, travel advisories, threat intel',
+                      confidence: 'MEDIUM',
+                      color: 'violet',
+                    },
+                    {
+                      id: 'TIP',
+                      icon: <MessageSquare className="w-4 h-4" />,
+                      name: 'Tips & Human Reports',
+                      desc: 'Hotline calls, email reports, employee observations',
+                      confidence: 'LOW',
+                      color: 'blue',
+                    },
+                    {
+                      id: 'RADIO',
+                      icon: <Radio className="w-4 h-4" />,
+                      name: 'Radio / Dispatch',
+                      desc: 'Officer status, ETA, on-scene reports, patrol observations',
+                      confidence: 'HIGH',
+                      color: 'emerald',
+                    },
+                    {
+                      id: 'FACILITIES',
+                      icon: <Building className="w-4 h-4" />,
+                      name: 'Facilities / BMS',
+                      desc: 'Elevator, HVAC, fire supervisory, environmental',
+                      confidence: 'HIGH',
+                      color: 'amber',
+                    },
+                  ].map((channel) => (
+                    <div
+                      key={channel.id}
+                      className={`p-3 rounded-lg bg-${channel.color}-500/10 border border-${channel.color}-500/30`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-${channel.color}-400`}>{channel.icon}</span>
+                        <span className={`text-${channel.color}-400 font-semibold text-sm`}>
+                          {channel.name}
+                        </span>
+                        <span
+                          className={`text-2xs px-1.5 py-0.5 rounded bg-${channel.color}-500/20 text-${channel.color}-300 ml-auto`}
+                        >
+                          {channel.confidence}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">{channel.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="text-sm font-semibold text-gray-300">Inject Metadata</h4>
+                <p className="text-xs text-gray-400 mb-2">
+                  Each inject carries metadata that affects how you should prioritize and respond:
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {
+                      label: 'Confidence',
+                      desc: 'VERIFIED → HIGH → MEDIUM → LOW → UNVERIFIED → CONFLICTING',
+                      icon: <Signal className="w-3 h-3" />,
+                    },
+                    {
+                      label: 'Completeness',
+                      desc: 'COMPLETE → PARTIAL → MINIMAL → FRAGMENT',
+                      icon: <CircleDot className="w-3 h-3" />,
+                    },
+                    {
+                      label: 'Corrections',
+                      desc: 'UPDATE badge indicates new info on prior inject',
+                      icon: <RefreshCw className="w-3 h-3" />,
+                    },
+                    {
+                      label: 'Attachments',
+                      desc: 'Stills, video clips, map pins, documents, logs',
+                      icon: <Paperclip className="w-3 h-3" />,
+                    },
+                  ].map((meta) => (
+                    <div
+                      key={meta.label}
+                      className="p-2 rounded-lg bg-gray-800/50 border border-gray-700/50"
+                    >
+                      <div className="flex items-center gap-1.5 text-gray-300 text-xs font-medium mb-1">
+                        {meta.icon}
+                        {meta.label}
+                      </div>
+                      <p className="text-2xs text-gray-500">{meta.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mt-4">
+                <div className="flex items-center gap-2 text-amber-400 text-sm mb-1">
+                  <EyeOff className="w-4 h-4" />
+                  <strong>Signal vs. Noise</strong>
+                </div>
+                <p className="text-xs text-gray-300">
+                  Not every inject requires action. &quot;Routine&quot; items (maintenance events,
+                  verified deliveries, scheduled activities) appear but should be deprioritized.
+                  Triage discipline means focusing on high-value signals while acknowledging noise.
                 </p>
               </div>
             </div>

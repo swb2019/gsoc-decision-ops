@@ -183,6 +183,72 @@ export interface LinkedEntity {
 }
 
 /**
+ * Intake channel types - how data arrives on the GSOC floor
+ * Each channel has distinct metadata, confidence characteristics, and UX treatment
+ */
+export type IntakeChannel =
+  | 'ACS' // Access Control System - badge denies, forced door, anti-passback
+  | 'VMS' // Video Management System - motion, analytics, operator call-up
+  | 'ALARM' // Alarm/Intrusion - zone alarms, duress, supervisory
+  | 'SIEM' // SIEM/Cyber - phishing, identity, endpoint, VPN anomalies
+  | 'OSINT' // OSINT/Intel desk - media, dark-web, travel advisories
+  | 'TIP' // Tip/hotline/email/chat - incomplete human reports
+  | 'RADIO' // Radio/dispatch/officer mobile - status, ETA, on-scene
+  | 'FACILITIES' // Facilities/BMS/life safety - elevator, fire, HVAC
+  | 'VENDOR' // Vendor notifications and escalations
+  | 'EXECUTIVE' // Executive office / leadership requests
+  | 'LE'; // Law enforcement communications
+
+/**
+ * Confidence level for intake channel data
+ */
+export type IntakeConfidence =
+  'VERIFIED' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNVERIFIED' | 'CONFLICTING';
+
+/**
+ * Completeness level for intake data
+ */
+export type IntakeCompleteness = 'COMPLETE' | 'PARTIAL' | 'MINIMAL' | 'FRAGMENT';
+
+/**
+ * Inject attachment types (simulated)
+ */
+export type AttachmentType =
+  'STILL' | 'VIDEO_CLIP' | 'MAP_PIN' | 'AUDIO' | 'DOCUMENT' | 'LOG_EXCERPT';
+
+/**
+ * Simulated attachment metadata
+ */
+export interface InjectAttachment {
+  type: AttachmentType;
+  label: string;
+  description?: string;
+  timestamp?: string;
+  location?: string;
+}
+
+/**
+ * Channel-specific metadata for realistic intake feel
+ */
+export interface IntakeMetadata {
+  channel: IntakeChannel;
+  sourceSystem?: string; // e.g., "Enterprise ACS", "Enterprise VMS", "Enterprise SIEM"
+  sourceId?: string; // e.g., "ACS-HQ-001", "CAM-LOBBY-12"
+  rawTimestamp?: string; // Original system timestamp
+  receivedTimestamp?: string; // When GSOC received
+  confidence: IntakeConfidence;
+  completeness: IntakeCompleteness;
+  attachments?: InjectAttachment[];
+  relatedInjectIds?: string[]; // For corrections/updates
+  supersedes?: string; // If this inject updates/corrects a prior inject
+  isCorrection?: boolean; // Explicit flag for corrections
+  isNoise?: boolean; // Low-value inject that should be deprioritized
+  noiseReason?: string; // Why this is low-value (for training)
+  requiresFollowUp?: boolean; // Incomplete data needing more info
+  pendingVerification?: boolean; // Awaiting confirmation
+}
+
+/**
  * Scenario inject - new information revealed during exercise
  * Based on tabletop exercise design principles
  */
@@ -204,6 +270,7 @@ export interface ScenarioInject {
     analysts?: number;
     responders?: number;
   };
+  intake?: IntakeMetadata;
 }
 
 /**

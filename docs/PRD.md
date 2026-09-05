@@ -1,18 +1,18 @@
-# Hourglass Command — PRD 1.4 (ESRM Textbook-Faithful)
+# Hourglass Command — PRD 1.5 (Realistic Data Reception)
 
 ---
 
 ## Document Control
 
-| Field              | Value                        |
-| ------------------ | ---------------------------- |
-| **Document ID**    | PRD-HC-1.4                   |
-| **Version**        | 1.4 (ESRM Textbook-Faithful) |
-| **Status**         | Locked                       |
-| **Owner**          | Shannon Brown                |
-| **Approved By**    | Chief of Staff               |
-| **Effective Date** | September 2026               |
-| **Review Cycle**   | On material change only      |
+| Field              | Value                          |
+| ------------------ | ------------------------------ |
+| **Document ID**    | PRD-HC-1.5                     |
+| **Version**        | 1.5 (Realistic Data Reception) |
+| **Status**         | Locked                         |
+| **Owner**          | Shannon Brown                  |
+| **Approved By**    | Chief of Staff                 |
+| **Effective Date** | September 2026                 |
+| **Review Cycle**   | On material change only        |
 
 ### Change History
 
@@ -23,6 +23,7 @@
 | 1.2     | Sep 2026 | Shannon Brown | Max-port amendment: simulation systems, fast-casual tempo, in-game help                   |
 | 1.3     | Sep 2026 | Shannon Brown | Max-depth: all simulation systems implemented, entity linking, playbook phases, Musk algo |
 | 1.4     | Sep 2026 | Shannon Brown | ESRM textbook-faithful: complete cycle playable, all 4 treatments, advisor→owner workflow |
+| 1.5     | Sep 2026 | Shannon Brown | Realistic data reception: 8 intake channels, confidence, noise, corrections, Field Guide  |
 
 ### Distribution
 
@@ -422,6 +423,34 @@ Port **maximum enterprise incident management system functionality** as original
 | **ESRM Cascades**        | Advisor/owner model, residual risk, cascade multipliers            | Asset selection, owner briefing, scoring     | ✅ Done |
 | **Escalation Path**      | ACTIVITY → INCIDENT → INVESTIGATION with score multipliers         | Header indicator, 1.0x → 1.25x → 1.5x        | ✅ Done |
 | **Audit Timeline / AAR** | Chronological decision log, structured debrief, exportable         | Timeline view, grade calculation, MD export  | ✅ Done |
+| **Intake Channels**      | Realistic data reception through 8 channel types                   | Channel badges, confidence, attachments      | ✅ Done |
+
+### Intake Channels (PRD 1.4 — Realistic Data Reception)
+
+**Effective:** September 2026  
+**Approach:** Simulate how GSOC data is received through believable intake channels with channel-faithful metadata, urgency, noise, and routing — while staying a training sim (no live integrations).
+
+| Channel        | System Types                  | Default Confidence | Typical Content                              |
+| -------------- | ----------------------------- | ------------------ | -------------------------------------------- |
+| **ACS**        | Access control, badge readers | HIGH               | Badge denies, forced door, anti-passback     |
+| **VMS**        | Video management, analytics   | MEDIUM             | Motion, analytics alerts, camera offline     |
+| **ALARM**      | Intrusion, duress, panic      | HIGH               | Zone alarms, duress codes, supervisory       |
+| **SIEM**       | Cyber security, UEBA, DLP     | MEDIUM             | Phishing, identity anomalies, endpoint, VPN  |
+| **OSINT**      | Intel desk, threat intel      | MEDIUM             | Dark web, media, travel advisories           |
+| **TIP**        | Hotline, email, chat          | LOW                | Anonymous tips, employee reports, complaints |
+| **RADIO**      | Dispatch, officer mobile      | HIGH               | Status updates, ETA, on-scene reports        |
+| **FACILITIES** | BMS, HVAC, fire, elevator     | HIGH               | Environmental, life safety, building systems |
+
+**Inject metadata includes:**
+
+- **Channel badge** with source system feel (e.g., "Enterprise ACS [RDR-EXEC-FL12]")
+- **Confidence level**: VERIFIED → HIGH → MEDIUM → LOW → UNVERIFIED → CONFLICTING
+- **Completeness**: COMPLETE → PARTIAL → MINIMAL → FRAGMENT
+- **Attachments**: Simulated stills, video clips, map pins, documents, log excerpts
+- **Corrections**: UPDATE badge links to and supersedes prior inject
+- **Noise**: Routine items (scheduled maintenance, verified deliveries) with deprioritization cue
+
+**Training value:** Operators learn source literacy — understanding how channel characteristics affect confidence assessment, triage priority, and verification requirements.
 
 ### Systems NOT Ported (Production Scope)
 
