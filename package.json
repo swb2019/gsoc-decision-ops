@@ -1,0 +1,43 @@
+{
+  "name": "gsoc-decision-ops",
+  "version": "1.0.0",
+  "description": "First-hour operational decision toolkit for corporate GSOC leaders facing vendor or cyber-adjacent disruptions",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspace=packages/core",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build --workspace=packages/core"
+  },
+  "keywords": [
+    "gsoc",
+    "security-operations",
+    "decision-making",
+    "incident-response",
+    "esrm",
+    "vendor-management",
+    "crisis-management"
+  ],
+  "author": "Shannon Brown",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
