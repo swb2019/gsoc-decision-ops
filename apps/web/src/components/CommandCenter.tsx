@@ -1753,9 +1753,14 @@ export default function CommandCenter({
         }
       }
 
-      // Update zone heat and trust from scheduler state
+      // Update zone heat from scheduler state (only if changed to prevent re-renders)
       const schedulerHeat = scheduler.getZoneHeat();
-      setZoneHeatLevels(schedulerHeat);
+      setZoneHeatLevels((prev) => {
+        const hasChanged = Object.keys(schedulerHeat).some(
+          (key) => prev[key] !== schedulerHeat[key]
+        );
+        return hasChanged ? schedulerHeat : prev;
+      });
     } else {
       // Fallback to original time-based reveal (when scheduler not initialized)
       const currentMinute = Math.floor(elapsedSeconds / 60);
