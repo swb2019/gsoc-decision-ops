@@ -619,12 +619,12 @@ function playTTSImmediate(text: string, queueItem?: VOQueueItem): void {
   utterance.volume = voConfig.volume;
   utterance.rate = 1;
   utterance.lang = 'en-US';
-  utterance.onend = () => {
+  utterance.onend = (): void => {
     if (currentUtterance !== utterance) return;
     currentUtterance = null;
     onVOEnded();
   };
-  utterance.onerror = () => {
+  utterance.onerror = (): void => {
     if (currentUtterance !== utterance) return;
     currentUtterance = null;
     handlePlayFailure(queueItem);
