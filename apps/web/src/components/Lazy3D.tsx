@@ -1,6 +1,6 @@
 'use client';
 
-import { lazy, Suspense, useState, useEffect, ComponentType } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, ComponentType } from 'react';
 
 interface Lazy3DWrapperProps<P> {
   component: () => Promise<{ default: ComponentType<P> }>;
@@ -39,6 +39,35 @@ function NoWebGLFallback({ width, height }: { width?: number; height?: number })
   );
 }
 
+function check3DSupport(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  const checkWebGLSupport = (): boolean => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl =
+        canvas.getContext('webgl') ||
+        canvas.getContext('experimental-webgl') ||
+        canvas.getContext('webgl2');
+      return gl !== null;
+    } catch {
+      return false;
+    }
+  };
+
+  const checkReducedMotion = (): boolean => {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  };
+
+  const checkMobilePerformance = (): boolean => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isLowPower = navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 2 : false;
+    return !isMobile || !isLowPower;
+  };
+
+  return checkWebGLSupport() && !checkReducedMotion() && checkMobilePerformance();
+}
+
 export function Lazy3DWrapper<P extends object>({
   component,
   fallback,
@@ -50,45 +79,42 @@ export function Lazy3DWrapper<P extends object>({
   const [LazyComponent, setLazyComponent] = useState<ComponentType<P> | null>(null);
   const [loadError, setLoadError] = useState(false);
 
+  const componentRef = useRef(component);
+  const hasStartedLoading = useRef(false);
+
   useEffect(() => {
+    componentRef.current = component;
+  }, [component]);
+
+  useEffect(() => {
+    let isCancelled = false;
     setIsMounted(true);
 
-    const checkWebGLSupport = (): boolean => {
-      try {
-        const canvas = document.createElement('canvas');
-        const gl =
-          canvas.getContext('webgl') ||
-          canvas.getContext('experimental-webgl') ||
-          canvas.getContext('webgl2');
-        return gl !== null;
-      } catch {
-        return false;
-      }
-    };
-
-    const checkReducedMotion = (): boolean => {
-      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    };
-
-    const checkMobilePerformance = (): boolean => {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const isLowPower = navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 2 : false;
-      return !isMobile || !isLowPower;
-    };
-
-    const supported = checkWebGLSupport() && !checkReducedMotion() && checkMobilePerformance();
+    const supported = check3DSupport();
     setIs3DSupported(supported);
 
-    if (supported) {
-      component()
+    if (supported && !hasStartedLoading.current) {
+      hasStartedLoading.current = true;
+
+      componentRef
+        .current()
         .then((mod) => {
-          setLazyComponent(() => mod.default);
+          if (!isCancelled && mod.default) {
+            setLazyComponent(() => mod.default);
+          }
         })
-        .catch(() => {
-          setLoadError(true);
+        .catch((err) => {
+          if (!isCancelled) {
+            console.warn('[Lazy3DWrapper] Failed to load 3D component:', err);
+            setLoadError(true);
+          }
         });
     }
-  }, [component]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   if (!isMounted) {
     return fallback ? <>{fallback}</> : <DefaultFallback />;
