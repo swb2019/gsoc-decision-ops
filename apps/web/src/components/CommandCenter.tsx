@@ -1104,6 +1104,9 @@ export default function CommandCenter({
   const [reducedMotion, setReducedMotion] = useState(false);
   const [lastInjectTime, setLastInjectTime] = useState(0);
   const [mobileTab, setMobileTab] = useState<MobileTab>('intel');
+  const [copActiveLayers, setCopActiveLayers] = useState(
+    () => new Set(['heat', 'entities', 'injects'])
+  );
   const [showFieldGuide, setShowFieldGuide] = useState(false);
   const [showCoachMarks, setShowCoachMarks] = useState(true);
   const [activeFieldGuideTip, setActiveFieldGuideTip] = useState<string | null>(null);
@@ -3854,6 +3857,8 @@ export default function CommandCenter({
                     : null
                 }
                 reducedMotion={reducedMotion}
+                activeLayers={copActiveLayers}
+                onLayersChange={setCopActiveLayers}
               />
             </div>
 
@@ -4236,6 +4241,8 @@ export default function CommandCenter({
                   }
                   reducedMotion={reducedMotion}
                   compact={true}
+                  activeLayers={copActiveLayers}
+                  onLayersChange={setCopActiveLayers}
                 />
               </div>
 
@@ -5043,8 +5050,8 @@ function DecisionConsole({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto p-6 lg:p-8 space-y-6">
+      <div className="flex-1 overflow-y-auto scroll-smooth">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-4 sm:space-y-6">
           {/* Intel Card */}
           <div
             className={clsx(
@@ -5175,119 +5182,44 @@ function DecisionConsole({
             </div>
           </div>
 
-          {/* ESRM: Advisor → Asset Owner Workflow */}
+          {/* ESRM: Advisor → Asset Owner Workflow - Compact on mobile */}
           {selectedAsset && (
             <div
               className={clsx(
-                'p-5 rounded-2xl border transition-all',
+                'p-3 sm:p-5 rounded-2xl border transition-all',
                 assetOwnerBriefed
                   ? 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/40'
                   : 'bg-gray-800/30 border-gray-700/40'
               )}
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-violet-400" />
-                  <h3 className="font-semibold text-gray-200">2. Advisor → Owner Handoff</h3>
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-200">2. Owner Handoff</h3>
+                  {assetOwnerBriefed && <CheckCircle className="w-4 h-4 text-emerald-400" />}
                 </div>
-                <span className="text-xs text-emerald-400 font-medium">+75 pts</span>
+                <span className="text-2xs sm:text-xs text-emerald-400 font-medium">+75 pts</span>
               </div>
 
-              {/* Owner Info Card */}
-              <div className="p-4 rounded-xl bg-gray-800/40 border border-gray-700/40 mb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-200">{selectedAsset.owner.name}</p>
-                    <p className="text-sm text-gray-400">{selectedAsset.owner.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">{selectedAsset.owner.organization}</p>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={clsx(
-                        'text-xs px-2 py-1 rounded font-semibold',
-                        selectedAsset.owner.riskTolerance === 'LOW'
-                          ? 'bg-red-500/20 text-red-400'
-                          : selectedAsset.owner.riskTolerance === 'HIGH'
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-amber-500/20 text-amber-400'
-                      )}
-                    >
-                      {selectedAsset.owner.riskTolerance} Tolerance
-                    </div>
-                    <p className="text-2xs text-gray-600 mt-1">
-                      {selectedAsset.owner.contactMethod}
-                    </p>
-                  </div>
+              {/* Compact Owner Info + Brief Button */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-200 truncate">{selectedAsset.owner.name}</p>
+                  <p className="text-2xs text-gray-500 truncate">{selectedAsset.owner.title}</p>
                 </div>
-              </div>
-
-              {/* Briefing Workflow Steps */}
-              <div className="space-y-2 mb-4">
-                <div
+                <button
+                  onClick={onToggleBriefed}
                   className={clsx(
-                    'flex items-center gap-3 p-2 rounded-lg transition-all',
-                    assetOwnerBriefed ? 'bg-emerald-500/10' : 'bg-gray-800/30'
+                    'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-shrink-0',
+                    assetOwnerBriefed
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                      : 'bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30'
                   )}
                 >
-                  <div
-                    className={clsx(
-                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                      assetOwnerBriefed
-                        ? 'bg-emerald-500/30 text-emerald-400'
-                        : 'bg-gray-700 text-gray-500'
-                    )}
-                  >
-                    {assetOwnerBriefed ? '✓' : '1'}
-                  </div>
-                  <div className="flex-1">
-                    <span className={assetOwnerBriefed ? 'text-emerald-400' : 'text-gray-400'}>
-                      Communicate risk assessment to owner
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className={clsx(
-                    'flex items-center gap-3 p-2 rounded-lg transition-all',
-                    assetOwnerBriefed ? 'bg-emerald-500/10' : 'bg-gray-800/30'
-                  )}
-                >
-                  <div
-                    className={clsx(
-                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                      assetOwnerBriefed
-                        ? 'bg-emerald-500/30 text-emerald-400'
-                        : 'bg-gray-700 text-gray-500'
-                    )}
-                  >
-                    {assetOwnerBriefed ? '✓' : '2'}
-                  </div>
-                  <div className="flex-1">
-                    <span className={assetOwnerBriefed ? 'text-emerald-400' : 'text-gray-400'}>
-                      Receive owner acknowledgment
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Brief Button */}
-              <button
-                onClick={onToggleBriefed}
-                className={clsx(
-                  'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all',
-                  assetOwnerBriefed
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30'
-                )}
-              >
-                <Phone className="w-5 h-5" />
-                {assetOwnerBriefed ? 'Owner Briefed & Affirmed ✓' : 'Brief Asset Owner Now'}
-              </button>
-
-              {/* ESRM Principle Reminder */}
-              <div className="mt-3 p-2 rounded-lg bg-violet-500/10 border border-violet-500/30">
-                <p className="text-xs text-violet-300 italic text-center">
-                  &ldquo;Security advises; asset owner owns the risk.&rdquo; — ESRM Core Principle
-                </p>
+                  <Phone className="w-4 h-4" />
+                  <span className="hidden sm:inline">{assetOwnerBriefed ? 'Briefed ✓' : 'Brief Owner'}</span>
+                  <span className="sm:hidden">{assetOwnerBriefed ? '✓' : 'Brief'}</span>
+                </button>
               </div>
             </div>
           )}
@@ -5295,44 +5227,12 @@ function DecisionConsole({
           {/* ESRM: Risk Assessment Quick View */}
           {selectedAsset && (
             <div className="p-5 rounded-2xl bg-gray-800/30 border border-gray-700/40">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-                <h3 className="font-semibold text-gray-200">Risk Assessment</h3>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-center">
-                  <div className="text-xs text-cyan-400 font-semibold mb-1">Threat</div>
-                  <div className="text-lg font-bold text-cyan-300">
-                    {(inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE'
-                      ? 'HIGH'
-                      : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'URGENT'
-                        ? 'MEDIUM'
-                        : 'LOW'}
-                  </div>
+              {/* Compact risk summary bar */}
+              <div className="flex items-center justify-between p-2 rounded-lg bg-gray-800/60">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs text-gray-400">Risk Level:</span>
                 </div>
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
-                  <div className="text-xs text-amber-400 font-semibold mb-1">Vulnerability</div>
-                  <div className="text-lg font-bold text-amber-300">
-                    {selectedAsset.criticality === 'CRITICAL'
-                      ? 'HIGH'
-                      : selectedAsset.criticality === 'HIGH'
-                        ? 'MEDIUM'
-                        : 'LOW'}
-                  </div>
-                </div>
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
-                  <div className="text-xs text-red-400 font-semibold mb-1">Impact</div>
-                  <div className="text-lg font-bold text-red-300">
-                    {selectedAsset.criticality === 'CRITICAL'
-                      ? 'MAJOR'
-                      : selectedAsset.criticality === 'HIGH'
-                        ? 'MODERATE'
-                        : 'MINOR'}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 p-2 rounded-lg bg-gray-800/60 flex items-center justify-between">
-                <span className="text-xs text-gray-400">Calculated Risk Level:</span>
                 <span
                   className={clsx(
                     'text-sm font-bold px-2 py-0.5 rounded',
@@ -5354,15 +5254,49 @@ function DecisionConsole({
                       : 'MEDIUM'}
                 </span>
               </div>
+              {/* Detailed breakdown - hidden on mobile */}
+              <div className="hidden sm:grid grid-cols-3 gap-3 mt-3">
+                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-center">
+                  <div className="text-2xs text-cyan-400 font-semibold mb-0.5">Threat</div>
+                  <div className="text-sm font-bold text-cyan-300">
+                    {(inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'IMMEDIATE'
+                      ? 'HIGH'
+                      : (inject as unknown as { urgencyLevel?: string }).urgencyLevel === 'URGENT'
+                        ? 'MEDIUM'
+                        : 'LOW'}
+                  </div>
+                </div>
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+                  <div className="text-2xs text-amber-400 font-semibold mb-0.5">Vulnerability</div>
+                  <div className="text-sm font-bold text-amber-300">
+                    {selectedAsset.criticality === 'CRITICAL'
+                      ? 'HIGH'
+                      : selectedAsset.criticality === 'HIGH'
+                        ? 'MEDIUM'
+                        : 'LOW'}
+                  </div>
+                </div>
+                <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
+                  <div className="text-2xs text-red-400 font-semibold mb-0.5">Impact</div>
+                  <div className="text-sm font-bold text-red-300">
+                    {selectedAsset.criticality === 'CRITICAL'
+                      ? 'MAJOR'
+                      : selectedAsset.criticality === 'HIGH'
+                        ? 'MODERATE'
+                        : 'MINOR'}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* ESRM: Treatment Selection - All 4 Options with Icons */}
           {selectedAsset && (
-            <div className="p-5 rounded-2xl bg-gray-800/30 border border-gray-700/40">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="p-3 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-gray-800/30 border-2 border-emerald-500/30">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-semibold text-gray-200">3. Select Risk Treatment</h3>
+                <span className="text-2xs sm:text-xs text-emerald-400 font-medium ml-auto">Required</span>
               </div>
 
               {/* Step 1: Select Treatment Category with Icons */}
