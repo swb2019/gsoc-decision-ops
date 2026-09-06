@@ -137,21 +137,23 @@ function ZoneMarker({
   );
 }
 
+function COPModelInner(): JSX.Element {
+  const { scene } = useGLTF('/models/cop_markers.glb');
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
+
+  return (
+    <group scale={0.5}>
+      <primitive object={clonedScene} />
+    </group>
+  );
+}
+
 function COPModel(): JSX.Element | null {
-  const modelPath = '/models/cop_markers.glb';
-
-  try {
-    const { scene } = useGLTF(modelPath);
-    const clonedScene = useMemo(() => scene.clone(), [scene]);
-
-    return (
-      <group scale={0.5}>
-        <primitive object={clonedScene} />
-      </group>
-    );
-  } catch {
-    return null;
-  }
+  return (
+    <Suspense fallback={null}>
+      <COPModelInner />
+    </Suspense>
+  );
 }
 
 function GridFloor(): JSX.Element {

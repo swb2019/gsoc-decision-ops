@@ -120,14 +120,9 @@ function FallbackGeometry({
   );
 }
 
-function ChannelModel({
-  channel,
-  isUrgent,
-}: {
-  channel: IntakeChannel;
-  isUrgent?: boolean;
-}): JSX.Element | null {
-  const modelPath = MODEL_PATHS[channel];
+function GLBModel({ modelPath, isUrgent }: { modelPath: string; isUrgent?: boolean }): JSX.Element {
+  const { scene } = useGLTF(modelPath);
+  const clonedScene = useMemo(() => scene.clone(), [scene]);
   const meshRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
@@ -140,24 +135,33 @@ function ChannelModel({
     }
   });
 
+  return (
+    <Float speed={2} rotationIntensity={0.3} floatIntensity={0.2}>
+      <group ref={meshRef} scale={0.5}>
+        <primitive object={clonedScene} />
+      </group>
+    </Float>
+  );
+}
+
+function ChannelModel({
+  channel,
+  isUrgent,
+}: {
+  channel: IntakeChannel;
+  isUrgent?: boolean;
+}): JSX.Element {
+  const modelPath = MODEL_PATHS[channel];
+
   if (!modelPath) {
     return <FallbackGeometry channel={channel} isUrgent={isUrgent} />;
   }
 
-  try {
-    const { scene } = useGLTF(modelPath);
-    const clonedScene = useMemo(() => scene.clone(), [scene]);
-
-    return (
-      <Float speed={2} rotationIntensity={0.3} floatIntensity={0.2}>
-        <group ref={meshRef} scale={0.5}>
-          <primitive object={clonedScene} />
-        </group>
-      </Float>
-    );
-  } catch {
-    return <FallbackGeometry channel={channel} isUrgent={isUrgent} />;
-  }
+  return (
+    <Suspense fallback={<FallbackGeometry channel={channel} isUrgent={isUrgent} />}>
+      <GLBModel modelPath={modelPath} isUrgent={isUrgent} />
+    </Suspense>
+  );
 }
 
 function LoadingFallback(): JSX.Element {

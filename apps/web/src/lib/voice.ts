@@ -24,7 +24,7 @@ export type VOType =
   | 'decision_miss'
   | 'timer_urgent'
   | 'streak_bonus'
-  // Alice (guidance) - tips
+  // Alice (guidance) - tips (all 7)
   | 'tip_intel'
   | 'tip_cop'
   | 'tip_layers'
