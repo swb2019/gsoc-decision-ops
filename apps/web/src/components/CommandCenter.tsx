@@ -86,14 +86,6 @@ const SESSION_STORAGE_KEY = 'hourglass-command-session';
 const PERSONAL_BEST_KEY = 'hourglass-personal-bests';
 const DIFFICULTY_KEY = 'hourglass-difficulty';
 
-// Get basePath for navigation (GitHub Pages compatible)
-const getBasePath = (): string => {
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_BASE_PATH || '';
-  }
-  return '';
-};
-
 /**
  * DIFFICULTY CONFIGURATION
  *
@@ -878,12 +870,14 @@ import {
 import {
   playVO,
   playEventVO,
+  playEventVOOnSelect,
   initVO,
   loadVOConfig,
   setVoiceEnabled,
   setBGMReference,
   skipVO,
 } from '../lib/voice';
+import { getBasePath } from '../lib/base-path';
 import {
   loadFieldGuideConfig,
   saveSeenTip,
@@ -3668,6 +3662,7 @@ export default function CommandCenter({
                         setSelectedTreatmentOption(null);
                         setSelectedResidualRisk(null);
                         setTreatmentBonusGiven(false);
+                        playEventVOOnSelect(inject.title, inject.triagePriority);
                       }
                     }}
                     reducedMotion={reducedMotion}
@@ -3712,6 +3707,7 @@ export default function CommandCenter({
                   setPendingDecision(inject);
                   setSelectedAsset(null);
                   setAssetOwnerBriefed(false);
+                  playEventVOOnSelect(inject.title, inject.triagePriority);
                 }}
                 difficulty={difficulty}
                 onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
@@ -4018,6 +4014,7 @@ export default function CommandCenter({
                           setSelectedResidualRisk(null);
                           setTreatmentBonusGiven(false);
                           setMobileTab('decision');
+                          playEventVOOnSelect(inject.title, inject.triagePriority);
                         }
                       }}
                       reducedMotion={reducedMotion}
@@ -4069,6 +4066,7 @@ export default function CommandCenter({
                     setPendingDecision(inject);
                     setSelectedAsset(null);
                     setAssetOwnerBriefed(false);
+                    playEventVOOnSelect(inject.title, inject.triagePriority);
                   }}
                   difficulty={difficulty}
                   onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
