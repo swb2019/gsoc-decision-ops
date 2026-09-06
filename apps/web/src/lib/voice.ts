@@ -107,12 +107,14 @@ let voConfig: VOConfig = { ...DEFAULT_VO_CONFIG };
 const voAudioElements: Map<VOType, HTMLAudioElement> = new Map();
 let voQueue: VOQueueItem[] = [];
 let currentlyPlaying: VOType | 'event' | null = null;
-let currentEventAudio: HTMLAudioElement | null = null;
 let isVOPlaying = false;
 let voUnlocked = false;
 let pendingUnlockQueue: VOQueueItem[] = [];
 let playAttemptCount = 0;
 const MAX_PLAY_ATTEMPTS = 3;
+
+// Single reusable Audio element for event VO - avoids autoplay-block on fresh Audio()
+let eventAudioElement: HTMLAudioElement | null = null;
 
 // Reference to BGM element for ducking (set externally)
 let bgmElement: HTMLAudioElement | null = null;
@@ -121,11 +123,29 @@ const BGM_DUCK_VOLUME = 0.04;
 const BGM_DUCK_DURATION = 150;
 
 /**
+ * Initialize the reusable event Audio element.
+ * Called during initVO() to create it early.
+ */
+function initEventAudioElement(): void {
+  if (typeof window === 'undefined') return;
+  if (eventAudioElement) return;
+
+  eventAudioElement = new Audio();
+  eventAudioElement.preload = 'auto';
+  eventAudioElement.volume = voConfig.volume;
+
+  eventAudioElement.addEventListener('ended', onVOEnded);
+  eventAudioElement.addEventListener('error', () => {
+    onEventAudioError();
+  });
+}
+
+/**
  * Unlock audio playback after first user gesture.
  * Browsers block autoplay until user interacts with the page.
  * This function:
  * 1. Marks VO as unlocked
- * 2. Plays a silent audio to trigger browser unlock
+ * 2. Warms up ALL audio elements (preloaded + event) with silent play
  * 3. Resets any stuck isVOPlaying state
  * 4. Flushes pending queue items that may have been blocked
  */
@@ -133,23 +153,54 @@ function unlockVO(): void {
   if (voUnlocked) return;
   voUnlocked = true;
 
-  const silentAudio = new Audio();
-  silentAudio.volume = 0;
-  silentAudio
-    .play()
-    .then(() => {
-      silentAudio.pause();
-    })
-    .catch(() => {});
-
   document.removeEventListener('click', unlockVO);
   document.removeEventListener('touchstart', unlockVO);
   document.removeEventListener('keydown', unlockVO);
 
-  if (isVOPlaying && !currentEventAudio && !currentlyPlaying) {
+  // Warm up ALL preloaded audio elements with silent play
+  voAudioElements.forEach((audio) => {
+    const originalVolume = audio.volume;
+    audio.volume = 0;
+    audio
+      .play()
+      .then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = originalVolume;
+      })
+      .catch(() => {
+        audio.volume = originalVolume;
+      });
+  });
+
+  // Warm up the event audio element - this is critical for mobile/Safari
+  if (eventAudioElement) {
+    const originalVolume = eventAudioElement.volume;
+    eventAudioElement.volume = 0;
+    // Use a data URI for silent audio to avoid network request
+    const silentDataUri =
+      'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    eventAudioElement.src = silentDataUri;
+    eventAudioElement
+      .play()
+      .then(() => {
+        eventAudioElement!.pause();
+        eventAudioElement!.currentTime = 0;
+        eventAudioElement!.volume = originalVolume;
+        eventAudioElement!.src = '';
+      })
+      .catch(() => {
+        eventAudioElement!.volume = originalVolume;
+        eventAudioElement!.src = '';
+      });
+  }
+
+  // Reset stuck state
+  if (isVOPlaying && !eventAudioElement?.src && !currentlyPlaying) {
     isVOPlaying = false;
   }
 
+  // Flush pending queue
   if (pendingUnlockQueue.length > 0) {
     voQueue = [...pendingUnlockQueue, ...voQueue];
     pendingUnlockQueue = [];
@@ -160,7 +211,7 @@ function unlockVO(): void {
     if (!isVOPlaying && voQueue.length > 0) {
       processQueue();
     }
-  }, 50);
+  }, 100);
 }
 
 /**
@@ -210,10 +261,9 @@ export function setVoiceEnabled(enabled: boolean): void {
 
   // Stop current playback if disabling
   if (!enabled && currentlyPlaying) {
-    if (currentlyPlaying === 'event' && currentEventAudio) {
-      currentEventAudio.pause();
-      currentEventAudio.currentTime = 0;
-      currentEventAudio = null;
+    if (currentlyPlaying === 'event' && eventAudioElement) {
+      eventAudioElement.pause();
+      eventAudioElement.currentTime = 0;
     } else {
       const audio = voAudioElements.get(currentlyPlaying as VOType);
       if (audio) {
@@ -281,11 +331,28 @@ function restoreBGMVolume(): void {
 function onVOEnded(): void {
   isVOPlaying = false;
   currentlyPlaying = null;
-  currentEventAudio = null;
   playAttemptCount = 0;
   restoreBGMVolume();
 
   setTimeout(processQueue, 100);
+}
+
+// Track current event URL for error handling fallback
+let currentEventUrl: string | null = null;
+let currentEventFallbackUrl: string | null = null;
+
+function onEventAudioError(): void {
+  // Try fallback if available
+  if (currentEventFallbackUrl && currentEventUrl !== currentEventFallbackUrl && eventAudioElement) {
+    currentEventUrl = currentEventFallbackUrl;
+    currentEventFallbackUrl = null;
+    eventAudioElement.src = currentEventUrl;
+    eventAudioElement.play().catch(() => {
+      handlePlayFailure();
+    });
+  } else {
+    handlePlayFailure();
+  }
 }
 
 /**
@@ -294,7 +361,8 @@ function onVOEnded(): void {
 function handlePlayFailure(item?: VOQueueItem): void {
   isVOPlaying = false;
   currentlyPlaying = null;
-  currentEventAudio = null;
+  currentEventUrl = null;
+  currentEventFallbackUrl = null;
   restoreBGMVolume();
 
   if (!voUnlocked && item) {
@@ -315,13 +383,14 @@ function processQueue(): void {
     return;
   }
 
+  // Stuck state recovery - check if audio is actually playing
   if (isVOPlaying && playAttemptCount === 0) {
     const timeout = setTimeout(() => {
-      if (isVOPlaying && !currentEventAudio) {
-        const audioPlaying = currentlyPlaying
-          ? voAudioElements.get(currentlyPlaying as VOType)
-          : null;
-        if (!audioPlaying || audioPlaying.paused) {
+      if (isVOPlaying) {
+        const eventPlaying = eventAudioElement && !eventAudioElement.paused;
+        const cueAudio = currentlyPlaying ? voAudioElements.get(currentlyPlaying as VOType) : null;
+        const cuePlaying = cueAudio && !cueAudio.paused;
+        if (!eventPlaying && !cuePlaying) {
           isVOPlaying = false;
           currentlyPlaying = null;
           processQueue();
@@ -376,6 +445,11 @@ function playVOImmediate(voType: VOType, queueItem?: VOQueueItem): void {
     });
 }
 
+/**
+ * Play event VO using the reusable Audio element.
+ * This avoids autoplay-block issues that occur with fresh new Audio() elements.
+ * The eventAudioElement is warmed up during unlock to ensure it can play.
+ */
 function playEventVOImmediate(
   audioUrl: string,
   fallbackUrl?: string,
@@ -386,45 +460,43 @@ function playEventVOImmediate(
     return;
   }
 
+  // Ensure event audio element exists
+  if (!eventAudioElement) {
+    initEventAudioElement();
+  }
+
+  if (!eventAudioElement) {
+    handlePlayFailure(queueItem);
+    return;
+  }
+
   isVOPlaying = true;
   currentlyPlaying = 'event';
 
+  // Store for error handling fallback
+  currentEventUrl = audioUrl;
+  currentEventFallbackUrl = fallbackUrl || null;
+
   duckBGM();
 
-  const playFallback = (): void => {
-    if (fallbackUrl && audioUrl !== fallbackUrl) {
-      currentEventAudio = new Audio(fallbackUrl);
-      currentEventAudio.volume = voConfig.volume;
-      currentEventAudio.addEventListener('ended', onVOEnded);
-      currentEventAudio.addEventListener('error', () => {
-        handlePlayFailure();
-      });
-      currentEventAudio.play().catch(() => {
-        handlePlayFailure();
-      });
-    } else {
-      handlePlayFailure();
-    }
-  };
+  // Reuse the single element - just change src
+  eventAudioElement.volume = voConfig.volume;
+  eventAudioElement.src = audioUrl;
+  eventAudioElement.currentTime = 0;
 
-  currentEventAudio = new Audio(audioUrl);
-  currentEventAudio.volume = voConfig.volume;
-
-  currentEventAudio.addEventListener('ended', onVOEnded);
-  currentEventAudio.addEventListener('error', () => {
-    playFallback();
-  });
-
-  currentEventAudio.play().catch((err) => {
+  eventAudioElement.play().catch((err) => {
     if (err.name === 'NotAllowedError' && !voUnlocked && queueItem) {
+      // Not unlocked yet - queue for later
       isVOPlaying = false;
       currentlyPlaying = null;
-      currentEventAudio = null;
+      currentEventUrl = null;
+      currentEventFallbackUrl = null;
       restoreBGMVolume();
       pendingUnlockQueue.push(queueItem);
       return;
     }
-    playFallback();
+    // Try fallback
+    onEventAudioError();
   });
 }
 
@@ -527,10 +599,11 @@ export function playEventVOOnSelect(
  * Skip current VO and clear queue
  */
 export function skipVO(): void {
-  if (currentlyPlaying === 'event' && currentEventAudio) {
-    currentEventAudio.pause();
-    currentEventAudio.currentTime = 0;
-    currentEventAudio = null;
+  if (currentlyPlaying === 'event' && eventAudioElement) {
+    eventAudioElement.pause();
+    eventAudioElement.currentTime = 0;
+    currentEventUrl = null;
+    currentEventFallbackUrl = null;
   } else if (currentlyPlaying && currentlyPlaying !== 'event') {
     const audio = voAudioElements.get(currentlyPlaying);
     if (audio) {
@@ -578,6 +651,10 @@ export function initVO(): void {
   document.addEventListener('touchstart', unlockVO);
   document.addEventListener('keydown', unlockVO);
 
+  // Initialize reusable event Audio element early
+  initEventAudioElement();
+
+  // Preload cue VO files
   Object.entries(VO_FILES).forEach(([type, info]) => {
     const audio = new Audio(getAudioUrl(info.path));
     audio.preload = 'auto';
@@ -595,11 +672,20 @@ export function initVO(): void {
  */
 export function cleanupVO(): void {
   skipVO();
+
+  // Clean up cue audio elements
   voAudioElements.forEach((audio) => {
     audio.removeEventListener('ended', onVOEnded);
     audio.removeEventListener('error', onVOEnded);
   });
   voAudioElements.clear();
+
+  // Clean up event audio element
+  if (eventAudioElement) {
+    eventAudioElement.removeEventListener('ended', onVOEnded);
+    eventAudioElement.pause();
+    eventAudioElement = null;
+  }
 }
 
 /**

@@ -2272,14 +2272,12 @@ export default function CommandCenter({
         setScreenFlash('red');
         playSound('escalation');
         urgentFeedback();
-        // Play critical inject VO
-        playVO('inject_critical');
+        // Event VO (with fallback to inject_critical) is played by playEventVO before this
       } else if (urgency === 'URGENT') {
         setScreenFlash('amber');
         playSound('injectArrive');
         tapFeedback();
-        // Play elevated inject VO
-        playVO('inject_elevated');
+        // Event VO (with fallback to inject_elevated) is played by playEventVO before this
       } else {
         playSound('injectArrive');
         tapFeedback();
