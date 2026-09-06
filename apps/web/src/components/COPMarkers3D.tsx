@@ -43,7 +43,10 @@ function HeatPulse({ heat, position }: { heat: number; position: [number, number
     if (meshRef.current) {
       const scale = 0.3 + Math.sin(state.clock.elapsedTime * (2 + intensity * 3)) * 0.1 * intensity;
       meshRef.current.scale.setScalar(scale);
-      meshRef.current.material.opacity = 0.4 + Math.sin(state.clock.elapsedTime * 3) * 0.2 * intensity;
+      const material = meshRef.current.material as THREE.MeshBasicMaterial;
+      if (material && 'opacity' in material) {
+        material.opacity = 0.4 + Math.sin(state.clock.elapsedTime * 3) * 0.2 * intensity;
+      }
     }
   });
 
