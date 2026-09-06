@@ -10127,13 +10127,13 @@ function MicroTaskCard({
   return (
     <div
       className={clsx(
-        'fixed bottom-24 lg:bottom-8 left-4 right-4 lg:left-auto lg:right-8 lg:w-[420px] z-[45]',
+        'fixed bottom-24 lg:bottom-8 left-3 right-3 sm:left-4 sm:right-4 lg:left-auto lg:right-8 lg:w-[420px] z-[45]',
         !reducedMotion && animating && 'animate-microtask-enter'
       )}
     >
       <div
         className={clsx(
-          'p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all max-h-[70vh] overflow-y-auto scrollbar-thin',
+          'p-3 sm:p-4 rounded-2xl border-2 backdrop-blur-xl shadow-xl transition-all max-h-[70vh] overflow-y-auto overflow-x-visible scrollbar-thin',
           hasAnswered
             ? resultColors[result || 'pending']
             : isUrgent
@@ -10305,7 +10305,7 @@ function MicroTaskCard({
                 <div
                   key={optionId}
                   className={clsx(
-                    'flex items-start gap-2 p-2.5 rounded-xl border-2 transition-all',
+                    'grid grid-cols-[auto_minmax(0,1fr)_auto] gap-x-2 gap-y-1 items-start p-2.5 rounded-xl border-2 transition-all overflow-visible',
                     hasAnswered
                       ? isCorrectPosition
                         ? 'border-emerald-500/50 bg-emerald-500/10'
@@ -10315,7 +10315,7 @@ function MicroTaskCard({
                 >
                   <span
                     className={clsx(
-                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0',
+                      'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
                       hasAnswered && isCorrectPosition
                         ? 'bg-emerald-500/30 text-emerald-400'
                         : hasAnswered
@@ -10325,29 +10325,36 @@ function MicroTaskCard({
                   >
                     {index + 1}
                   </span>
-                  <span className="flex-1 min-w-0 text-sm text-gray-200 whitespace-normal break-words leading-snug">
+                  <span className="min-w-0 max-w-full text-sm text-gray-200 whitespace-normal break-words [overflow-wrap:anywhere] overflow-visible leading-snug">
                     {option.text}
                   </span>
-                  {!hasAnswered && (
-                    <div className="flex flex-col gap-0.5 flex-shrink-0">
+                  {!hasAnswered ? (
+                    <div className="flex flex-col gap-0.5 shrink-0 self-start">
                       <button
+                        type="button"
                         onClick={() => moveRankItem(index, 'up')}
                         disabled={index === 0}
-                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                        aria-label="Move up"
                       >
                         <ChevronRight className="w-4 h-4 -rotate-90 text-gray-400" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => moveRankItem(index, 'down')}
                         disabled={index === rankingOrder.length - 1}
-                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                        aria-label="Move down"
                       >
                         <ChevronRight className="w-4 h-4 rotate-90 text-gray-400" />
                       </button>
                     </div>
-                  )}
-                  {hasAnswered && !isCorrectPosition && (
-                    <span className="text-2xs text-amber-400/80">→ #{correctIndex + 1}</span>
+                  ) : hasAnswered && !isCorrectPosition ? (
+                    <span className="text-2xs text-amber-400/80 shrink-0 self-start whitespace-nowrap">
+                      → #{correctIndex + 1}
+                    </span>
+                  ) : (
+                    <span className="w-6 shrink-0" aria-hidden />
                   )}
                 </div>
               );
