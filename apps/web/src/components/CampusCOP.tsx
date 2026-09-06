@@ -87,6 +87,8 @@ interface CampusCOPProps {
   reducedMotion?: boolean;
   className?: string;
   compact?: boolean;
+  activeLayers?: Set<string>;
+  onLayersChange?: (layers: Set<string>) => void;
 }
 
 /**
@@ -249,24 +251,32 @@ export default function CampusCOP({
   reducedMotion = false,
   className = '',
   compact = false,
+  activeLayers: controlledLayers,
+  onLayersChange,
 }: CampusCOPProps): JSX.Element {
-  const [activeLayers, setActiveLayers] = useState<Set<string>>(
+  const [internalLayers, setInternalLayers] = useState<Set<string>>(
     new Set(['heat', 'entities', 'injects'])
   );
+  const activeLayers = controlledLayers ?? internalLayers;
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [expandedFAU, setExpandedFAU] = useState<'facts' | 'assumptions' | 'unknowns' | null>(null);
 
-  const toggleLayer = useCallback((layerId: string) => {
-    setActiveLayers((prev) => {
-      const next = new Set(prev);
+  const toggleLayer = useCallback(
+    (layerId: string) => {
+      const next = new Set(activeLayers);
       if (next.has(layerId)) {
         next.delete(layerId);
       } else {
         next.add(layerId);
       }
-      return next;
-    });
-  }, []);
+      if (onLayersChange) {
+        onLayersChange(next);
+      } else {
+        setInternalLayers(next);
+      }
+    },
+    [activeLayers, onLayersChange]
+  );
 
   const handleZoneClick = useCallback(
     (zoneId: string) => {
@@ -298,14 +308,17 @@ export default function CampusCOP({
       if (!map[zoneId]) map[zoneId] = [];
       const zoneConfig = ZONE_CONFIGS.find((z) => z.id === zoneId);
       if (zoneConfig) {
+        const injectIndex = map[zoneId].length;
+        const offsetX = ((injectIndex % 3) - 1) * 15;
+        const offsetY = Math.floor(injectIndex / 3) * 12 - 6;
         map[zoneId].push({
           injectId: inject.id,
           zoneId,
           title: inject.title,
           urgency: inject.intake?.isNoise ? 'ROUTINE' : inject.triagePriority || 'ROUTINE',
           position: {
-            x: zoneConfig.labelPosition.x + (Math.random() - 0.5) * 40,
-            y: zoneConfig.labelPosition.y + (Math.random() - 0.5) * 20,
+            x: zoneConfig.labelPosition.x + offsetX,
+            y: zoneConfig.labelPosition.y + offsetY,
           },
         });
       }
@@ -509,12 +522,12 @@ export default function CampusCOP({
                             : 'fill-cyan-500/50'
                       )}
                     />
-                    {isHighlighted && (
+                    {isHighlighted && !reducedMotion && (
                       <circle
                         cx={x}
                         cy={y}
-                        r={10}
-                        className="fill-none stroke-cyan-400/50 stroke-1 animate-ping"
+                        r={9}
+                        className="fill-none stroke-cyan-400/40 stroke-[1.5] animate-pulse"
                       />
                     )}
                     <title>{entity.name}</title>
@@ -549,8 +562,8 @@ export default function CampusCOP({
                       <circle
                         cx={overlay.position.x}
                         cy={overlay.position.y}
-                        r={10}
-                        className="fill-none stroke-red-400/60 stroke-1 animate-ping"
+                        r={9}
+                        className="fill-none stroke-red-400/50 stroke-[1.5] animate-pulse"
                       />
                     )}
                     <circle
@@ -653,7 +666,12 @@ function FAUCard({
     red: 'bg-red-500/10 border-red-500/30 text-red-400',
   };
 
-  const label = type.charAt(0).toUpperCase() + type.slice(1);
+  const labelConfig: Record<typeof type, { full: string; short: string }> = {
+    facts: { full: 'Facts', short: 'Facts' },
+    assumptions: { full: 'Assumptions', short: 'Assume' },
+    unknowns: { full: 'Unknowns', short: 'Unkn' },
+  };
+  const { full: fullLabel, short: shortLabel } = labelConfig[type];
   const count = items.length;
   const criticalCount =
     type === 'unknowns'
@@ -664,20 +682,27 @@ function FAUCard({
     <div className={clsx('rounded-lg border overflow-hidden', colorClasses[color])}>
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-2 hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between p-1.5 sm:p-2 hover:bg-white/5 transition-colors min-w-0"
+        title={fullLabel}
       >
-        <div className="flex items-center gap-1.5">
-          <Icon className="w-3.5 h-3.5" />
-          <span className="text-2xs font-semibold uppercase tracking-wider">{label}</span>
+        <div className="flex items-center gap-1 min-w-0">
+          <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+          <span className="text-[9px] sm:text-2xs font-semibold uppercase tracking-wide sm:tracking-wider">
+            {shortLabel}
+          </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-bold font-mono">{count}</span>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className="text-xs sm:text-sm font-bold font-mono">{count}</span>
           {criticalCount > 0 && (
-            <span className="px-1 py-0.5 bg-red-500/30 text-red-300 text-2xs rounded font-bold">
+            <span className="px-0.5 sm:px-1 py-0.5 bg-red-500/30 text-red-300 text-[8px] sm:text-2xs rounded font-bold">
               {criticalCount}!
             </span>
           )}
-          {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          {expanded ? (
+            <ChevronUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          ) : (
+            <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          )}
         </div>
       </button>
       {expanded && items.length > 0 && (
