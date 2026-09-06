@@ -4,6 +4,7 @@ import { Suspense, useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { getBasePath } from '../lib/base-path';
 
 interface ZoneData {
   id: string;
@@ -138,7 +139,8 @@ function ZoneMarker({
 }
 
 function COPModelInner(): JSX.Element {
-  const { scene } = useGLTF('/models/cop_markers.glb');
+  const modelPath = `${getBasePath()}/models/cop_markers.glb`;
+  const { scene } = useGLTF(modelPath);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
 
   return (
@@ -270,4 +272,6 @@ export default function COPMarkers3D({
   );
 }
 
-useGLTF.preload('/models/cop_markers.glb');
+if (typeof window !== 'undefined') {
+  useGLTF.preload(`${getBasePath()}/models/cop_markers.glb`);
+}

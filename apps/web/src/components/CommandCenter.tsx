@@ -75,10 +75,8 @@ import {
   Calculator,
   DollarSign,
   Percent,
-  Thermometer,
   ArrowUp,
   ArrowDown,
-  Hexagon,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -888,6 +886,8 @@ import {
 } from '../lib/field-guide';
 import GuidancePopup, { useGuidance } from './GuidancePopup';
 import type { GuidanceSurface } from '../lib/guidance';
+import { ChannelIcon3DWrapper } from './Lazy3D';
+import CampusCOP from './CampusCOP';
 import {
   ArcScheduler,
   createArcFromLog,
@@ -3822,15 +3822,101 @@ export default function CommandCenter({
               )}
             </div>
 
-            {/* Visual COP Zone Display */}
+            {/* Full Campus COP - Spatial Visualization */}
             <div className="p-4 border-b border-gray-800/50">
-              <COPZoneDisplay
+              <CampusCOP
                 zoneHeatLevels={zoneHeatLevels}
-                overallResidualRisk={overallResidualRisk}
-                stakeholderTrust={stakeholderTrust}
+                linkedEntities={log.linkedEntities}
+                revealedInjects={getRevealedInjects(log)}
+                facts={log.facts}
+                assumptions={log.assumptions}
+                unknowns={log.unknowns}
+                highlightedEntityId={highlightedEntityId}
+                onEntityClick={(entityId) => {
+                  setHighlightedEntityId(entityId);
+                  setShowEntityPanel(true);
+                }}
+                onInjectClick={(injectId) => {
+                  const inject = log.injects.find((i) => i.id === injectId);
+                  if (inject && !processedInjectsRef.current.has(injectId)) {
+                    setPendingDecision(inject);
+                  }
+                }}
+                consequenceAnimation={
+                  consequenceAnimation
+                    ? {
+                        ...consequenceAnimation,
+                        zoneChanges: Object.entries(zoneHeatLevels).map(([zone]) => ({
+                          zone,
+                          delta: 0,
+                        })),
+                      }
+                    : null
+                }
                 reducedMotion={reducedMotion}
-                animating={!!consequenceAnimation?.active}
               />
+            </div>
+
+            {/* Trust & Residual Risk Summary */}
+            <div className="p-4 border-b border-gray-800/50">
+              <div className="grid grid-cols-2 gap-2">
+                <div
+                  className={clsx(
+                    'p-2.5 rounded-xl border transition-all duration-300',
+                    stakeholderTrust >= 70
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : stakeholderTrust >= 40
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-red-500/10 border-red-500/30',
+                    consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Users
+                      className={clsx(
+                        'w-3 h-3',
+                        stakeholderTrust >= 70
+                          ? 'text-emerald-400'
+                          : stakeholderTrust >= 40
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                      )}
+                    />
+                    <span className="text-2xs text-gray-400">Trust</span>
+                  </div>
+                  <div
+                    className={clsx(
+                      'text-lg font-bold font-mono',
+                      stakeholderTrust >= 70
+                        ? 'text-emerald-400'
+                        : stakeholderTrust >= 40
+                          ? 'text-amber-400'
+                          : 'text-red-400'
+                    )}
+                  >
+                    {stakeholderTrust}%
+                  </div>
+                </div>
+                <div
+                  className={clsx(
+                    'p-2.5 rounded-xl border transition-all duration-300',
+                    overallResidualRisk === 'LOW'
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : overallResidualRisk === 'MEDIUM'
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                        : overallResidualRisk === 'HIGH'
+                          ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                          : 'bg-red-500/20 text-red-400 border-red-500/40',
+                    consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Shield className="w-3 h-3" />
+                    <span className="text-2xs text-gray-400">Residual</span>
+                  </div>
+                  <div className="text-sm font-bold">{overallResidualRisk}</div>
+                </div>
+              </div>
             </div>
 
             {/* Dispatch Pressure with Resource Chips */}
@@ -4116,15 +4202,103 @@ export default function CommandCenter({
                 </div>
               </div>
 
-              {/* Visual COP Zone Display - Mobile */}
+              {/* Full Campus COP - Mobile */}
               <div className="p-4 border-b border-gray-800/50">
-                <COPZoneDisplay
+                <CampusCOP
                   zoneHeatLevels={zoneHeatLevels}
-                  overallResidualRisk={overallResidualRisk}
-                  stakeholderTrust={stakeholderTrust}
+                  linkedEntities={log.linkedEntities}
+                  revealedInjects={getRevealedInjects(log)}
+                  facts={log.facts}
+                  assumptions={log.assumptions}
+                  unknowns={log.unknowns}
+                  highlightedEntityId={highlightedEntityId}
+                  onEntityClick={(entityId) => {
+                    setHighlightedEntityId(entityId);
+                    setShowEntityPanel(true);
+                  }}
+                  onInjectClick={(injectId) => {
+                    const inject = log.injects.find((i) => i.id === injectId);
+                    if (inject && !processedInjectsRef.current.has(injectId)) {
+                      setPendingDecision(inject);
+                      setMobileTab('decision');
+                    }
+                  }}
+                  consequenceAnimation={
+                    consequenceAnimation
+                      ? {
+                          ...consequenceAnimation,
+                          zoneChanges: Object.entries(zoneHeatLevels).map(([zone]) => ({
+                            zone,
+                            delta: 0,
+                          })),
+                        }
+                      : null
+                  }
                   reducedMotion={reducedMotion}
-                  animating={!!consequenceAnimation?.active}
+                  compact={true}
                 />
+              </div>
+
+              {/* Trust & Residual Risk - Mobile */}
+              <div className="p-4 border-b border-gray-800/50">
+                <div className="grid grid-cols-2 gap-2">
+                  <div
+                    className={clsx(
+                      'p-2.5 rounded-xl border transition-all duration-300',
+                      stakeholderTrust >= 70
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : stakeholderTrust >= 40
+                          ? 'bg-amber-500/10 border-amber-500/30'
+                          : 'bg-red-500/10 border-red-500/30',
+                      consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Users
+                        className={clsx(
+                          'w-3 h-3',
+                          stakeholderTrust >= 70
+                            ? 'text-emerald-400'
+                            : stakeholderTrust >= 40
+                              ? 'text-amber-400'
+                              : 'text-red-400'
+                        )}
+                      />
+                      <span className="text-2xs text-gray-400">Trust</span>
+                    </div>
+                    <div
+                      className={clsx(
+                        'text-lg font-bold font-mono',
+                        stakeholderTrust >= 70
+                          ? 'text-emerald-400'
+                          : stakeholderTrust >= 40
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                      )}
+                    >
+                      {stakeholderTrust}%
+                    </div>
+                  </div>
+                  <div
+                    className={clsx(
+                      'p-2.5 rounded-xl border transition-all duration-300',
+                      overallResidualRisk === 'LOW'
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                        : overallResidualRisk === 'MEDIUM'
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          : overallResidualRisk === 'HIGH'
+                            ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                            : 'bg-red-500/20 text-red-400 border-red-500/40',
+                      consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Shield className="w-3 h-3" />
+                      <span className="text-2xs text-gray-400">Residual</span>
+                    </div>
+                    <div className="text-sm font-bold">{overallResidualRisk}</div>
+                  </div>
+                </div>
               </div>
 
               {/* Assets */}
@@ -4601,162 +4775,191 @@ function InjectCard({
               : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60 hover:bg-gray-800/50'
       )}
     >
-      {/* Top row: Channel badge and urgency */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Intake Channel Badge */}
-          {channelConfig && (
-            <span
-              className={clsx(
-                'flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded',
-                channelConfig.bgColor,
-                channelConfig.color
-              )}
-              title={`${channelConfig.name}${intake?.sourceSystem ? ` - ${intake.sourceSystem}` : ''}`}
-            >
-              <ChannelIcon className="w-3 h-3" />
-              {channelConfig.shortName}
-            </span>
-          )}
-          {/* Correction/Update badge */}
-          {isCorrection && (
-            <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
-              <RefreshCw className="w-3 h-3" />
-              UPDATE
-            </span>
-          )}
-          {/* Urgency badge */}
-          {urgency === 'IMMEDIATE' && !isNoise && (
-            <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 animate-pulse">
-              <AlertCircle className="w-3 h-3" />
-              URGENT
-            </span>
-          )}
-          {/* Domain badge (only if no channel or for context) */}
-          {config && !channelConfig && (
-            <span
-              className={clsx(
-                'text-2xs font-semibold px-2 py-0.5 rounded',
-                config.bgColor,
-                config.color
-              )}
-            >
-              {config.label}
-            </span>
-          )}
-          {/* Noise/Low-priority indicator */}
-          {isNoise && (
-            <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-500">
-              <EyeOff className="w-3 h-3" />
-              Routine
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {/* Confidence indicator */}
-          {confidenceDisplay && !isHandled && (
-            <span
-              className={clsx(
-                'flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded',
-                confidenceDisplay.bgColor,
-                confidenceDisplay.color
-              )}
-              title={`Confidence: ${intake?.confidence}`}
-            >
-              <Signal className="w-2.5 h-2.5" />
-              {confidenceDisplay.label}
-            </span>
-          )}
-          {/* Attachments indicator */}
-          {hasAttachments && !isHandled && (
-            <span
-              className="flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400"
-              title={`${intake?.attachments?.length} attachment(s)`}
-            >
-              <Paperclip className="w-2.5 h-2.5" />
-              {intake?.attachments?.length}
-            </span>
-          )}
-          {/* Pending verification indicator */}
-          {isPendingVerification && !isHandled && (
-            <span
-              className="flex items-center text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400"
-              title="Pending verification"
-            >
-              <Eye className="w-2.5 h-2.5" />
-            </span>
-          )}
-          {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
-        </div>
-      </div>
-
-      {/* Resource requirements */}
-      {hasResourceRequirement && !isHandled && (
-        <div className="flex items-center gap-1 mb-2">
-          <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
-            <Users className="w-3 h-3" />
-            Requires:
-            {resourcesNeeded?.guards ? ` ${resourcesNeeded.guards}G` : ''}
-            {resourcesNeeded?.analysts ? ` ${resourcesNeeded.analysts}A` : ''}
-            {resourcesNeeded?.responders ? ` ${resourcesNeeded.responders}R` : ''}
-          </span>
-        </div>
-      )}
-
-      <h4
-        className={clsx(
-          'text-sm font-semibold mb-1.5',
-          isHandled ? 'text-gray-500' : 'text-gray-200'
+      <div className="flex gap-3">
+        {/* 3D Channel Icon - only show for non-handled, non-noise injects with valid channel */}
+        {intake?.channel && !isHandled && !isNoise && (
+          <div className="flex-shrink-0">
+            <ChannelIcon3DWrapper
+              channel={
+                intake.channel as
+                  | 'ACS'
+                  | 'VMS'
+                  | 'ALARM'
+                  | 'SIEM'
+                  | 'OSINT'
+                  | 'TIP'
+                  | 'RADIO'
+                  | 'FACILITIES'
+                  | 'VENDOR'
+                  | 'EXECUTIVE'
+                  | 'LE'
+              }
+              size={40}
+              isUrgent={urgency === 'IMMEDIATE'}
+            />
+          </div>
         )}
-      >
-        {inject.title}
-      </h4>
+        <div className="flex-1 min-w-0">
+          {/* Top row: Channel badge and urgency */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Intake Channel Badge */}
+              {channelConfig && (
+                <span
+                  className={clsx(
+                    'flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded',
+                    channelConfig.bgColor,
+                    channelConfig.color
+                  )}
+                  title={`${channelConfig.name}${intake?.sourceSystem ? ` - ${intake.sourceSystem}` : ''}`}
+                >
+                  <ChannelIcon className="w-3 h-3" />
+                  {channelConfig.shortName}
+                </span>
+              )}
+              {/* Correction/Update badge */}
+              {isCorrection && (
+                <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
+                  <RefreshCw className="w-3 h-3" />
+                  UPDATE
+                </span>
+              )}
+              {/* Urgency badge */}
+              {urgency === 'IMMEDIATE' && !isNoise && (
+                <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 animate-pulse">
+                  <AlertCircle className="w-3 h-3" />
+                  URGENT
+                </span>
+              )}
+              {/* Domain badge (only if no channel or for context) */}
+              {config && !channelConfig && (
+                <span
+                  className={clsx(
+                    'text-2xs font-semibold px-2 py-0.5 rounded',
+                    config.bgColor,
+                    config.color
+                  )}
+                >
+                  {config.label}
+                </span>
+              )}
+              {/* Noise/Low-priority indicator */}
+              {isNoise && (
+                <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-500">
+                  <EyeOff className="w-3 h-3" />
+                  Routine
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {/* Confidence indicator */}
+              {confidenceDisplay && !isHandled && (
+                <span
+                  className={clsx(
+                    'flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded',
+                    confidenceDisplay.bgColor,
+                    confidenceDisplay.color
+                  )}
+                  title={`Confidence: ${intake?.confidence}`}
+                >
+                  <Signal className="w-2.5 h-2.5" />
+                  {confidenceDisplay.label}
+                </span>
+              )}
+              {/* Attachments indicator */}
+              {hasAttachments && !isHandled && (
+                <span
+                  className="flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400"
+                  title={`${intake?.attachments?.length} attachment(s)`}
+                >
+                  <Paperclip className="w-2.5 h-2.5" />
+                  {intake?.attachments?.length}
+                </span>
+              )}
+              {/* Pending verification indicator */}
+              {isPendingVerification && !isHandled && (
+                <span
+                  className="flex items-center text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400"
+                  title="Pending verification"
+                >
+                  <Eye className="w-2.5 h-2.5" />
+                </span>
+              )}
+              {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
+            </div>
+          </div>
 
-      <p
-        className={clsx(
-          'text-xs leading-relaxed line-clamp-2',
-          isHandled ? 'text-gray-600' : 'text-gray-400'
-        )}
-      >
-        {inject.content}
-      </p>
-
-      {/* Entity chips */}
-      {entityChips && entityChips.length > 0 && !isHandled && (
-        <div className="flex items-center gap-1 mt-2 flex-wrap">
-          <Link2 className="w-3 h-3 text-cyan-500/60" />
-          {entityChips.map((entity) => {
-            const eConfig = ENTITY_TYPE_CONFIG[entity.type];
-            const isHighlighted = highlightedEntityId === entity.id;
-            return (
-              <span
-                key={entity.id}
-                className={clsx(
-                  'text-2xs px-1.5 py-0.5 rounded transition-all',
-                  isHighlighted
-                    ? 'bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50'
-                    : `${eConfig.bgColor} ${eConfig.color}`
-                )}
-              >
-                {entity.shortName || entity.name}
+          {/* Resource requirements */}
+          {hasResourceRequirement && !isHandled && (
+            <div className="flex items-center gap-1 mb-2">
+              <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
+                <Users className="w-3 h-3" />
+                Requires:
+                {resourcesNeeded?.guards ? ` ${resourcesNeeded.guards}G` : ''}
+                {resourcesNeeded?.analysts ? ` ${resourcesNeeded.analysts}A` : ''}
+                {resourcesNeeded?.responders ? ` ${resourcesNeeded.responders}R` : ''}
               </span>
-            );
-          })}
-          {linkedEntityIds.length > 3 && (
-            <span className="text-2xs text-gray-500">+{linkedEntityIds.length - 3}</span>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Footer: Source system and timestamp */}
-      <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
-        <div className="flex items-center gap-2">
-          <span className="text-2xs text-gray-500">{intake?.sourceSystem || inject.source}</span>
-          {intake?.sourceId && (
-            <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
+          <h4
+            className={clsx(
+              'text-sm font-semibold mb-1.5',
+              isHandled ? 'text-gray-500' : 'text-gray-200'
+            )}
+          >
+            {inject.title}
+          </h4>
+
+          <p
+            className={clsx(
+              'text-xs leading-relaxed line-clamp-2',
+              isHandled ? 'text-gray-600' : 'text-gray-400'
+            )}
+          >
+            {inject.content}
+          </p>
+
+          {/* Entity chips */}
+          {entityChips && entityChips.length > 0 && !isHandled && (
+            <div className="flex items-center gap-1 mt-2 flex-wrap">
+              <Link2 className="w-3 h-3 text-cyan-500/60" />
+              {entityChips.map((entity) => {
+                const eConfig = ENTITY_TYPE_CONFIG[entity.type];
+                const isHighlighted = highlightedEntityId === entity.id;
+                return (
+                  <span
+                    key={entity.id}
+                    className={clsx(
+                      'text-2xs px-1.5 py-0.5 rounded transition-all',
+                      isHighlighted
+                        ? 'bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50'
+                        : `${eConfig.bgColor} ${eConfig.color}`
+                    )}
+                  >
+                    {entity.shortName || entity.name}
+                  </span>
+                );
+              })}
+              {linkedEntityIds.length > 3 && (
+                <span className="text-2xs text-gray-500">+{linkedEntityIds.length - 3}</span>
+              )}
+            </div>
           )}
+
+          {/* Footer: Source system and timestamp */}
+          <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
+            <div className="flex items-center gap-2">
+              <span className="text-2xs text-gray-500">
+                {intake?.sourceSystem || inject.source}
+              </span>
+              {intake?.sourceId && (
+                <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
+              )}
+            </div>
+            {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
+          </div>
         </div>
-        {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
       </div>
     </button>
   );
@@ -5776,140 +5979,6 @@ function ConsequenceTheatreOverlay({
             </span>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * COP Zone Display - Visual layered view of operational zones
- */
-function COPZoneDisplay({
-  zoneHeatLevels,
-  overallResidualRisk,
-  stakeholderTrust,
-  reducedMotion,
-  animating,
-}: {
-  zoneHeatLevels: Record<string, number>;
-  overallResidualRisk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  stakeholderTrust: number;
-  reducedMotion: boolean;
-  animating: boolean;
-}): JSX.Element {
-  const getHeatColor = (level: number): string => {
-    if (level < 25) return 'bg-emerald-500/30 border-emerald-500/50';
-    if (level < 50) return 'bg-amber-500/30 border-amber-500/50';
-    if (level < 75) return 'bg-orange-500/30 border-orange-500/50';
-    return 'bg-red-500/30 border-red-500/50';
-  };
-
-  const getHeatTextColor = (level: number): string => {
-    if (level < 25) return 'text-emerald-400';
-    if (level < 50) return 'text-amber-400';
-    if (level < 75) return 'text-orange-400';
-    return 'text-red-400';
-  };
-
-  const residualColors: Record<string, string> = {
-    LOW: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-    MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-    HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
-    CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/40',
-  };
-
-  const trustColor =
-    stakeholderTrust >= 70
-      ? 'text-emerald-400'
-      : stakeholderTrust >= 40
-        ? 'text-amber-400'
-        : 'text-red-400';
-
-  return (
-    <div className="space-y-3">
-      {/* Zone Heat Map */}
-      <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-700/40">
-        <div className="flex items-center gap-2 mb-3">
-          <Thermometer className="w-4 h-4 text-orange-400" />
-          <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-            Zone Heat
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.entries(zoneHeatLevels).map(([zone, level]) => (
-            <div
-              key={zone}
-              className={clsx(
-                'p-2 rounded-lg border relative overflow-hidden transition-all duration-500',
-                getHeatColor(level),
-                animating && !reducedMotion && 'scale-[1.02]'
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Hexagon className={clsx('w-3 h-3', getHeatTextColor(level))} />
-                  <span className="text-2xs font-medium text-gray-300 capitalize">{zone}</span>
-                </div>
-                <span className={clsx('text-xs font-bold font-mono', getHeatTextColor(level))}>
-                  {level}%
-                </span>
-              </div>
-              {/* Heat bar */}
-              <div className="mt-1.5 h-1 bg-gray-700/50 rounded-full overflow-hidden">
-                <div
-                  className={clsx(
-                    'h-full rounded-full transition-all duration-500',
-                    level < 25
-                      ? 'bg-emerald-400'
-                      : level < 50
-                        ? 'bg-amber-400'
-                        : level < 75
-                          ? 'bg-orange-400'
-                          : 'bg-red-400'
-                  )}
-                  style={{ width: `${level}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Trust & Residual Risk Chips */}
-      <div className="grid grid-cols-2 gap-2">
-        {/* Stakeholder Trust */}
-        <div
-          className={clsx(
-            'p-2.5 rounded-xl border transition-all duration-300',
-            stakeholderTrust >= 70
-              ? 'bg-emerald-500/10 border-emerald-500/30'
-              : stakeholderTrust >= 40
-                ? 'bg-amber-500/10 border-amber-500/30'
-                : 'bg-red-500/10 border-red-500/30',
-            animating && !reducedMotion && 'scale-105'
-          )}
-        >
-          <div className="flex items-center gap-1.5 mb-1">
-            <Users className={clsx('w-3 h-3', trustColor)} />
-            <span className="text-2xs text-gray-400">Trust</span>
-          </div>
-          <div className={clsx('text-lg font-bold font-mono', trustColor)}>{stakeholderTrust}%</div>
-        </div>
-
-        {/* Overall Residual Risk */}
-        <div
-          className={clsx(
-            'p-2.5 rounded-xl border transition-all duration-300',
-            residualColors[overallResidualRisk],
-            animating && !reducedMotion && 'scale-105'
-          )}
-        >
-          <div className="flex items-center gap-1.5 mb-1">
-            <Shield className="w-3 h-3" />
-            <span className="text-2xs text-gray-400">Residual</span>
-          </div>
-          <div className="text-sm font-bold">{overallResidualRisk}</div>
-        </div>
       </div>
     </div>
   );

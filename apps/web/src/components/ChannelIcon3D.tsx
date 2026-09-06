@@ -4,6 +4,7 @@ import { Suspense, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Float, MeshDistortMaterial } from '@react-three/drei';
 import * as THREE from 'three';
+import { getBasePath } from '../lib/base-path';
 
 type IntakeChannel =
   | 'ACS'
@@ -56,7 +57,7 @@ const CHANNEL_GEOMETRIES: Record<
   LE: 'box',
 };
 
-const MODEL_PATHS: Partial<Record<IntakeChannel, string>> = {
+const MODEL_RELATIVE_PATHS: Partial<Record<IntakeChannel, string>> = {
   VMS: '/models/channel_vms.glb',
   ALARM: '/models/channel_alarm.glb',
   ACS: '/models/channel_acs.glb',
@@ -65,6 +66,12 @@ const MODEL_PATHS: Partial<Record<IntakeChannel, string>> = {
   RADIO: '/models/channel_radio.glb',
   TIP: '/models/channel_tip.glb',
 };
+
+function getModelPath(channel: IntakeChannel): string | null {
+  const relativePath = MODEL_RELATIVE_PATHS[channel];
+  if (!relativePath) return null;
+  return `${getBasePath()}${relativePath}`;
+}
 
 function FallbackGeometry({
   channel,
@@ -151,7 +158,7 @@ function ChannelModel({
   channel: IntakeChannel;
   isUrgent?: boolean;
 }): JSX.Element {
-  const modelPath = MODEL_PATHS[channel];
+  const modelPath = getModelPath(channel);
 
   if (!modelPath) {
     return <FallbackGeometry channel={channel} isUrgent={isUrgent} />;
@@ -212,8 +219,11 @@ export default function ChannelIcon3D({
   );
 }
 
-Object.values(MODEL_PATHS).forEach((path) => {
-  if (path) {
-    useGLTF.preload(path);
-  }
-});
+if (typeof window !== 'undefined') {
+  const basePath = getBasePath();
+  Object.values(MODEL_RELATIVE_PATHS).forEach((path) => {
+    if (path) {
+      useGLTF.preload(`${basePath}${path}`);
+    }
+  });
+}
