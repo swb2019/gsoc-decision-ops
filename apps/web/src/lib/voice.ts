@@ -553,7 +553,7 @@ export function getEventVOUrl(title: string): string {
  * Play event voice-over for an inject.
  * Looks up event-specific VO file by slugified title.
  * Falls back to inject_critical/inject_elevated if file not found.
- * 
+ *
  * Each inject is spoken at most once per session (tracked by slug).
  * Re-opening an already-spoken inject is silent.
  *
@@ -599,7 +599,7 @@ export function playEventVO(
 /**
  * Play event voice-over for an Intel Feed item when user clicks/selects it.
  * Higher priority than reveal-triggered VO to ensure immediate feedback.
- * 
+ *
  * Each inject is spoken at most once per session. If already spoken,
  * this is a silent no-op (user can still see the item, just no re-read).
  *
