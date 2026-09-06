@@ -1,0 +1,180 @@
+{
+  "voices": {
+    "ops": {
+      "name": "Daniel",
+      "id": "onwK4e9ZLuTAKqWW03F9"
+    },
+    "guidance": {
+      "name": "Alice",
+      "id": "Xb7hH8MSUJpSbSDYk0k2"
+    },
+    "dispatch": {
+      "name": "River",
+      "id": "SAz9YHcvj6GT2YYXdXww"
+    }
+  },
+  "lines": [
+    {
+      "id": "inject_critical",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "Critical inject. Priority channel. Review posture now.",
+      "file": "inject_critical.ogg",
+      "bytes": 45952
+    },
+    {
+      "id": "inject_elevated",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "Elevated activity on your feed. Triage and decide.",
+      "file": "inject_elevated.ogg",
+      "bytes": 47118
+    },
+    {
+      "id": "decision_prompt",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "Decision window open. Continue, degrade, or pause.",
+      "file": "decision_prompt.ogg",
+      "bytes": 50360
+    },
+    {
+      "id": "decision_correct",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "Sound call. Consequence cascade is favorable.",
+      "file": "decision_correct.ogg",
+      "bytes": 37179
+    },
+    {
+      "id": "decision_miss",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "That posture missed the risk. Adjust and recover.",
+      "file": "decision_miss.ogg",
+      "bytes": 44595
+    },
+    {
+      "id": "timer_urgent",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "Timer critical. Commit a posture.",
+      "file": "timer_urgent.ogg",
+      "bytes": 31309
+    },
+    {
+      "id": "streak_bonus",
+      "role": "ops",
+      "voice": "Daniel",
+      "voice_id": "onwK4e9ZLuTAKqWW03F9",
+      "text": "Streak bonus. Maintain tempo and clarity.",
+      "file": "streak_bonus.ogg",
+      "bytes": 40797
+    },
+    {
+      "id": "tip_intel",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "Check the Intel Feed. New injects land here first.",
+      "file": "tip_intel.ogg",
+      "bytes": 38675
+    },
+    {
+      "id": "tip_cop",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "Open the COP. Watch zone heat and camera coverage.",
+      "file": "tip_cop.ogg",
+      "bytes": 37372
+    },
+    {
+      "id": "tip_layers",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "Use Layers to isolate what matters on the map.",
+      "file": "tip_layers.ogg",
+      "bytes": 33682
+    },
+    {
+      "id": "tip_tactical",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "Tactical actions spend limited resources. Deploy with intent.",
+      "file": "tip_tactical.ogg",
+      "bytes": 48005
+    },
+    {
+      "id": "tip_team",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "Check Team and Stakeholders when trust or capacity shifts.",
+      "file": "tip_team.ogg",
+      "bytes": 44427
+    },
+    {
+      "id": "tip_kri",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "KRIs show value created and risk left on the table.",
+      "file": "tip_kri.ogg",
+      "bytes": 41657
+    },
+    {
+      "id": "tip_guide",
+      "role": "guidance",
+      "voice": "Alice",
+      "voice_id": "Xb7hH8MSUJpSbSDYk0k2",
+      "text": "Field Guide is always available if you need a refresher.",
+      "file": "tip_guide.ogg",
+      "bytes": 38016
+    },
+    {
+      "id": "scenario_start",
+      "role": "dispatch",
+      "voice": "River",
+      "voice_id": "SAz9YHcvj6GT2YYXdXww",
+      "text": "Hourglass Command online. First hour begins. Stay sharp.",
+      "file": "scenario_start.ogg",
+      "bytes": 44918
+    },
+    {
+      "id": "pause_save",
+      "role": "dispatch",
+      "voice": "River",
+      "voice_id": "SAz9YHcvj6GT2YYXdXww",
+      "text": "Session paused and saved. Resume when ready.",
+      "file": "pause_save.ogg",
+      "bytes": 35208
+    },
+    {
+      "id": "aar_ready",
+      "role": "dispatch",
+      "voice": "River",
+      "voice_id": "SAz9YHcvj6GT2YYXdXww",
+      "text": "After-action ready. Export when you want the portfolio artifact.",
+      "file": "aar_ready.ogg",
+      "bytes": 43702
+    },
+    {
+      "id": "music_hint",
+      "role": "dispatch",
+      "voice": "River",
+      "voice_id": "SAz9YHcvj6GT2YYXdXww",
+      "text": "Ambient audio available. Toggle music and effects anytime.",
+      "file": "music_hint.ogg",
+      "bytes": 41705
+    }
+  ]
+}
