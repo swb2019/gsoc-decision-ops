@@ -1,14 +1,11 @@
 'use client';
 
 /**
- * Local Voice System for Hourglass Command
+ * Local comms / headset path for Hourglass Command
  *
- * Client-side voice interactivity using:
- * - Whisper Base (STT) via Transformers.js - WebGPU preferred, WASM fallback
- * - Kokoro-82M (TTS) via kokoro-js - WebGPU preferred, Web Speech API fallback
- *
- * Models are lazy-loaded on first enable, cached in OPFS/IndexedDB.
- * Designed to coexist with ElevenLabs authored VO system.
+ * On-device radio: Whisper Base (STT) + Kokoro-82M (TTS).
+ * Models lazy-load only when the operator enables headset (~230MB, one-time).
+ * Yields to ElevenLabs scripted VO whenever that path is playing.
  */
 
 // Configuration
@@ -113,6 +110,7 @@ interface TTSQueueItem {
 
 let ttsQueue: TTSQueueItem[] = [];
 let isProcessingTTS = false;
+let currentTTSAudio: HTMLAudioElement | null = null;
 
 // Reference to ElevenLabs VO state checker
 let isElevenLabsPlaying: (() => boolean) | null = null;
@@ -197,6 +195,13 @@ export function getModelProgress(): ModelLoadProgress {
  */
 export function isLocalVoiceEnabled(): boolean {
   return config.enabled;
+}
+
+/**
+ * Headset earpiece is ready to speak dynamic lines (injects, decisions, micro-tasks).
+ */
+export function isLocalTTSReady(): boolean {
+  return config.enabled && config.ttsEnabled && state.ttsReady;
 }
 
 /**
@@ -337,16 +342,18 @@ async function loadModels(): Promise<void> {
     stage: 'downloading',
     progress: 0,
     currentModel: 'whisper',
-    message: `Downloading voice models (~${totalSize} MB, one-time)...`,
+    message: `Provisioning headset models… (~${totalSize} MB, one-time)`,
   });
 
-  // Load Whisper Base for STT
+  // Load Whisper Base for STT — mark listen-ready independently so PTT can
+  // come up before Kokoro. Speak chrome must still wait for ttsReady.
   await loadWhisperModel();
+  updateState({ sttReady: whisperPipeline !== null });
 
   updateProgress({
     progress: 60,
     currentModel: 'kokoro',
-    message: 'Loading text-to-speech model...',
+    message: 'Provisioning headset models…',
   });
 
   // Load Kokoro for TTS (with fallback)
@@ -356,7 +363,7 @@ async function loadModels(): Promise<void> {
     stage: 'ready',
     progress: 100,
     currentModel: null,
-    message: 'Voice models ready',
+    message: 'Headset online',
   });
 }
 
@@ -417,7 +424,7 @@ async function loadWhisperModel(): Promise<void> {
     updateProgress({
       stage: 'downloading',
       currentModel: 'whisper',
-      message: 'Loading speech recognition model...',
+      message: 'Provisioning headset models…',
       progress: 10,
     });
 
@@ -434,7 +441,7 @@ async function loadWhisperModel(): Promise<void> {
 
     updateProgress({
       progress: 20,
-      message: `Loading Whisper Base (${device.toUpperCase()})...`,
+      message: `Provisioning headset models… (${device.toUpperCase()})`,
     });
 
     // Load Whisper Base with hybrid quantization for better performance
@@ -462,7 +469,7 @@ async function loadWhisperModel(): Promise<void> {
       }
     );
 
-    updateProgress({ progress: 55, message: 'Speech recognition ready' });
+    updateProgress({ progress: 55, message: 'Provisioning headset models…' });
   } catch (error) {
     console.warn('Failed to load Whisper model:', error);
     whisperPipeline = null;
@@ -527,14 +534,14 @@ async function loadKokoroModel(): Promise<void> {
     updateProgress({
       progress: 60,
       currentModel: 'kokoro',
-      message: 'Loading text-to-speech model...',
+      message: 'Provisioning headset models…',
     });
 
     const { KokoroTTS } = await loadKokoroFromCDN();
 
     updateProgress({
       progress: 70,
-      message: 'Initializing Kokoro TTS...',
+      message: 'Provisioning headset models…',
     });
 
     // Initialize Kokoro with WebGPU if available
@@ -543,7 +550,7 @@ async function loadKokoroModel(): Promise<void> {
       device: state.webGpuAvailable ? 'webgpu' : 'wasm',
     });
 
-    updateProgress({ progress: 95, message: 'Text-to-speech ready' });
+    updateProgress({ progress: 95, message: 'Headset online' });
     updateState({ fallbackTTS: null });
   } catch (error) {
     console.warn('Failed to load Kokoro model, falling back to Web Speech:', error);
@@ -552,7 +559,7 @@ async function loadKokoroModel(): Promise<void> {
     // Set up Web Speech fallback
     if (webSpeechSynth) {
       updateState({ fallbackTTS: 'web-speech' });
-      updateProgress({ progress: 95, message: 'Using browser speech synthesis' });
+      updateProgress({ progress: 95, message: 'Headset online (browser speech)' });
     } else {
       console.warn('Web Speech API not available');
     }
@@ -756,10 +763,15 @@ async function processTTSQueue(): Promise<void> {
   try {
     updateState({ isSpeaking: true });
 
+    let yieldedToElevenLabs = false;
     if (kokoroInstance) {
-      await speakWithKokoro(item.text);
+      yieldedToElevenLabs = !(await speakWithKokoro(item.text));
     } else if (webSpeechSynth) {
-      await speakWithWebSpeech(item.text);
+      yieldedToElevenLabs = !(await speakWithWebSpeech(item.text));
+    }
+
+    if (yieldedToElevenLabs) {
+      ttsQueue.unshift(item);
     }
   } catch (error) {
     console.error('TTS error:', error);
@@ -775,10 +787,11 @@ async function processTTSQueue(): Promise<void> {
 }
 
 /**
- * Speak using Kokoro TTS
+ * Speak using Kokoro TTS.
+ * @returns false when ElevenLabs took the net during synthesis (caller should requeue).
  */
-async function speakWithKokoro(text: string): Promise<void> {
-  if (!kokoroInstance) return;
+async function speakWithKokoro(text: string): Promise<boolean> {
+  if (!kokoroInstance) return true;
 
   const kokoro = kokoroInstance as {
     generate: (
@@ -791,31 +804,62 @@ async function speakWithKokoro(text: string): Promise<void> {
     voice: config.ttsVoice,
   });
 
+  // Scripted VO may have started while Kokoro was synthesizing — don't double-talk.
+  if (isElevenLabsPlaying?.()) {
+    return false;
+  }
+
   const blob = await result.toBlob();
   const url = URL.createObjectURL(blob);
 
   await new Promise<void>((resolve, reject) => {
     const audio = new Audio(url);
+    currentTTSAudio = audio;
     audio.playbackRate = config.ttsRate;
-    audio.onended = () => {
+    let settled = false;
+
+    const finish = (error?: Error): void => {
+      if (settled) return;
+      settled = true;
+      clearYieldWatch();
+      audio.pause();
+      if (currentTTSAudio === audio) currentTTSAudio = null;
       URL.revokeObjectURL(url);
-      resolve();
+      if (error) reject(error);
+      else resolve();
     };
-    audio.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Audio playback failed'));
+
+    const clearYieldWatch = watchElevenLabsYield((): void => {
+      audio.src = '';
+      finish();
+    });
+
+    audio.onended = (): void => {
+      finish();
     };
-    audio.play().catch(reject);
+    audio.onerror = (): void => {
+      finish(new Error('Audio playback failed'));
+    };
+    audio
+      .play()
+      .catch((err) => finish(err instanceof Error ? err : new Error('Audio playback failed')));
   });
+
+  return true;
 }
 
 /**
- * Speak using Web Speech API (fallback)
+ * Speak using Web Speech API (fallback).
+ * @returns false when ElevenLabs took the net before utterance start.
  */
-async function speakWithWebSpeech(text: string): Promise<void> {
-  if (!webSpeechSynth) return;
+async function speakWithWebSpeech(text: string): Promise<boolean> {
+  if (!webSpeechSynth) return true;
 
-  return new Promise<void>((resolve, reject) => {
+  if (isElevenLabsPlaying?.()) {
+    return false;
+  }
+
+  await new Promise<void>((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = config.ttsRate;
     utterance.pitch = 1.0;
@@ -828,11 +872,35 @@ async function speakWithWebSpeech(text: string): Promise<void> {
       utterance.voice = englishVoice;
     }
 
-    utterance.onend = () => resolve();
-    utterance.onerror = (e) => reject(e);
+    let settled = false;
+    const finish = (error?: SpeechSynthesisErrorEvent): void => {
+      if (settled) return;
+      settled = true;
+      clearYieldWatch();
+      if (error) reject(error);
+      else resolve();
+    };
+
+    const clearYieldWatch = watchElevenLabsYield((): void => {
+      webSpeechSynth?.cancel();
+      finish();
+    });
+
+    utterance.onend = (): void => {
+      finish();
+    };
+    utterance.onerror = (e): void => {
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        finish();
+        return;
+      }
+      finish(e);
+    };
 
     webSpeechSynth!.speak(utterance);
   });
+
+  return true;
 }
 
 /**
@@ -842,11 +910,30 @@ export function stopSpeaking(): void {
   ttsQueue = [];
   isProcessingTTS = false;
 
+  if (currentTTSAudio) {
+    currentTTSAudio.pause();
+    currentTTSAudio.src = '';
+    currentTTSAudio = null;
+  }
+
   if (webSpeechSynth) {
     webSpeechSynth.cancel();
   }
 
   updateState({ isSpeaking: false });
+}
+
+function watchElevenLabsYield(onYield: () => void): () => void {
+  if (!isElevenLabsPlaying) return (): void => undefined;
+  const id = window.setInterval((): void => {
+    if (isElevenLabsPlaying?.()) {
+      window.clearInterval(id);
+      onYield();
+    }
+  }, 200);
+  return (): void => {
+    window.clearInterval(id);
+  };
 }
 
 /**

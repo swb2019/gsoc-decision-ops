@@ -64,10 +64,10 @@ export default function LocalVoicePanel({
 
   const getStatusText = () => {
     if (state.error) return state.error;
-    if (isDownloading) return progress.message || 'Loading models...';
-    if (isReady) return 'Ready';
-    if (!isEnabled) return 'Disabled';
-    return 'Not loaded';
+    if (isDownloading) return progress.message || 'Provisioning headset models…';
+    if (isReady) return 'Headset online';
+    if (!isEnabled) return 'Headset stowed';
+    return 'Headset not loaded';
   };
 
   return (
@@ -78,7 +78,7 @@ export default function LocalVoicePanel({
           <div
             className={clsx(
               'w-10 h-10 rounded-xl flex items-center justify-center',
-              isEnabled && isReady
+              isEnabled && isReady && !isDownloading
                 ? 'bg-gradient-to-br from-violet-500/30 to-violet-600/30 border border-violet-500/40'
                 : 'bg-gray-800/60 border border-gray-700/50'
             )}
@@ -86,18 +86,18 @@ export default function LocalVoicePanel({
             <Headphones
               className={clsx(
                 'w-5 h-5',
-                isEnabled && isReady ? 'text-violet-400' : 'text-gray-500'
+                isEnabled && isReady && !isDownloading ? 'text-violet-400' : 'text-gray-500'
               )}
             />
           </div>
           <div>
             <h3 className="font-semibold text-gray-200 flex items-center gap-2">
-              On-Device Voice
+              Local Comms
               <span className="text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 font-medium">
                 Beta
               </span>
             </h3>
-            <p className="text-xs text-gray-500">Whisper STT + Kokoro TTS</p>
+            <p className="text-xs text-gray-500">Operator headset — on-device mic and earpiece</p>
           </div>
         </div>
         {onClose && (
@@ -111,9 +111,11 @@ export default function LocalVoicePanel({
       <div className="mb-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800/50">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium text-gray-300">Enable Local Voice</div>
+            <div className="text-sm font-medium text-gray-300">Enable headset</div>
             <div className="text-xs text-gray-500 mt-0.5">
-              {!isEnabled ? `Downloads ~${estimatedDownloadMB} MB (one-time)` : getStatusText()}
+              {!isEnabled
+                ? `Provisions ~${estimatedDownloadMB} MB on first enable (one-time)`
+                : getStatusText()}
             </div>
           </div>
           <button
@@ -206,8 +208,8 @@ export default function LocalVoicePanel({
                 <MicOff className="w-4 h-4 text-gray-500" />
               )}
               <div>
-                <div className="text-sm text-gray-300">Speech-to-Text</div>
-                <div className="text-2xs text-gray-500">Dictate notes with push-to-talk</div>
+                <div className="text-sm text-gray-300">Push-to-talk</div>
+                <div className="text-2xs text-gray-500">Brief rationale into the decision log</div>
               </div>
             </div>
             <button
@@ -235,8 +237,10 @@ export default function LocalVoicePanel({
                 <VolumeX className="w-4 h-4 text-gray-500" />
               )}
               <div>
-                <div className="text-sm text-gray-300">Text-to-Speech</div>
-                <div className="text-2xs text-gray-500">Read aloud key content</div>
+                <div className="text-sm text-gray-300">Headset earpiece</div>
+                <div className="text-2xs text-gray-500">
+                  Hear injects and decision prompts in-headset
+                </div>
               </div>
             </div>
             <button
@@ -321,11 +325,12 @@ export default function LocalVoicePanel({
           <Sparkles className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-xs text-violet-200">
-              <strong>Privacy:</strong> Voice processing runs entirely on your device. No audio is
-              sent to external servers.
+              <strong>Net discipline:</strong> Processing stays on this device. Scripted dispatch VO
+              still has the net — local comms yield when that path is live.
             </p>
             <p className="text-2xs text-violet-300/70 mt-1">
-              Models are cached locally after first download. English only.
+              Models cache after first provision. English only. Opt-in; nothing downloads until you
+              enable headset.
             </p>
           </div>
         </div>
@@ -356,20 +361,20 @@ export function LocalVoiceToggle({
       disabled={isLoading}
       className={clsx(
         'p-2 rounded-xl transition-all flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]',
-        isEnabled && isReady
-          ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
-          : isLoading
-            ? 'text-amber-400 bg-amber-500/20'
+        isLoading
+          ? 'text-amber-400 bg-amber-500/20'
+          : isEnabled && isReady
+            ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
             : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50',
         className
       )}
-      aria-label={isEnabled ? 'Disable local voice' : 'Enable local voice'}
+      aria-label={isEnabled ? 'Local comms headset settings' : 'Enable local comms headset'}
       title={
         isLoading
-          ? 'Loading voice models...'
+          ? 'Provisioning headset models…'
           : isEnabled && isReady
-            ? 'Local voice enabled'
-            : 'Enable local voice (on-device)'
+            ? 'Headset online — local comms'
+            : 'Enable headset (local comms)'
       }
     >
       {isLoading ? (
@@ -419,17 +424,17 @@ export function PushToTalkButton({
           : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30',
         className
       )}
-      title={isListening ? 'Release to stop' : 'Hold to speak'}
+      title={isListening ? 'Release to log' : 'Push to talk'}
     >
       {isListening ? (
         <>
           <Mic className="w-5 h-5 animate-pulse" />
-          <span className="text-sm font-medium">Listening...</span>
+          <span className="text-sm font-medium">On net…</span>
         </>
       ) : (
         <>
           <Mic className="w-5 h-5" />
-          <span className="text-sm font-medium">Hold to dictate</span>
+          <span className="text-sm font-medium">Push to talk</span>
         </>
       )}
     </button>
@@ -464,7 +469,7 @@ export function ReadAloudButton({
           : 'text-gray-400 hover:text-violet-400 hover:bg-violet-500/10',
         className
       )}
-      title={isSpeaking ? 'Speaking...' : 'Read aloud'}
+      title={isSpeaking ? 'On net…' : 'Hear inject'}
     >
       {isSpeaking ? <Volume2 className="w-4 h-4 animate-pulse" /> : <Volume2 className="w-4 h-4" />}
       {label && <span className="text-xs">{label}</span>}

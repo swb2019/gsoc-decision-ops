@@ -880,7 +880,7 @@ import {
   setBGMReference,
   setSystemPaused,
   skipVO,
-  isVOCurrentlyPlaying,
+  isScriptedVOBusy,
 } from '../lib/voice';
 import { getBasePath } from '../lib/base-path';
 import {
@@ -1336,8 +1336,8 @@ export default function CommandCenter({
   const { playSound } = useSoundEffects(soundEnabled, reducedMotion);
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
 
-  // Local voice (on-device STT/TTS)
-  const localVoice = useLocalVoice(isVOCurrentlyPlaying);
+  // Local comms / operator headset (on-device STT/TTS, opt-in)
+  const localVoice = useLocalVoice(isScriptedVOBusy);
 
   // Load ambient music preference from localStorage
   useEffect(() => {
@@ -3187,7 +3187,7 @@ export default function CommandCenter({
               <Mic2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Local Voice (on-device) toggle - hidden on very small mobile */}
+            {/* Headset / local comms — hidden on very small mobile */}
             <LocalVoiceToggle
               onClick={() => setShowLocalVoicePanel(!showLocalVoicePanel)}
               isEnabled={localVoice.isEnabled}
@@ -3597,7 +3597,7 @@ export default function CommandCenter({
                       )}
                     </button>
 
-                    {/* Local Voice (On-device) Toggle in mobile menu */}
+                    {/* Headset / local comms in mobile menu */}
                     <button
                       onClick={() => {
                         setShowLocalVoicePanel(true);
@@ -3612,7 +3612,7 @@ export default function CommandCenter({
                       role="menuitem"
                     >
                       <Headphones className="w-4 h-4" />
-                      Local Voice
+                      Headset
                       {localVoice.isEnabled && (
                         <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
                           On
@@ -3808,6 +3808,16 @@ export default function CommandCenter({
                     reducedMotion={reducedMotion}
                     linkedEntities={log.linkedEntities}
                     highlightedEntityId={highlightedEntityId}
+                    headsetHear={
+                      localVoice.canSpeak
+                        ? {
+                            isSpeaking: localVoice.isSpeaking,
+                            onHear: (): void => {
+                              void localVoice.speakText(getInjectSpokenFallback(inject), 7);
+                            },
+                          }
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -3837,14 +3847,13 @@ export default function CommandCenter({
                 selectedResidualRisk={selectedResidualRisk}
                 onSelectResidualRisk={setSelectedResidualRisk}
                 localVoice={{
-                  isEnabled: localVoice.isEnabled,
-                  isReady: localVoice.isReady,
+                  canSpeak: localVoice.canSpeak,
+                  canListen: localVoice.canListen,
                   isListening: localVoice.isListening,
                   isSpeaking: localVoice.isSpeaking,
-                  config: localVoice.config,
+                  speakText: localVoice.speakText,
                   startRecording: localVoice.startRecording,
                   stopRecording: localVoice.stopRecording,
-                  readInject: localVoice.readInject,
                 }}
               />
             ) : (
@@ -4273,6 +4282,16 @@ export default function CommandCenter({
                       reducedMotion={reducedMotion}
                       linkedEntities={log.linkedEntities}
                       highlightedEntityId={highlightedEntityId}
+                      headsetHear={
+                        localVoice.canSpeak
+                          ? {
+                              isSpeaking: localVoice.isSpeaking,
+                              onHear: (): void => {
+                                void localVoice.speakText(getInjectSpokenFallback(inject), 7);
+                              },
+                            }
+                          : undefined
+                      }
                     />
                   );
                 })}
@@ -4309,14 +4328,13 @@ export default function CommandCenter({
                   selectedResidualRisk={selectedResidualRisk}
                   onSelectResidualRisk={setSelectedResidualRisk}
                   localVoice={{
-                    isEnabled: localVoice.isEnabled,
-                    isReady: localVoice.isReady,
+                    canSpeak: localVoice.canSpeak,
+                    canListen: localVoice.canListen,
                     isListening: localVoice.isListening,
                     isSpeaking: localVoice.isSpeaking,
-                    config: localVoice.config,
+                    speakText: localVoice.speakText,
                     startRecording: localVoice.startRecording,
                     stopRecording: localVoice.stopRecording,
-                    readInject: localVoice.readInject,
                   }}
                 />
               ) : (
@@ -4618,10 +4636,8 @@ export default function CommandCenter({
           calcTrails={calcTrails}
           scenarioId={scenarioId}
           localVoice={{
-            isEnabled: localVoice.isEnabled,
-            isReady: localVoice.isReady,
+            canSpeak: localVoice.canSpeak,
             isSpeaking: localVoice.isSpeaking,
-            config: localVoice.config,
             readAAR: localVoice.readAAR,
           }}
           onRematch={() => {
@@ -4681,13 +4697,13 @@ export default function CommandCenter({
       {/* Field Guide Modal */}
       {showFieldGuide && <FieldGuideModal onClose={() => setShowFieldGuide(false)} />}
 
-      {/* Local Voice Settings Panel */}
+      {/* Local comms / headset settings */}
       {showLocalVoicePanel && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md animate-scale-in">
             <LocalVoicePanel
               reducedMotion={reducedMotion}
-              elevenLabsPlayingChecker={isVOCurrentlyPlaying}
+              elevenLabsPlayingChecker={isScriptedVOBusy}
               onClose={() => setShowLocalVoicePanel(false)}
             />
           </div>
@@ -4855,6 +4871,9 @@ export default function CommandCenter({
               priority: 8,
             })
           }
+          headset={
+            localVoice.isEnabled ? { enabled: true, canSpeak: localVoice.canSpeak } : undefined
+          }
           reducedMotion={reducedMotion}
           animating={microTaskAnimating}
           currentAnswer={microTaskAnswer}
@@ -4928,6 +4947,7 @@ function InjectCard({
   reducedMotion,
   linkedEntities,
   highlightedEntityId,
+  headsetHear,
 }: {
   inject: ScenarioInject;
   index: number;
@@ -4937,6 +4957,10 @@ function InjectCard({
   reducedMotion: boolean;
   linkedEntities?: LinkedEntity[];
   highlightedEntityId?: string | null;
+  headsetHear?: {
+    isSpeaking: boolean;
+    onHear: () => void;
+  };
 }): JSX.Element {
   const extendedInject = inject as unknown as {
     domain?: SecurityDomain;
@@ -4975,21 +4999,35 @@ function InjectCard({
   const entityChips = getEntityChips();
 
   return (
-    <button
-      onClick={onSelect}
-      disabled={isHandled}
+    <div
+      role="button"
+      tabIndex={isHandled ? -1 : 0}
+      aria-disabled={isHandled}
+      onClick={(e) => {
+        if (isHandled) return;
+        const target = e.target;
+        if (target instanceof Element && target.closest('button')) return;
+        onSelect();
+      }}
+      onKeyDown={(e) => {
+        if (isHandled) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={clsx(
         'w-full text-left p-4 rounded-xl border transition-all duration-200 animate-press',
         !reducedMotion && index === 0 && 'animate-inject-arrive',
         hasHighlightedEntity && 'ring-2 ring-cyan-500/50',
         isNoise && !isHandled && 'opacity-70',
         isHandled
-          ? 'bg-gray-800/20 border-gray-800/40 opacity-60'
+          ? 'bg-gray-800/20 border-gray-800/40 opacity-60 cursor-default'
           : isActive
-            ? 'bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border-emerald-500/50 ring-2 ring-emerald-500/30'
+            ? 'bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border-emerald-500/50 ring-2 ring-emerald-500/30 cursor-pointer'
             : isCorrection
-              ? 'bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/40 hover:border-purple-400/60'
-              : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60 hover:bg-gray-800/50'
+              ? 'bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/40 hover:border-purple-400/60 cursor-pointer'
+              : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60 hover:bg-gray-800/50 cursor-pointer'
       )}
     >
       <div className="flex gap-3">
@@ -5164,7 +5202,7 @@ function InjectCard({
             </div>
           )}
 
-          {/* Footer: Source system and timestamp */}
+          {/* Footer: Source system, headset replay, timestamp */}
           <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
             <div className="flex items-center gap-2">
               <span className="text-2xs text-gray-500">
@@ -5174,11 +5212,35 @@ function InjectCard({
                 <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
               )}
             </div>
-            {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
+            <div className="flex items-center gap-2">
+              {headsetHear && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    headsetHear.onHear();
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className={clsx(
+                    'inline-flex items-center gap-1 px-2 py-1 rounded-md text-2xs font-medium transition-all min-h-[28px]',
+                    headsetHear.isSpeaking
+                      ? 'bg-violet-500/30 text-violet-200'
+                      : 'text-violet-400 hover:text-violet-300 hover:bg-violet-500/15 border border-violet-500/30'
+                  )}
+                  title="Replay net call"
+                >
+                  <Volume2 className={clsx('w-3 h-3', headsetHear.isSpeaking && 'animate-pulse')} />
+                  {headsetHear.isSpeaking ? 'On net…' : 'Hear inject'}
+                </button>
+              )}
+              {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
+            </div>
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -5224,14 +5286,13 @@ function DecisionConsole({
   selectedResidualRisk: string | null;
   onSelectResidualRisk: (risk: string | null) => void;
   localVoice?: {
-    isEnabled: boolean;
-    isReady: boolean;
+    canSpeak: boolean;
+    canListen: boolean;
     isListening: boolean;
     isSpeaking: boolean;
-    config: { sttEnabled: boolean; ttsEnabled: boolean };
+    speakText: (text: string, priority?: number) => Promise<void>;
     startRecording: () => Promise<boolean>;
     stopRecording: () => Promise<void>;
-    readInject: (title: string, description: string) => Promise<void>;
   };
 }): JSX.Element {
   const extendedInject = inject as unknown as {
@@ -5330,23 +5391,25 @@ function DecisionConsole({
                     <p className="text-sm text-gray-300 leading-relaxed mt-1">{inject.content}</p>
                   </details>
                   <p className="hidden sm:block text-gray-300 leading-relaxed">{inject.content}</p>
-                  {/* Local Voice: Read Aloud button */}
-                  {localVoice?.isEnabled && localVoice.isReady && localVoice.config.ttsEnabled && (
+                  {/* Headset: replay the same net call (title+pressure) the operator heard */}
+                  {localVoice?.canSpeak && (
                     <button
                       type="button"
-                      onClick={() => localVoice.readInject(inject.title, inject.content)}
+                      onClick={() => {
+                        void localVoice.speakText(getInjectSpokenFallback(inject), 7);
+                      }}
                       className={clsx(
-                        'mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                        'mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-h-[36px]',
                         localVoice.isSpeaking
                           ? 'bg-violet-500/30 text-violet-300'
                           : 'text-gray-400 hover:text-violet-400 hover:bg-violet-500/10 border border-gray-700/50 hover:border-violet-500/30'
                       )}
-                      title="Read inject aloud (local TTS)"
+                      title="Replay net call"
                     >
                       <Volume2
                         className={clsx('w-3.5 h-3.5', localVoice.isSpeaking && 'animate-pulse')}
                       />
-                      {localVoice.isSpeaking ? 'Speaking...' : 'Read Aloud'}
+                      {localVoice.isSpeaking ? 'On net…' : 'Replay net call'}
                     </button>
                   )}
                 </div>
@@ -5401,6 +5464,45 @@ function DecisionConsole({
                   </div>
                   <p className="text-amber-200/80 text-sm">{promptVariation.subtext}</p>
                   <p className="text-amber-200/60 text-xs mt-2">{inject.decisionPressure}</p>
+                </div>
+              )}
+
+              {localVoice?.canListen && (
+                <div className="mt-4 p-3 rounded-xl bg-gray-900/50 border border-violet-500/30">
+                  <div className="flex items-center gap-3">
+                    <Radio className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-gray-200">Headset — brief</div>
+                      <div className="text-2xs text-gray-500">
+                        Push-to-talk logs rationale onto this decision
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onMouseDown={() => localVoice.startRecording()}
+                      onMouseUp={() => localVoice.stopRecording()}
+                      onMouseLeave={() => localVoice.isListening && localVoice.stopRecording()}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        localVoice.startRecording();
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        localVoice.stopRecording();
+                      }}
+                      className={clsx(
+                        'flex-shrink-0 px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 min-h-[44px] min-w-[44px]',
+                        localVoice.isListening
+                          ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                          : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30'
+                      )}
+                    >
+                      <Mic className={clsx('w-4 h-4', localVoice.isListening && 'animate-pulse')} />
+                      <span className="text-xs font-medium">
+                        {localVoice.isListening ? 'On net…' : 'Push to talk'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -5820,42 +5922,6 @@ function DecisionConsole({
                       );
                     })}
                   </div>
-
-                  {/* Local Voice: Push-to-Talk for additional rationale */}
-                  {localVoice?.isEnabled && localVoice.isReady && localVoice.config.sttEnabled && (
-                    <div className="mt-4 pt-4 border-t border-gray-700/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Mic className="w-3.5 h-3.5 text-violet-400" />
-                        <span className="text-xs text-gray-400">Add voice note (optional)</span>
-                      </div>
-                      <button
-                        onMouseDown={() => localVoice.startRecording()}
-                        onMouseUp={() => localVoice.stopRecording()}
-                        onMouseLeave={() => localVoice.isListening && localVoice.stopRecording()}
-                        onTouchStart={(e) => {
-                          e.preventDefault();
-                          localVoice.startRecording();
-                        }}
-                        onTouchEnd={(e) => {
-                          e.preventDefault();
-                          localVoice.stopRecording();
-                        }}
-                        className={clsx(
-                          'w-full px-4 py-3 rounded-lg transition-all flex items-center justify-center gap-2',
-                          localVoice.isListening
-                            ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                            : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30'
-                        )}
-                      >
-                        <Mic
-                          className={clsx('w-4 h-4', localVoice.isListening && 'animate-pulse')}
-                        />
-                        {localVoice.isListening
-                          ? 'Release to transcribe...'
-                          : 'Hold to dictate rationale'}
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -6404,10 +6470,8 @@ function DebriefModal({
   scenarioId: string;
   onRematch: () => void;
   localVoice?: {
-    isEnabled: boolean;
-    isReady: boolean;
+    canSpeak: boolean;
     isSpeaking: boolean;
-    config: { ttsEnabled: boolean };
     readAAR: (bullets: string[]) => Promise<void>;
   };
 }): JSX.Element {
@@ -6659,8 +6723,8 @@ function DebriefModal({
                 Lessons Learned — Continuous Improvement
               </h4>
             </div>
-            {/* Local Voice: Read AAR aloud */}
-            {localVoice?.isEnabled && localVoice.isReady && localVoice.config.ttsEnabled && (
+            {/* Headset: hear after-action briefing */}
+            {localVoice?.canSpeak && (
               <button
                 onClick={() => {
                   const bullets: string[] = [];
@@ -6697,12 +6761,12 @@ function DebriefModal({
                     ? 'bg-violet-500/30 text-violet-300'
                     : 'text-gray-400 hover:text-violet-400 hover:bg-violet-500/10'
                 )}
-                title="Read lessons aloud"
+                title="Hear after-action briefing"
               >
                 <Volume2
                   className={clsx('w-3.5 h-3.5', localVoice.isSpeaking && 'animate-pulse')}
                 />
-                {localVoice.isSpeaking ? 'Speaking...' : 'Read'}
+                {localVoice.isSpeaking ? 'On net…' : 'Hear AAR'}
               </button>
             )}
           </div>
@@ -8192,7 +8256,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     { id: 'kri' as const, label: 'KRIs', icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'value' as const, label: 'Value Metrics', icon: <TrendingUp className="w-4 h-4" /> },
     { id: 'pipeline' as const, label: 'Pipeline', icon: <Activity className="w-4 h-4" /> },
-    { id: 'voice' as const, label: 'Local Voice', icon: <Headphones className="w-4 h-4" /> },
+    { id: 'voice' as const, label: 'Local Comms', icon: <Headphones className="w-4 h-4" /> },
   ];
 
   const glossaryTerms = [
@@ -9697,10 +9761,10 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
           {activeSection === 'voice' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">On-Device Voice Mode</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">Headset / Local Comms</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                Optional voice interactivity powered by AI models that run entirely in your browser.
-                No audio is sent to external servers.
+                Optional operator headset. Mic and earpiece run on this device so you can brief into
+                the log and hear decision prompts in-sim. Nothing downloads until you enable it.
               </p>
 
               <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
@@ -9709,27 +9773,27 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   <div>
                     <h4 className="text-violet-400 font-semibold mb-2">How It Works</h4>
                     <p className="text-sm text-gray-300 mb-3">
-                      When you enable Local Voice mode, the app downloads AI models (~230 MB total,
-                      one-time) that run on your device:
+                      Enable headset to provision on-device models (~230 MB, one-time). Scripted
+                      dispatch VO stays primary; local comms yield when that path is live.
                     </p>
                     <ul className="text-sm text-gray-400 space-y-2">
                       <li className="flex items-start gap-2">
                         <Mic className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <strong className="text-gray-300">Speech-to-Text (Whisper Base)</strong>
+                          <strong className="text-gray-300">Push-to-talk</strong>
                           <span className="text-gray-500">
                             {' '}
-                            — Dictate notes by holding the microphone button
+                            — Hold the radio control on Decision to brief rationale into the log
                           </span>
                         </div>
                       </li>
                       <li className="flex items-start gap-2">
                         <Volume2 className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <strong className="text-gray-300">Text-to-Speech (Kokoro-82M)</strong>
+                          <strong className="text-gray-300">Earpiece</strong>
                           <span className="text-gray-500">
                             {' '}
-                            — Have inject summaries and AAR lessons read aloud
+                            — Hear injects, decision questions, and micro-tasks in-headset
                           </span>
                         </div>
                       </li>
@@ -9742,11 +9806,14 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                 <h4 className="text-gray-300 font-semibold text-sm mb-3">Getting Started</h4>
                 <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
                   <li>
-                    Click the <Headphones className="w-3.5 h-3.5 inline text-violet-400" />{' '}
-                    headphones icon in the header bar
+                    Click the <Headphones className="w-3.5 h-3.5 inline text-violet-400" /> headset
+                    icon in the header bar
                   </li>
-                  <li>Enable &quot;Local Voice&quot; to begin the one-time model download</li>
-                  <li>Once ready, use push-to-talk to dictate and read-aloud buttons to listen</li>
+                  <li>Enable headset to begin one-time model provisioning</li>
+                  <li>
+                    Once online, push-to-talk to brief and use Hear inject / Replay net call on
+                    cards
+                  </li>
                 </ol>
               </div>
 
@@ -9768,9 +9835,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <p className="text-xs text-amber-200">
-                  <strong>Note:</strong> Local Voice is English-only and optional. The ElevenLabs
-                  professional voice-overs continue to work independently and take priority during
-                  scenario events.
+                  <strong>Note:</strong> Headset is English-only and optional. ElevenLabs
+                  professional voice-overs stay primary and take the net during scripted events.
                 </p>
               </div>
             </div>
@@ -10371,6 +10437,7 @@ function MicroTaskCard({
   onDismiss,
   onSkip,
   onHear,
+  headset,
   reducedMotion,
   animating,
   currentAnswer,
@@ -10383,6 +10450,7 @@ function MicroTaskCard({
   onDismiss: () => void;
   onSkip: () => void;
   onHear: () => void;
+  headset?: { enabled: boolean; canSpeak: boolean };
   reducedMotion: boolean;
   animating: boolean;
   currentAnswer: string | string[] | null;
@@ -10447,6 +10515,11 @@ function MicroTaskCard({
 
   const isUrgent = timer <= 5;
   const hasAnswered = result !== null;
+  const hearReady = !headset?.enabled || headset.canSpeak;
+  const hearHeadsetCopy = Boolean(headset?.canSpeak);
+  const hearTitle = hearHeadsetCopy ? 'Replay net call' : 'Tap to hear';
+  const hearAria = hearHeadsetCopy ? 'Hear net' : 'Hear task';
+  const questionAria = hearHeadsetCopy ? 'Replay net call' : 'Tap to hear this task';
 
   const moveRankItem = (index: number, direction: 'up' | 'down'): void => {
     if (hasAnswered) return;
@@ -10525,18 +10598,22 @@ function MicroTaskCard({
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={onHear}
-                className="flex items-center gap-1.5 mt-0.5 text-left min-w-0 group"
-                aria-label="Hear task"
-                title="Tap to hear"
-              >
-                <h4 className="text-sm font-semibold text-white truncate group-hover:text-emerald-300">
-                  {task.title}
-                </h4>
-                <Volume2 className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 flex-shrink-0" />
-              </button>
+              {hearReady ? (
+                <button
+                  type="button"
+                  onClick={onHear}
+                  className="flex items-center gap-1.5 mt-0.5 text-left min-w-0 group"
+                  aria-label={hearAria}
+                  title={hearTitle}
+                >
+                  <h4 className="text-sm font-semibold text-white truncate group-hover:text-emerald-300">
+                    {task.title}
+                  </h4>
+                  <Volume2 className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 flex-shrink-0" />
+                </button>
+              ) : (
+                <h4 className="text-sm font-semibold text-white truncate mt-0.5">{task.title}</h4>
+              )}
             </div>
           </div>
 
@@ -10580,14 +10657,21 @@ function MicroTaskCard({
         )}
 
         {/* Question — tap to hear if autoplay was blocked */}
-        <button
-          type="button"
-          onClick={onHear}
-          className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed"
-          aria-label="Tap to hear this task"
-        >
-          {task.question}
-        </button>
+        {hearReady ? (
+          <button
+            type="button"
+            onClick={onHear}
+            className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed"
+            aria-label={questionAria}
+            title={hearTitle}
+          >
+            {task.question}
+          </button>
+        ) : (
+          <p className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed">
+            {task.question}
+          </p>
+        )}
 
         {/* Challenge Content based on type */}
         {(task.type === 'MULTIPLE_CHOICE' || task.type === 'SCENARIO') && task.options && (

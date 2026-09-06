@@ -22,7 +22,6 @@ import {
   readAARBullets,
   setElevenLabsPlayingChecker,
   getEstimatedDownloadSize,
-  cleanupLocalVoice,
   type LocalVoiceState,
   type LocalVoiceConfig,
   type ModelLoadProgress,
@@ -69,6 +68,10 @@ interface UseLocalVoiceReturn {
   // Last transcription
   lastTranscription: string | null;
   clearTranscription: () => void;
+
+  // Headset readiness (enabled + model ready + feature toggle)
+  canSpeak: boolean;
+  canListen: boolean;
 }
 
 export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLocalVoiceReturn {
@@ -91,9 +94,8 @@ export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLoca
       setElevenLabsPlayingChecker(elevenLabsPlayingChecker);
     }
 
-    return () => {
-      cleanupLocalVoice();
-    };
+    // Do not unload models on unmount — CommandCenter and the settings panel both
+    // subscribe; tearing down here would drop a live headset when the panel closes.
   }, [elevenLabsPlayingChecker]);
 
   // Subscribe to state changes
@@ -195,6 +197,7 @@ export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLoca
     config,
     progress,
     isEnabled: config.enabled,
+    // OR of STT|TTS — status chrome only. Speak/Hear/Replay must use canSpeak (ttsReady).
     isReady: state.sttReady || state.ttsReady,
     isListening: state.isListening,
     isSpeaking: state.isSpeaking,
@@ -229,5 +232,8 @@ export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLoca
     // Last transcription
     lastTranscription,
     clearTranscription,
+
+    canSpeak: config.enabled && config.ttsEnabled && state.ttsReady,
+    canListen: config.enabled && config.sttEnabled && state.sttReady,
   };
 }
