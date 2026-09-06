@@ -216,6 +216,7 @@ export {
   sortByTimestamp,
   groupBy,
   countWhere,
+  slugifyTitle,
 } from './utils.js';
 
 // ESRM Framework

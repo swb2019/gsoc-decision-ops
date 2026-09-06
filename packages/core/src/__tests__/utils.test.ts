@@ -14,6 +14,7 @@ import {
   sortByTimestamp,
   groupBy,
   countWhere,
+  slugifyTitle,
 } from '../utils.js';
 
 describe('Utils', () => {
@@ -279,6 +280,53 @@ describe('Utils', () => {
       const count = countWhere(items, (item) => item.active);
 
       expect(count).toBe(2);
+    });
+  });
+
+  describe('slugifyTitle', () => {
+    it('should convert to lowercase', () => {
+      expect(slugifyTitle('Hello World')).toBe('hello-world');
+    });
+
+    it('should replace non-alphanumeric with dashes', () => {
+      expect(slugifyTitle('hello@world#test')).toBe('hello-world-test');
+    });
+
+    it('should trim leading and trailing dashes', () => {
+      expect(slugifyTitle('---hello---')).toBe('hello');
+      expect(slugifyTitle('!hello!')).toBe('hello');
+    });
+
+    it('should collapse multiple dashes', () => {
+      expect(slugifyTitle('hello   world')).toBe('hello-world');
+      expect(slugifyTitle('hello---world')).toBe('hello-world');
+    });
+
+    it('should handle the example from task: FLASH: CEO Dark Web Mention', () => {
+      expect(slugifyTitle('FLASH: CEO Dark Web Mention')).toBe('flash-ceo-dark-web-mention');
+    });
+
+    it('should truncate to 80 characters', () => {
+      const longTitle =
+        'This is a very long title that exceeds eighty characters and should be truncated to fit the maximum length';
+      const result = slugifyTitle(longTitle);
+      expect(result.length).toBeLessThanOrEqual(80);
+    });
+
+    it('should handle empty string', () => {
+      expect(slugifyTitle('')).toBe('');
+    });
+
+    it('should handle numbers', () => {
+      expect(slugifyTitle('Event 123 Alert')).toBe('event-123-alert');
+    });
+
+    it('should handle special characters', () => {
+      expect(slugifyTitle('Data Breach (Critical) - Q4 2024')).toBe('data-breach-critical-q4-2024');
+    });
+
+    it('should handle unicode characters', () => {
+      expect(slugifyTitle('Alerte Sécurité')).toBe('alerte-s-curit');
     });
   });
 });

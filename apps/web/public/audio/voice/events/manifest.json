@@ -1,0 +1,377 @@
+{
+  "count": 62,
+  "events": [
+    {
+      "slug": "flash-ceo-dark-web-mention",
+      "title": "FLASH: CEO Dark Web Mention",
+      "urgency": "URGENT",
+      "speak": "Flash. C E O Dark Web Mention. Threat intel flags C E O name on dark web forum. Post mentions \"upcoming opportunity\" re: Singapore trip next week. Source: MEDIUM reliability. Correlates with earnings call."
+    },
+    {
+      "slug": "vms-motion-visitor-lot-b",
+      "title": "VMS: Motion - Visitor Lot B",
+      "urgency": "ROUTINE",
+      "speak": "video management: Motion, Visitor Lot B. Analytics: Vehicle motion detected visitor lot B, camera VIS, LOT, B, 02. Normal business hours. No anomalies. Logged for reference."
+    },
+    {
+      "slug": "cyber-spear-phishing-eas",
+      "title": "CYBER: Spear-Phishing EAs",
+      "urgency": "IMMEDIATE",
+      "speak": "Cyber. Spear, Phishing executive assistants. S O C escalates: 3 executive assistants hit with phishing mimicking Singapore travel bookings. One clicked, M F A blocked harvest. A P T infrastructure confirmed."
+    },
+    {
+      "slug": "acs-door-held-loading-dock",
+      "title": "ACS: Door Held - Loading Dock",
+      "urgency": "ROUTINE",
+      "speak": "access control: Door Held, Loading Dock. Door held alarm: DOCK, 3A, duration 2m15s. Delivery in progress per manifest. Officer verified, delivery personnel present with valid visitor badge."
+    },
+    {
+      "slug": "physical-badge-anomaly-c-suite",
+      "title": "PHYSICAL: Badge Anomaly C-Suite",
+      "urgency": "IMMEDIATE",
+      "speak": "Physical. Badge Anomaly C, Suite. access control: 3 failed badge attempts at exec floor\u2014credential not in directory. Format valid, identity null. Vendor A P I showing 503s. System issue or cloning?."
+    },
+    {
+      "slug": "vendor-api-compromise-investigation",
+      "title": "VENDOR: API Compromise Investigation",
+      "urgency": "IMMEDIATE",
+      "speak": "Vendor. A P I Compromise Investigation. GlobalSecure CISO: Investigating A P I credential compromise across customers. Your tenant status unknown. Recommending credential rotation. ETA 6, 8 hours."
+    },
+    {
+      "slug": "update-badge-anomaly-additional-reads",
+      "title": "UPDATE: Badge Anomaly - Additional Reads",
+      "urgency": "IMMEDIATE",
+      "speak": "Update. Badge Anomaly, Additional Reads. access control update: Total now 7 failed attempts across 3 exec floor readers. Pattern suggests systematic testing, not random failure. Credentials appear sequentially generated."
+    },
+    {
+      "slug": "ep-surveillance-in-singapore",
+      "title": "EP: Surveillance in Singapore",
+      "urgency": "IMMEDIATE",
+      "speak": "Executive protection. Surveillance in Singapore. EP team reports possible surveillance of advance team at hotel. Two individuals."
+    },
+    {
+      "slug": "bms-elevator-pm-tower-a",
+      "title": "BMS: Elevator PM - Tower A",
+      "urgency": "ROUTINE",
+      "speak": "building management: Elevator PM, Tower A. Scheduled preventive maintenance: Elevators 3, 4 Tower A offline 30 mins. Contractor on, site with valid credentials. Service desk notified."
+    },
+    {
+      "slug": "fbi-apt-advisory-tlp-amber",
+      "title": "FBI: APT Advisory TLP:AMBER",
+      "urgency": "URGENT",
+      "speak": "F B I: A P T Advisory T L P Amber. F B I shares advisory on A P T matching your S O C indicators. Known for corporate espionage with occasional physical ops support. Enhanced monitoring recommended."
+    },
+    {
+      "slug": "tip-suspicious-inquiry-at-reception",
+      "title": "TIP: Suspicious Inquiry at Reception",
+      "urgency": "ROUTINE",
+      "speak": "Tip. Suspicious Inquiry at Reception. Anonymous hotline: Caller reports person at main reception asking about \"executive floor access procedures\" and \"visitor badge duration.\" Left before security arrived. Described as male, 30s, business casual. No photo available."
+    },
+    {
+      "slug": "site-suspicious-vehicle-exec-lot",
+      "title": "SITE: Suspicious Vehicle Exec Lot",
+      "urgency": "IMMEDIATE",
+      "speak": "Site. Suspicious Vehicle Exec Lot. Security: Unfamiliar vehicle in exec parking 3+ hours. Rental registration. Occupant not visible. Camera shows possible equipment inside. PD can respond in 15."
+    },
+    {
+      "slug": "update-vehicle-plate-rental-to-unknown",
+      "title": "UPDATE: Vehicle Plate - Rental to Unknown",
+      "urgency": "IMMEDIATE",
+      "speak": "Update. Vehicle Plate, Rental to Unknown. PD callback: Rental traced to cash transaction, fake ID. Name matches known alias in F B I advisory. Equipment visible confirmed as camera with telephoto lens."
+    },
+    {
+      "slug": "soc-c2-beacon-on-ea-machine",
+      "title": "SOC: C2 Beacon on EA Machine",
+      "urgency": "IMMEDIATE",
+      "speak": "S O C: C 2 Beacon on executive assistant Machine. S O C confirms C 2 beacon on executive assistant workstation. Matches A P T infra from phishing. Dormant but has C E O/CFO calendar access. Travel plans may be exposed."
+    },
+    {
+      "slug": "alarm-fire-supervisory-bldg-2",
+      "title": "ALARM: Fire Supervisory - Bldg 2",
+      "urgency": "ROUTINE",
+      "speak": "Alarm. Fire Supervisory, Bldg 2. Fire panel supervisory: Zone 4B trouble, Building 2 warehouse. Facilities dispatched. Likely sensor issue per maintenance log. Not life safety impacting."
+    },
+    {
+      "slug": "exec-trip-decision-required",
+      "title": "EXEC: Trip Decision Required",
+      "urgency": "IMMEDIATE",
+      "speak": "Executive. Trip Decision Required. Chief of Staff: Board meeting in 20 mins on Singapore trip. C E O wants GS O C recommendation. CFO pushing to proceed (deal importance). CLO wants risk doc."
+    },
+    {
+      "slug": "intel-dark-web-post-update-conflicting",
+      "title": "INTEL: Dark Web Post Update - Conflicting",
+      "urgency": "URGENT",
+      "speak": "Intel. Dark Web Post Update, Conflicting. Analyst update: Second source claims original dark web post is disinformation/hoax. However, physical indicators and C 2 beacon remain valid. Intel confidence now CONFLICTING."
+    },
+    {
+      "slug": "vendor-active-intrusion-detected",
+      "title": "VENDOR: Active Intrusion Detected",
+      "urgency": "IMMEDIATE",
+      "speak": "Vendor. Active Intrusion Detected. Nexus Industrial Controls: \"Active intrusion in customer network. Do NOT disconnect without coordinating\u2014may affect life, safety handoffs.\"."
+    },
+    {
+      "slug": "vms-camera-offline-parking-deck-3",
+      "title": "VMS: Camera Offline - Parking Deck 3",
+      "urgency": "ROUTINE",
+      "speak": "video management: Camera Offline, Parking Deck 3. Camera PK, DECK3, 04 offline. Maintenance ticket open since yesterday for cabling. Scheduled repair this afternoon. Adjacent cameras providing coverage."
+    },
+    {
+      "slug": "isac-industry-wide-apt-campaign",
+      "title": "ISAC: Industry-Wide APT Campaign",
+      "urgency": "URGENT",
+      "speak": "I S A C: Industry, Wide A P T Campaign. FS, I S A C T L P Amber: A P T \"Industrial Spider\" targeting building automation vendors. Known TTPs: long dwell, exfil, physical system manipulation. 3 others confirmed hit."
+    },
+    {
+      "slug": "siem-credential-replay-at-dc",
+      "title": "SIEM: Credential Replay at DC",
+      "urgency": "IMMEDIATE",
+      "speak": "Siem: Credential Replay at DC. 47 badge reads at DC perimeter in 1 hour (normally 5, 8). Valid credentials, timing suggests automated replay. Guard confirms no unusual foot traffic."
+    },
+    {
+      "slug": "radio-guard-unknown-contractor-at-gate",
+      "title": "RADIO: Guard - Unknown Contractor at Gate",
+      "urgency": "URGENT",
+      "speak": "Radio. Guard, Unknown Contractor at Gate. Gate officer: Individual claiming Nexus maintenance, no appointment on file. Valid, looking badge but cant verify against vendor list. Holding at gate."
+    },
+    {
+      "slug": "critical-dc-cooling-hijacked",
+      "title": "CRITICAL: DC Cooling Hijacked",
+      "urgency": "IMMEDIATE",
+      "speak": "Critical. DC Cooling Hijacked. Facilities: DC cooling setpoints changed to 85\u00b0F remotely. building management shows \"remote session active.\" Temps rising. 45 min to thermal shutdown if unchecked."
+    },
+    {
+      "slug": "fire-panel-comm-fault",
+      "title": "FIRE: Panel Comm Fault",
+      "urgency": "URGENT",
+      "speak": "Fire. Panel Comm Fault. Fire panel lost communication with building management. Suppression functional in standalone. Fire marshal notification may be required within 4 hours per code."
+    },
+    {
+      "slug": "update-hvac-manual-override-backdoor-found",
+      "title": "UPDATE: HVAC Manual Override - Backdoor Found",
+      "urgency": "IMMEDIATE",
+      "speak": "Update. H V A C Manual Override, Backdoor Found. Facilities restored H V A C via manual override. However, forensics found additional backdoor on building management controller. Attacker may have persistent access to building systems."
+    },
+    {
+      "slug": "vendor-your-tenant-breached",
+      "title": "VENDOR: Your Tenant Breached",
+      "urgency": "IMMEDIATE",
+      "speak": "Vendor. Your Tenant Breached. Nexus CISO: \"Confirmed unauthorized access to your tenant. Attacker had read access to building management creds, floor plans, access control topology. Write access TBD.\"."
+    },
+    {
+      "slug": "site-fake-contractors",
+      "title": "SITE: Fake Contractors",
+      "urgency": "IMMEDIATE",
+      "speak": "Site. Fake Contractors. Guard: Two in Nexus uniforms claimed emergency maintenance. Nexus has no record. Departed when asked to verify. Plate captured."
+    },
+    {
+      "slug": "acs-after-hours-access-it-oncall",
+      "title": "ACS: After-Hours Access - IT Oncall",
+      "urgency": "ROUTINE",
+      "speak": "access control: After, Hours Access, IT Oncall. Badge access: IT on, call engineer entered server room. Valid credential, matches scheduled rotation. No anomalies detected."
+    },
+    {
+      "slug": "osint-floor-plans-leaked",
+      "title": "OSINT: Floor Plans Leaked",
+      "urgency": "IMMEDIATE",
+      "speak": "open source intel: Floor Plans Leaked. Threat intel: Your DC floor plans posted to paste site. Nexus metadata. Includes rack locations, camera positions, mantrap specs. 340 views."
+    },
+    {
+      "slug": "fbi-evidence-preservation-request",
+      "title": "FBI: Evidence Preservation Request",
+      "urgency": "URGENT",
+      "speak": "F B I: Evidence Preservation Request. F B I Cyber: Investigating Industrial Spider multi, victim. Request log preservation, avoid system changes. Can we collect evidence within 24 hours?."
+    },
+    {
+      "slug": "exec-ceo-wants-bluf",
+      "title": "EXEC: CEO Wants BLUF",
+      "urgency": "IMMEDIATE",
+      "speak": "Executive. C E O Wants bottom line up front. C E O call in 10 mins. Needs: (1) People safe? (2) Data safe? (3) Systems ETA? (4) Accountability? Prepare bottom line up front for each."
+    },
+    {
+      "slug": "ueba-high-risk-user-alert",
+      "title": "UEBA: High-Risk User Alert",
+      "urgency": "URGENT",
+      "speak": "U E B A: High, Risk User Alert. SecureView: JSmith (Sr. Network Engineer) risk score 94/100. Anomalies: 3AM VPN from new geo, large restricted downloads, unusual DC badge access."
+    },
+    {
+      "slug": "acs-badge-access-cafeteria",
+      "title": "ACS: Badge Access - Cafeteria",
+      "urgency": "ROUTINE",
+      "speak": "access control: Badge Access, Cafeteria. Routine: 47 badge reads at cafeteria entrance 7:45, 8:15 AM. Normal morning traffic. No anomalies detected."
+    },
+    {
+      "slug": "physical-dc-recon-evidence",
+      "title": "PHYSICAL: DC Recon Evidence",
+      "urgency": "URGENT",
+      "speak": "Physical. DC Recon Evidence. GS O C: JSmith accessed DC at 2:47 AM. Camera shows subject photographing server rack labels with personal phone. 34, min visit vs. typical 5, 10 min."
+    },
+    {
+      "slug": "dlp-2-3gb-exfiltrated",
+      "title": "DLP: 2.3GB Exfiltrated",
+      "urgency": "IMMEDIATE",
+      "speak": "D L P: 2.3GB Exfiltrated. D L P: 2.3GB to personal cloud from JSmith workstation. Network diagrams, firewall configs, customer contracts. Transfer completed\u2014policy was monitor, only."
+    },
+    {
+      "slug": "hr-subject-on-pip",
+      "title": "HR: Subject on PIP",
+      "urgency": "URGENT",
+      "speak": "H R. Subject on performance improvement plan. HR BP: JSmith on performance improvement plan 6 weeks. Attitude change after missed promotion. Mentioned \"having options\" in recent 1:1. No prior security concerns."
+    },
+    {
+      "slug": "osint-competitor-connection",
+      "title": "OSINT: Competitor Connection",
+      "urgency": "URGENT",
+      "speak": "open source intel: Competitor Connection. Threat intel: JSmith LinkedIn updated 3 weeks ago. Profile viewed by competitor accounts. Accepted recruiter connection from competitor strategic initiatives."
+    },
+    {
+      "slug": "update-dlp-additional-exfil-discovered",
+      "title": "UPDATE: DLP - Additional Exfil Discovered",
+      "urgency": "IMMEDIATE",
+      "speak": "Update. D L P, Additional Exfil Discovered. Forensics update: Earlier transfer also included customer PII database export. Total exfil now 3.7GB. Some files encrypted before transfer\u2014cannot confirm contents."
+    },
+    {
+      "slug": "real-time-subject-on-site",
+      "title": "REAL-TIME: Subject On-Site",
+      "urgency": "IMMEDIATE",
+      "speak": "REAL, TIME: Subject On, Site. JSmith just badged into main lobby, heading to IT ops area. Normal work hours. Manager offsite today."
+    },
+    {
+      "slug": "acs-visitor-pre-reg-sales-meeting",
+      "title": "ACS: Visitor Pre-Reg - Sales Meeting",
+      "urgency": "ROUTINE",
+      "speak": "access control: Visitor Pre, Reg, Sales Meeting. Visitor pre, registration: 3 visitors from Acme Corp for 10 AM sales meeting. Host: VP Sales. Standard escort policy applies."
+    },
+    {
+      "slug": "soc-backup-system-access",
+      "title": "SOC: Backup System Access",
+      "urgency": "IMMEDIATE",
+      "speak": "S O C: Backup System Access. JSmith attempting backup infrastructure access\u2014not in current role. 3 failed auths, then success with stale creds that should be revoked. Contains customer DB copies."
+    },
+    {
+      "slug": "legal-guidance-required",
+      "title": "LEGAL: Guidance Required",
+      "urgency": "URGENT",
+      "speak": "LEGAL: Guidance Required. General Counsel: \"Preserve evidence, consider LE notification. But confronting without HR present creates liability. What is immediate threat level?\"."
+    },
+    {
+      "slug": "real-time-dc-mantrap",
+      "title": "REAL-TIME: DC Mantrap",
+      "urgency": "IMMEDIATE",
+      "speak": "REAL, TIME: DC Mantrap. JSmith at DC mantrap now. Valid perimeter badge but should be denied inner door per your recommendation. Guard in mantrap. Subject on phone while waiting."
+    },
+    {
+      "slug": "fbi-already-investigating",
+      "title": "FBI: Already Investigating",
+      "urgency": "IMMEDIATE",
+      "speak": "F B I: Already Investigating. F B I agent: \"Active economic espionage investigation in your sector. A name from your org has appeared. Can we meet within 24 hours?\"."
+    },
+    {
+      "slug": "intel-planned-downtown-protests",
+      "title": "INTEL: Planned Downtown Protests",
+      "urgency": "URGENT",
+      "speak": "Intel. Planned Downtown Protests. Threat intel reports permitted protests planned for downtown area Saturday through Monday. Route passes within 2 blocks of HQ. Similar events in other cities saw escalation. Your EMexecutive assistant and APAC leads are asking for guidance to share with their stakeholders."
+    },
+    {
+      "slug": "site-protest-crowd-growing",
+      "title": "SITE: Protest Crowd Growing",
+      "urgency": "IMMEDIATE",
+      "speak": "Site. Protest Crowd Growing. Security officer: Crowd size increasing rapidly\u2014estimated 800+ now, growing. Signs indicate planned march toward financial district (our direction). Lobby visitors asking about situation. Your AMER team lead requests guidance."
+    },
+    {
+      "slug": "exec-cso-wants-status",
+      "title": "EXEC: CSO Wants Status",
+      "urgency": "IMMEDIATE",
+      "speak": "Executive. CSO Wants Status. CSO calling in 5 minutes for briefing. Wants to know: (1) Current situation, (2) Employee risk level, (3) Building recommendation, (4) Your team posture across regions. Prep your briefing\u2014executive presence matters here."
+    },
+    {
+      "slug": "hr-employee-concerns-escalating",
+      "title": "HR: Employee Concerns Escalating",
+      "urgency": "URGENT",
+      "speak": "H R. Employee Concerns Escalating. CHRO reports: HR receiving concerned calls from employees about safety. Some asking to leave early, others asking if WFH approved. Manager guidance needed. Communications team asking for talking points."
+    },
+    {
+      "slug": "critical-property-damage-nearby",
+      "title": "CRITICAL: Property Damage Nearby",
+      "urgency": "IMMEDIATE",
+      "speak": "Critical. Property Damage Nearby. BREAKING: Windows broken at building 2 blocks away. Crowd splintering\u2014some heading our direction. PD advising shelter, in, place for businesses on Main Street. Your EMexecutive assistant lead (starting shift in 90 min) asking for handoff prep."
+    },
+    {
+      "slug": "team-analyst-performance-issue",
+      "title": "TEAM: Analyst Performance Issue",
+      "urgency": "URGENT",
+      "speak": "TEAM: Analyst Performance Issue. Your AMER team lead flags: Junior analyst Alex overwhelmed, made triage error, sent non, urgent update to CSO instead of you first. Analyst stressed, near tears. High, pressure coaching moment while incident continues."
+    },
+    {
+      "slug": "shift-emea-lead-online",
+      "title": "SHIFT: EMEA Lead Online",
+      "urgency": "IMMEDIATE",
+      "speak": "SHIFT: EMexecutive assistant Lead Online. Sophie from EMexecutive assistant coming online. Needs handoff: current situation, open decisions, stakeholder status, resource state. Quality handoff critical\u2014she will carry this through next 12 hours while AMER team rests."
+    },
+    {
+      "slug": "vendor-contract-security-stretched",
+      "title": "VENDOR: Contract Security Stretched",
+      "urgency": "URGENT",
+      "speak": "Vendor. Contract Security Stretched. Security vendor: \"We're at 140% capacity citywide. Cannot guarantee reinforcements for your site. Recommend you authorize overtime for proprietary guards or mutual aid.\"."
+    },
+    {
+      "slug": "debrief-cmt-wants-lessons-learned",
+      "title": "DEBRIEF: CMT Wants Lessons Learned",
+      "urgency": "ROUTINE",
+      "speak": "DEBRIEF: CMT Wants Lessons Learned. Crisis Management Team scheduling debrief for tomorrow. Requesting initial observations: what worked, what gaps were identified, process improvement recs. Your maturity conversation with stakeholders starts here."
+    },
+    {
+      "slug": "critical-core-platform-unresponsive",
+      "title": "CRITICAL: Core Platform Unresponsive",
+      "urgency": "IMMEDIATE",
+      "speak": "Critical. Core Platform Unresponsive. SecureOps platform showing 503 errors across all regions. AMER, EMEA, APAC all reporting inability to access incident management system. Alarms still flowing to backup email. Your team is asking: activate manual procedures?."
+    },
+    {
+      "slug": "vendor-acknowledged-investigating",
+      "title": "VENDOR: Acknowledged, Investigating",
+      "urgency": "URGENT",
+      "speak": "Vendor. Acknowledged, Investigating. SecureOps support: \"Issue acknowledged. Engineering investigating. No ETA yet. Recommend activating your backup procedures. Will update in 30 minutes.\"."
+    },
+    {
+      "slug": "team-manual-process-gaps",
+      "title": "TEAM: Manual Process Gaps",
+      "urgency": "URGENT",
+      "speak": "TEAM: Manual Process Gaps. EMexecutive assistant lead reports: Manual backup procedures not practiced in 8 months. Some analysts unfamiliar with paper forms. Request permission to skip some documentation steps to maintain response times."
+    },
+    {
+      "slug": "exec-cso-notification-required",
+      "title": "EXEC: CSO Notification Required",
+      "urgency": "IMMEDIATE",
+      "speak": "Executive. CSO Notification Required. Per escalation matrix, CSO notification required at 60, minute mark of critical system outage. Mark approaching. Prepare briefing: what happened, impact, response, ETA."
+    },
+    {
+      "slug": "incident-real-event-during-outage",
+      "title": "INCIDENT: Real Event During Outage",
+      "urgency": "IMMEDIATE",
+      "speak": "INCIDENT: Real Event During Outage. APAC reports: Actual alarm activation at Singapore facility. Fire alarm zone 3. Need to dispatch response, coordinate with site, document\u2014all manually. High, pressure real incident during system outage."
+    },
+    {
+      "slug": "vendor-root-cause-identified",
+      "title": "VENDOR: Root Cause Identified",
+      "urgency": "URGENT",
+      "speak": "Vendor. Root Cause Identified. SecureOps: \"Database replication failure. Fix in progress. ETA 45 minutes to full restoration. Read, only access possible in 15 minutes. No data loss confirmed.\"."
+    },
+    {
+      "slug": "team-shift-handoff-approaching",
+      "title": "TEAM: Shift Handoff Approaching",
+      "urgency": "URGENT",
+      "speak": "TEAM: Shift Handoff Approaching. AMER shift ending in 2 hours. Need to hand off: (1) ongoing outage recovery, (2) manual incident documentation to reconcile, (3) Singapore fire follow, up. EMexecutive assistant lead asking for comprehensive handoff."
+    },
+    {
+      "slug": "restored-system-back-online",
+      "title": "RESTORED: System Back Online",
+      "urgency": "URGENT",
+      "speak": "RESTORED: System Back Online. SecureOps platform fully restored. All regions confirming access. Manual records need to be entered into system. Total outage duration: 2 hours 15 minutes."
+    },
+    {
+      "slug": "roadmap-technology-improvement-discussion",
+      "title": "ROADMAP: Technology Improvement Discussion",
+      "urgency": "ROUTINE",
+      "speak": "ROADMAP: Technology Improvement Discussion. CSO scheduling meeting to discuss: (1) Vendor SLA review, (2) Backup procedure gaps, (3) Technology redundancy investment. Your input on roadmap priorities expected. This is your chance to influence program direction."
+    }
+  ]
+}
