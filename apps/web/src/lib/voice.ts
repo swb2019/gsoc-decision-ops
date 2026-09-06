@@ -402,8 +402,8 @@ function processQueue(): void {
     return;
   }
 
-  // Don't process if already playing, queue empty, voice disabled, or system paused
-  if (isVOPlaying || voQueue.length === 0 || !voConfig.voiceEnabled || systemPaused) {
+  // Don't process if already playing, queue empty, or voice disabled
+  if (isVOPlaying || voQueue.length === 0 || !voConfig.voiceEnabled) {
     return;
   }
 
@@ -535,7 +535,9 @@ function playEventVOImmediate(
  * Won't overlap - lines queue and play sequentially.
  */
 export function playVO(voType: VOType): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
+  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  // Allow the pause announcement itself; block other cues while paused
+  if (systemPaused && voType !== 'pause_save') return;
 
   const voInfo = VO_FILES[voType];
   if (!voInfo) return;
@@ -608,8 +610,9 @@ export function playEventVO(
 }
 
 /**
- * Play event voice-over for an Intel Feed item when user clicks/selects it.
- * Higher priority than reveal-triggered VO to ensure immediate feedback.
+ * Play event voice-over for an Intel Feed / Situation Board item when the user
+ * clicks it. Higher priority than reveal-triggered VO for immediate feedback.
+ * Still plays while the simulation is paused so reviewing the board is audible.
  *
  * Each inject is spoken at most once per session. If already spoken,
  * this is a silent no-op (user can still see the item, just no re-read).
@@ -623,7 +626,7 @@ export function playEventVOOnSelect(
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
   injectId?: string
 ): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
+  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;

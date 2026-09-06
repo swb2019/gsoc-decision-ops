@@ -876,6 +876,7 @@ import {
   setVoiceEnabled,
   setBGMReference,
   setSystemPaused,
+  isSystemPaused,
   skipVO,
 } from '../lib/voice';
 import { getBasePath } from '../lib/base-path';
@@ -1364,13 +1365,18 @@ export default function CommandCenter({
 
   // Handle ambient music toggle - requires user gesture to unlock
   const handleAmbientMusicToggle = useCallback(() => {
-    if (!ambientMusicUnlocked) {
-      setAmbientMusicUnlocked(true);
-      setAmbientMusicEnabled(true);
+    const startIfUnpaused = (): void => {
+      if (isSystemPaused()) return;
       startAmbientMusic();
       setIsMusicPlaying(true);
       // Set BGM reference for VO ducking after brief delay to let it start
       setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
+    };
+
+    if (!ambientMusicUnlocked) {
+      setAmbientMusicUnlocked(true);
+      setAmbientMusicEnabled(true);
+      startIfUnpaused();
     } else if (ambientMusicEnabled) {
       setAmbientMusicEnabled(false);
       stopAmbientMusic();
@@ -1378,9 +1384,7 @@ export default function CommandCenter({
       setBGMReference(null);
     } else {
       setAmbientMusicEnabled(true);
-      startAmbientMusic();
-      setIsMusicPlaying(true);
-      setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
+      startIfUnpaused();
     }
   }, [ambientMusicEnabled, ambientMusicUnlocked]);
 
@@ -1546,6 +1550,9 @@ export default function CommandCenter({
       setIsRunning(true);
       if (ambientMusicEnabled && !reducedMotion) {
         resumeAmbientMusic();
+        if (!isAmbientMusicPlaying()) {
+          startAmbientMusic();
+        }
         setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
       }
     }

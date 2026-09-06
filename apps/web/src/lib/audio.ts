@@ -166,6 +166,8 @@ export function getAmbientAudioElement(): HTMLAudioElement | null {
 export function startAmbientMusic(): void {
   if (typeof window === 'undefined' || !config.enabled) return;
 
+  ambientPausedBySystem = false;
+
   if (!ambientAudio) {
     ambientAudio = new Audio(getAudioUrl(BGM_FILE));
     ambientAudio.loop = true;
@@ -176,10 +178,14 @@ export function startAmbientMusic(): void {
   ambientAudio
     .play()
     .then(() => {
+      if (!ambientAudio || ambientPausedBySystem) {
+        ambientAudio?.pause();
+        return;
+      }
       // Fade in to low volume
       const targetVolume = 0.12;
       const fadeIn = (): void => {
-        if (!ambientAudio) return;
+        if (!ambientAudio || ambientPausedBySystem) return;
         if (ambientAudio.volume < targetVolume - 0.01) {
           ambientAudio.volume = Math.min(targetVolume, ambientAudio.volume + 0.01);
         } else {
@@ -200,6 +206,8 @@ export function startAmbientMusic(): void {
 export function stopAmbientMusic(): void {
   if (!ambientAudio) return;
 
+  ambientPausedBySystem = false;
+
   // Fade out
   const fadeOut = (): void => {
     if (!ambientAudio) return;
@@ -209,7 +217,6 @@ export function stopAmbientMusic(): void {
       ambientAudio.pause();
       ambientAudio.volume = 0;
       ambientAudio.currentTime = 0;
-      ambientPausedBySystem = false;
       if (ambientFadeInterval) {
         clearInterval(ambientFadeInterval);
         ambientFadeInterval = null;
@@ -227,14 +234,16 @@ export function isAmbientMusicPlaying(): boolean {
  * Pause ambient BGM for system pause (preserves playback position).
  */
 export function pauseAmbientMusic(): void {
-  if (!ambientAudio || ambientAudio.paused) return;
+  if (!ambientAudio) return;
 
   ambientPausedBySystem = true;
   if (ambientFadeInterval) {
     clearInterval(ambientFadeInterval);
     ambientFadeInterval = null;
   }
-  ambientAudio.pause();
+  if (!ambientAudio.paused) {
+    ambientAudio.pause();
+  }
 }
 
 /**
