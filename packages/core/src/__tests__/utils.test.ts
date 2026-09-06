@@ -322,9 +322,7 @@ describe('Utils', () => {
     });
 
     it('should handle special characters', () => {
-      expect(slugifyTitle('Data Breach (Critical) - Q4 2024')).toBe(
-        'data-breach-critical-q4-2024'
-      );
+      expect(slugifyTitle('Data Breach (Critical) - Q4 2024')).toBe('data-breach-critical-q4-2024');
     });
 
     it('should handle unicode characters', () => {
