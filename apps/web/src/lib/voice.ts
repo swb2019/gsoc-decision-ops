@@ -13,7 +13,8 @@
  * - BGM ducking during VO playback
  * - Separate voiceEnabled toggle (default ON for first-run polish)
  * - Respects user preferences independently of SFX/BGM
- * - Event-specific VO playback with fallback to generic cues
+ * - Event-specific VO playback with fallback to generic cues or spoken TTS
+ * - Queued speechSynthesis TTS (no overlap with OGG VO; ducks BGM)
  * - Robust audio unlock with queue flush on first user gesture
  */
 
@@ -51,12 +52,28 @@ interface VOConfig {
   volume: number;
 }
 
+export interface EventVOOptions {
+  spokenFallback?: string;
+  force?: boolean;
+}
+
+export interface SpokenTextOptions {
+  priority?: number;
+  id?: string;
+  force?: boolean;
+}
+
+type VOPlaybackType = VOType | 'event' | 'tts';
+
 interface VOQueueItem {
-  type: VOType | 'event';
+  type: VOPlaybackType;
   priority: number;
   timestamp: number;
   audioUrl?: string;
   fallbackUrl?: string;
+  spokenText?: string;
+  spokenFallback?: string;
+  id?: string;
 }
 
 const VOICE_STORAGE_KEY = 'hourglass-voice-config';
@@ -106,7 +123,7 @@ const EVENT_VO_PRIORITY: Record<string, number> = {
 let voConfig: VOConfig = { ...DEFAULT_VO_CONFIG };
 const voAudioElements: Map<VOType, HTMLAudioElement> = new Map();
 let voQueue: VOQueueItem[] = [];
-let currentlyPlaying: VOType | 'event' | null = null;
+let currentlyPlaying: VOPlaybackType | null = null;
 let isVOPlaying = false;
 let voUnlocked = false;
 let pendingUnlockQueue: VOQueueItem[] = [];
@@ -119,6 +136,9 @@ let eventAudioElement: HTMLAudioElement | null = null;
 // Track spoken event IDs to prevent re-reading the same item (Bug fix: re-read on tab switch)
 // Stores inject IDs or slugified titles that have been spoken this session
 const spokenEventIds: Set<string> = new Set();
+
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+let currentEventSpokenFallback: string | null = null;
 
 // Mutex to prevent concurrent queue processing
 let isProcessingQueue = false;
@@ -270,12 +290,13 @@ export function setVoiceEnabled(enabled: boolean): void {
   saveVOConfig({ voiceEnabled: enabled });
 
   // Stop current playback if disabling
-  if (!enabled && currentlyPlaying) {
+  if (!enabled) {
+    cancelTTS();
     if (currentlyPlaying === 'event' && eventAudioElement) {
       eventAudioElement.pause();
       eventAudioElement.currentTime = 0;
-    } else {
-      const audio = voAudioElements.get(currentlyPlaying as VOType);
+    } else if (currentlyPlaying && currentlyPlaying !== 'event' && currentlyPlaying !== 'tts') {
+      const audio = voAudioElements.get(currentlyPlaying);
       if (audio) {
         audio.pause();
         audio.currentTime = 0;
@@ -284,6 +305,9 @@ export function setVoiceEnabled(enabled: boolean): void {
     currentlyPlaying = null;
     isVOPlaying = false;
     voQueue = [];
+    currentEventUrl = null;
+    currentEventFallbackUrl = null;
+    currentEventSpokenFallback = null;
     restoreBGMVolume();
   }
 }
@@ -359,8 +383,37 @@ function onVOEnded(): void {
 let currentEventUrl: string | null = null;
 let currentEventFallbackUrl: string | null = null;
 
+function getSpeechSynthesis(): SpeechSynthesis | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  return window.speechSynthesis;
+}
+
+function cancelTTS(): void {
+  currentUtterance = null;
+  const synth = getSpeechSynthesis();
+  if (synth) {
+    synth.cancel();
+  }
+}
+
 function onEventAudioError(): void {
-  // Try fallback if available
+  // TTS fallback may already be in flight (error event + play() reject)
+  if (currentlyPlaying === 'tts') return;
+
+  const spoken = currentEventSpokenFallback;
+  if (spoken && getSpeechSynthesis()) {
+    currentEventSpokenFallback = null;
+    currentEventUrl = null;
+    currentEventFallbackUrl = null;
+    if (eventAudioElement) {
+      eventAudioElement.pause();
+    }
+    playTTSImmediate(spoken);
+    return;
+  }
+  currentEventSpokenFallback = null;
+
+  // Try generic cue fallback if available
   if (currentEventFallbackUrl && currentEventUrl !== currentEventFallbackUrl && eventAudioElement) {
     currentEventUrl = currentEventFallbackUrl;
     currentEventFallbackUrl = null;
@@ -381,6 +434,7 @@ function handlePlayFailure(item?: VOQueueItem): void {
   currentlyPlaying = null;
   currentEventUrl = null;
   currentEventFallbackUrl = null;
+  currentEventSpokenFallback = null;
   restoreBGMVolume();
 
   if (!voUnlocked && item) {
@@ -414,9 +468,13 @@ function processQueue(): void {
     // reset the state (handles edge cases where ended event didn't fire)
     if (isVOPlaying) {
       const eventPlaying = eventAudioElement && !eventAudioElement.paused;
-      const cueAudio = currentlyPlaying ? voAudioElements.get(currentlyPlaying as VOType) : null;
+      const cueAudio =
+        currentlyPlaying && currentlyPlaying !== 'event' && currentlyPlaying !== 'tts'
+          ? voAudioElements.get(currentlyPlaying)
+          : null;
       const cuePlaying = cueAudio && !cueAudio.paused;
-      if (!eventPlaying && !cuePlaying) {
+      const ttsPlaying = currentlyPlaying === 'tts' && !!getSpeechSynthesis()?.speaking;
+      if (!eventPlaying && !cuePlaying && !ttsPlaying) {
         isVOPlaying = false;
         currentlyPlaying = null;
       } else {
@@ -436,8 +494,12 @@ function processQueue(): void {
 
     if (item.type === 'event' && item.audioUrl) {
       playEventVOImmediate(item.audioUrl, item.fallbackUrl, item);
-    } else if (item.type !== 'event') {
+    } else if (item.type === 'tts' && item.spokenText) {
+      playTTSImmediate(item.spokenText, item);
+    } else if (item.type !== 'event' && item.type !== 'tts') {
       playVOImmediate(item.type, item);
+    } else {
+      handlePlayFailure(item);
     }
   } finally {
     isProcessingQueue = false;
@@ -505,6 +567,7 @@ function playEventVOImmediate(
   // Store for error handling fallback
   currentEventUrl = audioUrl;
   currentEventFallbackUrl = fallbackUrl || null;
+  currentEventSpokenFallback = queueItem?.spokenFallback?.trim() || null;
 
   duckBGM();
 
@@ -520,6 +583,7 @@ function playEventVOImmediate(
       currentlyPlaying = null;
       currentEventUrl = null;
       currentEventFallbackUrl = null;
+      currentEventSpokenFallback = null;
       restoreBGMVolume();
       pendingUnlockQueue.push(queueItem);
       return;
@@ -527,6 +591,53 @@ function playEventVOImmediate(
     // Try fallback
     onEventAudioError();
   });
+}
+
+/**
+ * Speak text via speechSynthesis using the VO queue (no overlap, ducks BGM).
+ */
+function playTTSImmediate(text: string, queueItem?: VOQueueItem): void {
+  if (!voConfig.voiceEnabled || typeof window === 'undefined') {
+    handlePlayFailure(queueItem);
+    return;
+  }
+
+  const synth = getSpeechSynthesis();
+  const spoken = text.trim();
+  if (!synth || !spoken) {
+    handlePlayFailure(queueItem);
+    return;
+  }
+
+  cancelTTS();
+
+  isVOPlaying = true;
+  currentlyPlaying = 'tts';
+  duckBGM();
+
+  const utterance = new SpeechSynthesisUtterance(spoken);
+  utterance.volume = voConfig.volume;
+  utterance.rate = 1;
+  utterance.lang = 'en-US';
+  utterance.onend = () => {
+    if (currentUtterance !== utterance) return;
+    currentUtterance = null;
+    onVOEnded();
+  };
+  utterance.onerror = () => {
+    if (currentUtterance !== utterance) return;
+    currentUtterance = null;
+    handlePlayFailure(queueItem);
+  };
+  currentUtterance = utterance;
+
+  try {
+    synth.speak(utterance);
+    playAttemptCount = 0;
+  } catch {
+    currentUtterance = null;
+    handlePlayFailure(queueItem);
+  }
 }
 
 /**
@@ -554,6 +665,35 @@ export function playVO(voType: VOType): void {
 }
 
 /**
+ * Queue speechSynthesis TTS into the VO queue.
+ * Ducks BGM, respects voiceEnabled/systemPaused, clears on skipVO, and does not overlap other VO.
+ */
+export function playSpokenText(text: string, opts?: SpokenTextOptions): void {
+  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
+
+  const spoken = text.trim();
+  if (!spoken) return;
+
+  const trackingId = opts?.id;
+  if (trackingId) {
+    if (!opts?.force && spokenEventIds.has(trackingId)) {
+      return;
+    }
+    spokenEventIds.add(trackingId);
+  }
+
+  voQueue.push({
+    type: 'tts',
+    priority: opts?.priority ?? 5,
+    timestamp: Date.now(),
+    spokenText: spoken,
+    id: trackingId,
+  });
+
+  processQueue();
+}
+
+/**
  * Build the URL for an event VO file.
  * Exported for testing purposes.
  */
@@ -573,11 +713,13 @@ export function getEventVOUrl(title: string): string {
  * @param title - The inject title (will be slugified to find audio file)
  * @param triagePriority - Optional triage priority for queue priority and fallback selection
  * @param injectId - Optional inject ID for tracking (uses slug if not provided)
+ * @param options - Optional spokenFallback spoken via TTS when the event OGG is missing
  */
 export function playEventVO(
   title: string,
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
-  injectId?: string
+  injectId?: string,
+  options?: EventVOOptions
 ): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
 
@@ -597,6 +739,7 @@ export function playEventVO(
   const audioUrl = getAudioUrl(`/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`);
   const fallbackCue = priority >= EVENT_VO_PRIORITY.URGENT ? 'inject_critical' : 'inject_elevated';
   const fallbackUrl = getAudioUrl(`/audio/voice/${fallbackCue}.ogg?v=${VO_VERSION}`);
+  const spokenFallback = options?.spokenFallback?.trim() || undefined;
 
   voQueue.push({
     type: 'event',
@@ -604,6 +747,7 @@ export function playEventVO(
     timestamp: Date.now(),
     audioUrl,
     fallbackUrl,
+    spokenFallback,
   });
 
   processQueue();
@@ -620,18 +764,19 @@ export function playEventVO(
  * @param title - The inject title
  * @param triagePriority - Optional triage priority for fallback selection
  * @param injectId - Optional inject ID for tracking (uses slug if not provided)
- * @param force - Re-queue even if this id was already spoken (tap-to-hear)
+ * @param options - spokenFallback when event OGG is missing; force to re-queue tap-to-hear
  */
 export function playEventVOOnSelect(
   title: string,
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
   injectId?: string,
-  force = false
+  options?: EventVOOptions
 ): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;
+  const force = options?.force ?? false;
 
   // Skip if this inject has already been spoken this session
   if (!force && spokenEventIds.has(trackingId)) {
@@ -648,6 +793,7 @@ export function playEventVOOnSelect(
   const audioUrl = getAudioUrl(`/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`);
   const fallbackCue = priority >= EVENT_VO_PRIORITY.URGENT ? 'inject_critical' : 'inject_elevated';
   const fallbackUrl = getAudioUrl(`/audio/voice/${fallbackCue}.ogg?v=${VO_VERSION}`);
+  const spokenFallback = options?.spokenFallback?.trim() || undefined;
 
   voQueue.push({
     type: 'event',
@@ -655,6 +801,7 @@ export function playEventVOOnSelect(
     timestamp: Date.now(),
     audioUrl,
     fallbackUrl,
+    spokenFallback,
   });
 
   processQueue();
@@ -664,12 +811,14 @@ export function playEventVOOnSelect(
  * Skip current VO and clear queue
  */
 export function skipVO(): void {
+  cancelTTS();
   if (currentlyPlaying === 'event' && eventAudioElement) {
     eventAudioElement.pause();
     eventAudioElement.currentTime = 0;
     currentEventUrl = null;
     currentEventFallbackUrl = null;
-  } else if (currentlyPlaying && currentlyPlaying !== 'event') {
+    currentEventSpokenFallback = null;
+  } else if (currentlyPlaying && currentlyPlaying !== 'event' && currentlyPlaying !== 'tts') {
     const audio = voAudioElements.get(currentlyPlaying);
     if (audio) {
       audio.pause();

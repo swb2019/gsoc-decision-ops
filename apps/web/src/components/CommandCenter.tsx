@@ -871,6 +871,7 @@ import {
   playVO,
   playEventVO,
   playEventVOOnSelect,
+  playSpokenText,
   initVO,
   loadVOConfig,
   setVoiceEnabled,
@@ -927,6 +928,34 @@ interface MicroTask {
 
 function getMicroTaskVOTitle(task: Pick<MicroTask, 'title' | 'question'>): string {
   return `${task.title}. ${task.question}`;
+}
+
+function shortContentForSpeech(content: string, maxLen = 180): string {
+  const trimmed = content.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  const sentence = trimmed.match(/^[^.!?]+[.!?]/);
+  if (sentence && sentence[0].length <= maxLen) return sentence[0].trim();
+  const sliced = trimmed.slice(0, maxLen);
+  const lastSpace = sliced.lastIndexOf(' ');
+  return (lastSpace > 40 ? sliced.slice(0, lastSpace) : sliced).trim();
+}
+
+function getInjectSpokenFallback(
+  inject: Pick<ScenarioInject, 'title' | 'decisionPressure' | 'content'>
+): string {
+  const pressure = inject.decisionPressure?.trim();
+  if (pressure) {
+    return `${inject.title}. ${pressure}`;
+  }
+  const shortContent = shortContentForSpeech(inject.content ?? '');
+  return shortContent ? `${inject.title}. ${shortContent}` : inject.title;
+}
+
+function getDecisionSpokenText(inject: Pick<ScenarioInject, 'title' | 'decisionPressure'>): string {
+  const pressure = inject.decisionPressure?.trim();
+  return pressure
+    ? `${inject.title}. Decision required. ${pressure}`
+    : `${inject.title}. Decision required.`;
 }
 
 interface GameState {
@@ -1660,8 +1689,12 @@ export default function CommandCenter({
       );
       setDecisionTimer(adjustedTimer);
 
-      // Play decision prompt VO when decision window opens
+      // Brief decision cue, then speak the actual decision question
       playVO('decision_prompt');
+      playSpokenText(getDecisionSpokenText(pendingDecision), {
+        priority: 8,
+        id: `decision:${pendingDecision.id}`,
+      });
 
       decisionTimerRef.current = setInterval(() => {
         setDecisionTimer((t) => {
@@ -1714,7 +1747,9 @@ export default function CommandCenter({
           playSFX('injectArrive');
 
           // Play event voice-over (ElevenLabs-generated)
-          playEventVO(inject.title, inject.triagePriority, inject.id);
+          playEventVO(inject.title, inject.triagePriority, inject.id, {
+            spokenFallback: getInjectSpokenFallback(inject),
+          });
 
           triggerInjectAlert(inject);
 
@@ -1764,7 +1799,9 @@ export default function CommandCenter({
           playSFX('injectArrive');
 
           // Play event voice-over (ElevenLabs-generated)
-          playEventVO(inject.title, inject.triagePriority, inject.id);
+          playEventVO(inject.title, inject.triagePriority, inject.id, {
+            spokenFallback: getInjectSpokenFallback(inject),
+          });
 
           triggerInjectAlert(inject);
 
@@ -1824,7 +1861,7 @@ export default function CommandCenter({
       if (availableTasks.length > 0) {
         const randomTask = availableTasks[Math.floor(Math.random() * availableTasks.length)];
         setActiveMicroTask(randomTask);
-        playEventVO(getMicroTaskVOTitle(randomTask), 'ROUTINE', randomTask.id);
+        playSpokenText(getMicroTaskVOTitle(randomTask), { id: randomTask.id });
         setMicroTaskTimer(randomTask.duration);
         setMicroTaskAnimating(true);
         setMicroTaskAnswer(null);
@@ -3691,7 +3728,9 @@ export default function CommandCenter({
                         setSelectedTreatmentOption(null);
                         setSelectedResidualRisk(null);
                         setTreatmentBonusGiven(false);
-                        playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
+                        playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+                          spokenFallback: getInjectSpokenFallback(inject),
+                        });
                       }
                     }}
                     reducedMotion={reducedMotion}
@@ -3736,7 +3775,9 @@ export default function CommandCenter({
                   setPendingDecision(inject);
                   setSelectedAsset(null);
                   setAssetOwnerBriefed(false);
-                  playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
+                  playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+                    spokenFallback: getInjectSpokenFallback(inject),
+                  });
                 }}
                 difficulty={difficulty}
                 onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
@@ -3874,7 +3915,9 @@ export default function CommandCenter({
                     setSelectedTreatmentOption(null);
                     setSelectedResidualRisk(null);
                     setTreatmentBonusGiven(false);
-                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
+                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+                      spokenFallback: getInjectSpokenFallback(inject),
+                    });
                   }
                 }}
                 consequenceAnimation={
@@ -4140,7 +4183,9 @@ export default function CommandCenter({
                           setSelectedResidualRisk(null);
                           setTreatmentBonusGiven(false);
                           setMobileTab('decision');
-                          playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
+                          playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+                            spokenFallback: getInjectSpokenFallback(inject),
+                          });
                         }
                       }}
                       reducedMotion={reducedMotion}
@@ -4192,7 +4237,9 @@ export default function CommandCenter({
                     setPendingDecision(inject);
                     setSelectedAsset(null);
                     setAssetOwnerBriefed(false);
-                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
+                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+                      spokenFallback: getInjectSpokenFallback(inject),
+                    });
                   }}
                   difficulty={difficulty}
                   onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
@@ -4266,7 +4313,9 @@ export default function CommandCenter({
                       setSelectedResidualRisk(null);
                       setTreatmentBonusGiven(false);
                       setMobileTab('decision');
-                      playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
+                      playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+                        spokenFallback: getInjectSpokenFallback(inject),
+                      });
                     }
                   }}
                   consequenceAnimation={
@@ -4688,12 +4737,11 @@ export default function CommandCenter({
           onDismiss={dismissMicroTask}
           onSkip={skipMicroTask}
           onHear={() =>
-            playEventVOOnSelect(
-              getMicroTaskVOTitle(activeMicroTask),
-              'ROUTINE',
-              activeMicroTask.id,
-              true
-            )
+            playSpokenText(getMicroTaskVOTitle(activeMicroTask), {
+              id: activeMicroTask.id,
+              force: true,
+              priority: 8,
+            })
           }
           reducedMotion={reducedMotion}
           animating={microTaskAnimating}
@@ -10232,7 +10280,9 @@ function MicroTaskCard({
                           ? '✗'
                           : option.id.toUpperCase()}
                     </span>
-                    <span className="flex-1">{option.text}</span>
+                    <span className="flex-1 min-w-0 whitespace-normal break-words">
+                      {option.text}
+                    </span>
                   </div>
                 </button>
               );
@@ -10255,7 +10305,7 @@ function MicroTaskCard({
                 <div
                   key={optionId}
                   className={clsx(
-                    'flex items-center gap-2 p-2.5 rounded-xl border-2 transition-all',
+                    'flex items-start gap-2 p-2.5 rounded-xl border-2 transition-all',
                     hasAnswered
                       ? isCorrectPosition
                         ? 'border-emerald-500/50 bg-emerald-500/10'
@@ -10275,20 +10325,22 @@ function MicroTaskCard({
                   >
                     {index + 1}
                   </span>
-                  <span className="flex-1 text-sm text-gray-200 truncate">{option.text}</span>
+                  <span className="flex-1 min-w-0 text-sm text-gray-200 whitespace-normal break-words leading-snug">
+                    {option.text}
+                  </span>
                   {!hasAnswered && (
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-0.5 flex-shrink-0">
                       <button
                         onClick={() => moveRankItem(index, 'up')}
                         disabled={index === 0}
-                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
                       >
                         <ChevronRight className="w-4 h-4 -rotate-90 text-gray-400" />
                       </button>
                       <button
                         onClick={() => moveRankItem(index, 'down')}
                         disabled={index === rankingOrder.length - 1}
-                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-1 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
                       >
                         <ChevronRight className="w-4 h-4 rotate-90 text-gray-400" />
                       </button>
