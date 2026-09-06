@@ -10,6 +10,8 @@
  *   - Starter plan
  */
 
+import { getAudioUrl } from './base-path';
+
 export type SFXType =
   | 'injectArrive'
   | 'correctDecision'
@@ -33,14 +35,6 @@ const STORAGE_KEY = 'hourglass-audio-config';
 const DEFAULT_CONFIG: AudioConfig = {
   enabled: false, // Default OFF per requirements
   volume: 0.35,
-};
-
-// Get basePath for audio files (GitHub Pages compatible)
-const getBasePath = (): string => {
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_BASE_PATH || '';
-  }
-  return '';
 };
 
 // SFX version for cache-busting (update when ElevenLabs regenerates files)
@@ -135,22 +129,16 @@ export function playSFX(sfxType: SFXType): void {
 export function initAudio(): void {
   if (typeof window === 'undefined') return;
 
-  // Load config
   loadAudioConfig();
 
-  // Set up audio unlock listeners
   document.addEventListener('click', unlockAudio);
   document.addEventListener('touchstart', unlockAudio);
   document.addEventListener('keydown', unlockAudio);
 
-  // Pre-load audio files
-  const basePath = getBasePath();
-
   Object.entries(SFX_FILES).forEach(([type, path]) => {
     const pool: HTMLAudioElement[] = [];
-    // Create pool of 3 for overlapping playback
     for (let i = 0; i < 3; i++) {
-      const audio = new Audio(`${basePath}${path}`);
+      const audio = new Audio(getAudioUrl(path));
       audio.preload = 'auto';
       audio.volume = config.volume;
       pool.push(audio);
@@ -178,8 +166,7 @@ export function startAmbientMusic(): void {
   if (typeof window === 'undefined' || !config.enabled) return;
 
   if (!ambientAudio) {
-    const basePath = getBasePath();
-    ambientAudio = new Audio(`${basePath}${BGM_FILE}`);
+    ambientAudio = new Audio(getAudioUrl(BGM_FILE));
     ambientAudio.loop = true;
     ambientAudio.volume = 0;
     ambientAudio.preload = 'auto';

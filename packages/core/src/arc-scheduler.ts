@@ -161,6 +161,9 @@ export class ArcScheduler {
 
   /**
    * Schedule initial injects with randomized timing
+   *
+   * Ensures the first inject appears within a reasonable time frame (max 30 seconds)
+   * while maintaining randomization for subsequent injects.
    */
   private scheduleInitialInjects(injects: ScenarioInject[]): void {
     const shuffled = this.rng.shuffle([...injects]);
@@ -173,6 +176,7 @@ export class ArcScheduler {
     );
 
     let currentSecond = this.rng.int(5, 15);
+    let isFirstInject = true;
 
     for (const inject of coreInjects) {
       const priority = this.determinePriority(inject);
@@ -180,7 +184,16 @@ export class ArcScheduler {
 
       const originalMinute = inject.revealAtMinute;
       const baseSecond = originalMinute * 60;
-      const adjustedSecond = Math.max(currentSecond, baseSecond + jitter);
+      let adjustedSecond = Math.max(currentSecond, baseSecond + jitter);
+
+      // Ensure first inject appears within 30 seconds for good UX
+      // This prevents players waiting several minutes for the first event
+      if (isFirstInject && adjustedSecond > 30) {
+        adjustedSecond = this.rng.int(15, 30);
+        isFirstInject = false;
+      } else {
+        isFirstInject = false;
+      }
 
       this.state.scheduledInjects.push({
         inject: { ...inject, revealAtMinute: adjustedSecond / 60 },

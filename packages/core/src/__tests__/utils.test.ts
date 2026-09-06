@@ -328,5 +328,79 @@ describe('Utils', () => {
     it('should handle unicode characters', () => {
       expect(slugifyTitle('Alerte Sécurité')).toBe('alerte-s-curit');
     });
+
+    describe('event VO file slug mappings', () => {
+      const injectTitleToExpectedSlug: Array<[string, string]> = [
+        ['FLASH: CEO Dark Web Mention', 'flash-ceo-dark-web-mention'],
+        ['VMS: Motion - Visitor Lot B', 'vms-motion-visitor-lot-b'],
+        ['CYBER: Spear-Phishing EAs', 'cyber-spear-phishing-eas'],
+        ['ACS: Door Held - Loading Dock', 'acs-door-held-loading-dock'],
+        ['PHYSICAL: Badge Anomaly C-Suite', 'physical-badge-anomaly-c-suite'],
+        ['VENDOR: API Compromise Investigation', 'vendor-api-compromise-investigation'],
+        ['UPDATE: Badge Anomaly - Additional Reads', 'update-badge-anomaly-additional-reads'],
+        ['EP: Surveillance in Singapore', 'ep-surveillance-in-singapore'],
+        ['BMS: Elevator PM - Tower A', 'bms-elevator-pm-tower-a'],
+        ['FBI: APT Advisory TLP:AMBER', 'fbi-apt-advisory-tlp-amber'],
+        ['TIP: Suspicious Inquiry at Reception', 'tip-suspicious-inquiry-at-reception'],
+        ['SITE: Suspicious Vehicle Exec Lot', 'site-suspicious-vehicle-exec-lot'],
+        ['UPDATE: Vehicle Plate - Rental to Unknown', 'update-vehicle-plate-rental-to-unknown'],
+        ['SOC: C2 Beacon on EA Machine', 'soc-c2-beacon-on-ea-machine'],
+        ['ALARM: Fire Supervisory - Bldg 2', 'alarm-fire-supervisory-bldg-2'],
+        ['EXEC: Trip Decision Required', 'exec-trip-decision-required'],
+        ['INTEL: Dark Web Post Update - Conflicting', 'intel-dark-web-post-update-conflicting'],
+        ['INTEL: Planned Downtown Protests', 'intel-planned-downtown-protests'],
+        ['SITE: Protest Crowd Growing', 'site-protest-crowd-growing'],
+        ['EXEC: CSO Wants Status', 'exec-cso-wants-status'],
+        ['HR: Employee Concerns Escalating', 'hr-employee-concerns-escalating'],
+        ['CRITICAL: Property Damage Nearby', 'critical-property-damage-nearby'],
+        ['TEAM: Analyst Performance Issue', 'team-analyst-performance-issue'],
+        ['SHIFT: EMEA Lead Online', 'shift-emea-lead-online'],
+        ['VENDOR: Contract Security Stretched', 'vendor-contract-security-stretched'],
+        ['DEBRIEF: CMT Wants Lessons Learned', 'debrief-cmt-wants-lessons-learned'],
+        ['CRITICAL: Core Platform Unresponsive', 'critical-core-platform-unresponsive'],
+        ['VENDOR: Acknowledged, Investigating', 'vendor-acknowledged-investigating'],
+        ['TEAM: Manual Process Gaps', 'team-manual-process-gaps'],
+        ['EXEC: CSO Notification Required', 'exec-cso-notification-required'],
+        ['INCIDENT: Real Event During Outage', 'incident-real-event-during-outage'],
+        ['VENDOR: Root Cause Identified', 'vendor-root-cause-identified'],
+        ['TEAM: Shift Handoff Approaching', 'team-shift-handoff-approaching'],
+        ['RESTORED: System Back Online', 'restored-system-back-online'],
+        ['ROADMAP: Technology Improvement Discussion', 'roadmap-technology-improvement-discussion'],
+        ['VENDOR: Active Intrusion Detected', 'vendor-active-intrusion-detected'],
+        ['VMS: Camera Offline - Parking Deck 3', 'vms-camera-offline-parking-deck-3'],
+        ['ISAC: Industry-Wide APT Campaign', 'isac-industry-wide-apt-campaign'],
+        ['SIEM: Credential Replay at DC', 'siem-credential-replay-at-dc'],
+        ['RADIO: Guard - Unknown Contractor at Gate', 'radio-guard-unknown-contractor-at-gate'],
+        ['CRITICAL: DC Cooling Hijacked', 'critical-dc-cooling-hijacked'],
+        ['FIRE: Panel Comm Fault', 'fire-panel-comm-fault'],
+        [
+          'UPDATE: HVAC Manual Override - Backdoor Found',
+          'update-hvac-manual-override-backdoor-found',
+        ],
+        ['VENDOR: Your Tenant Breached', 'vendor-your-tenant-breached'],
+        ['SITE: Fake Contractors', 'site-fake-contractors'],
+        ['ACS: After-Hours Access - IT Oncall', 'acs-after-hours-access-it-oncall'],
+        ['OSINT: Floor Plans Leaked', 'osint-floor-plans-leaked'],
+        ['FBI: Evidence Preservation Request', 'fbi-evidence-preservation-request'],
+        ['EXEC: CEO Wants BLUF', 'exec-ceo-wants-bluf'],
+        ['UEBA: High-Risk User Alert', 'ueba-high-risk-user-alert'],
+        ['ACS: Badge Access - Cafeteria', 'acs-badge-access-cafeteria'],
+        ['PHYSICAL: DC Recon Evidence', 'physical-dc-recon-evidence'],
+        ['DLP: 2.3GB Exfiltrated', 'dlp-2-3gb-exfiltrated'],
+        ['HR: Subject on PIP', 'hr-subject-on-pip'],
+        ['OSINT: Competitor Connection', 'osint-competitor-connection'],
+        ['UPDATE: DLP - Additional Exfil Discovered', 'update-dlp-additional-exfil-discovered'],
+        ['REAL-TIME: Subject On-Site', 'real-time-subject-on-site'],
+        ['ACS: Visitor Pre-Reg - Sales Meeting', 'acs-visitor-pre-reg-sales-meeting'],
+        ['SOC: Backup System Access', 'soc-backup-system-access'],
+        ['LEGAL: Guidance Required', 'legal-guidance-required'],
+        ['REAL-TIME: DC Mantrap', 'real-time-dc-mantrap'],
+        ['FBI: Already Investigating', 'fbi-already-investigating'],
+      ];
+
+      it.each(injectTitleToExpectedSlug)('should slugify "%s" to "%s"', (title, expectedSlug) => {
+        expect(slugifyTitle(title)).toBe(expectedSlug);
+      });
+    });
   });
 });

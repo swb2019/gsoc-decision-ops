@@ -86,14 +86,6 @@ const SESSION_STORAGE_KEY = 'hourglass-command-session';
 const PERSONAL_BEST_KEY = 'hourglass-personal-bests';
 const DIFFICULTY_KEY = 'hourglass-difficulty';
 
-// Get basePath for navigation (GitHub Pages compatible)
-const getBasePath = (): string => {
-  if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_BASE_PATH || '';
-  }
-  return '';
-};
-
 /**
  * DIFFICULTY CONFIGURATION
  *
@@ -878,12 +870,14 @@ import {
 import {
   playVO,
   playEventVO,
+  playEventVOOnSelect,
   initVO,
   loadVOConfig,
   setVoiceEnabled,
   setBGMReference,
   skipVO,
 } from '../lib/voice';
+import { getBasePath } from '../lib/base-path';
 import {
   loadFieldGuideConfig,
   saveSeenTip,
@@ -1715,9 +1709,14 @@ export default function CommandCenter({
         }
       }
 
-      // Update zone heat and trust from scheduler state
+      // Update zone heat from scheduler state (only if changed to prevent re-renders)
       const schedulerHeat = scheduler.getZoneHeat();
-      setZoneHeatLevels(schedulerHeat);
+      setZoneHeatLevels((prev) => {
+        const hasChanged = Object.keys(schedulerHeat).some(
+          (key) => prev[key] !== schedulerHeat[key]
+        );
+        return hasChanged ? schedulerHeat : prev;
+      });
     } else {
       // Fallback to original time-based reveal (when scheduler not initialized)
       const currentMinute = Math.floor(elapsedSeconds / 60);
@@ -2278,14 +2277,12 @@ export default function CommandCenter({
         setScreenFlash('red');
         playSound('escalation');
         urgentFeedback();
-        // Play critical inject VO
-        playVO('inject_critical');
+        // Event VO (with fallback to inject_critical) is played by playEventVO before this
       } else if (urgency === 'URGENT') {
         setScreenFlash('amber');
         playSound('injectArrive');
         tapFeedback();
-        // Play elevated inject VO
-        playVO('inject_elevated');
+        // Event VO (with fallback to inject_elevated) is played by playEventVO before this
       } else {
         playSound('injectArrive');
         tapFeedback();
@@ -3668,6 +3665,7 @@ export default function CommandCenter({
                         setSelectedTreatmentOption(null);
                         setSelectedResidualRisk(null);
                         setTreatmentBonusGiven(false);
+                        playEventVOOnSelect(inject.title, inject.triagePriority);
                       }
                     }}
                     reducedMotion={reducedMotion}
@@ -3712,6 +3710,7 @@ export default function CommandCenter({
                   setPendingDecision(inject);
                   setSelectedAsset(null);
                   setAssetOwnerBriefed(false);
+                  playEventVOOnSelect(inject.title, inject.triagePriority);
                 }}
                 difficulty={difficulty}
                 onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
@@ -4018,6 +4017,7 @@ export default function CommandCenter({
                           setSelectedResidualRisk(null);
                           setTreatmentBonusGiven(false);
                           setMobileTab('decision');
+                          playEventVOOnSelect(inject.title, inject.triagePriority);
                         }
                       }}
                       reducedMotion={reducedMotion}
@@ -4069,6 +4069,7 @@ export default function CommandCenter({
                     setPendingDecision(inject);
                     setSelectedAsset(null);
                     setAssetOwnerBriefed(false);
+                    playEventVOOnSelect(inject.title, inject.triagePriority);
                   }}
                   difficulty={difficulty}
                   onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
