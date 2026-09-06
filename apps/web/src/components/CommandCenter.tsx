@@ -880,7 +880,7 @@ import {
   setBGMReference,
   setSystemPaused,
   skipVO,
-  isVOCurrentlyPlaying,
+  isScriptedVOBusy,
 } from '../lib/voice';
 import { getBasePath } from '../lib/base-path';
 import {
@@ -1337,7 +1337,7 @@ export default function CommandCenter({
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
 
   // Local comms / operator headset (on-device STT/TTS, opt-in)
-  const localVoice = useLocalVoice(isVOCurrentlyPlaying);
+  const localVoice = useLocalVoice(isScriptedVOBusy);
 
   // Load ambient music preference from localStorage
   useEffect(() => {
@@ -3847,14 +3847,13 @@ export default function CommandCenter({
                 selectedResidualRisk={selectedResidualRisk}
                 onSelectResidualRisk={setSelectedResidualRisk}
                 localVoice={{
-                  isEnabled: localVoice.isEnabled,
-                  isReady: localVoice.isReady,
+                  canSpeak: localVoice.canSpeak,
+                  canListen: localVoice.canListen,
                   isListening: localVoice.isListening,
                   isSpeaking: localVoice.isSpeaking,
-                  config: localVoice.config,
+                  speakText: localVoice.speakText,
                   startRecording: localVoice.startRecording,
                   stopRecording: localVoice.stopRecording,
-                  readInject: localVoice.readInject,
                 }}
               />
             ) : (
@@ -4329,14 +4328,13 @@ export default function CommandCenter({
                   selectedResidualRisk={selectedResidualRisk}
                   onSelectResidualRisk={setSelectedResidualRisk}
                   localVoice={{
-                    isEnabled: localVoice.isEnabled,
-                    isReady: localVoice.isReady,
+                    canSpeak: localVoice.canSpeak,
+                    canListen: localVoice.canListen,
                     isListening: localVoice.isListening,
                     isSpeaking: localVoice.isSpeaking,
-                    config: localVoice.config,
+                    speakText: localVoice.speakText,
                     startRecording: localVoice.startRecording,
                     stopRecording: localVoice.stopRecording,
-                    readInject: localVoice.readInject,
                   }}
                 />
               ) : (
@@ -4638,10 +4636,8 @@ export default function CommandCenter({
           calcTrails={calcTrails}
           scenarioId={scenarioId}
           localVoice={{
-            isEnabled: localVoice.isEnabled,
-            isReady: localVoice.isReady,
+            canSpeak: localVoice.canSpeak,
             isSpeaking: localVoice.isSpeaking,
-            config: localVoice.config,
             readAAR: localVoice.readAAR,
           }}
           onRematch={() => {
@@ -4707,7 +4703,7 @@ export default function CommandCenter({
           <div className="w-full max-w-md animate-scale-in">
             <LocalVoicePanel
               reducedMotion={reducedMotion}
-              elevenLabsPlayingChecker={isVOCurrentlyPlaying}
+              elevenLabsPlayingChecker={isScriptedVOBusy}
               onClose={() => setShowLocalVoicePanel(false)}
             />
           </div>
@@ -4875,6 +4871,9 @@ export default function CommandCenter({
               priority: 8,
             })
           }
+          headset={
+            localVoice.isEnabled ? { enabled: true, canSpeak: localVoice.canSpeak } : undefined
+          }
           reducedMotion={reducedMotion}
           animating={microTaskAnimating}
           currentAnswer={microTaskAnswer}
@@ -5004,8 +5003,11 @@ function InjectCard({
       role="button"
       tabIndex={isHandled ? -1 : 0}
       aria-disabled={isHandled}
-      onClick={() => {
-        if (!isHandled) onSelect();
+      onClick={(e) => {
+        if (isHandled) return;
+        const target = e.target;
+        if (target instanceof Element && target.closest('button')) return;
+        onSelect();
       }}
       onKeyDown={(e) => {
         if (isHandled) return;
@@ -5219,6 +5221,8 @@ function InjectCard({
                     e.stopPropagation();
                     headsetHear.onHear();
                   }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                   className={clsx(
                     'inline-flex items-center gap-1 px-2 py-1 rounded-md text-2xs font-medium transition-all min-h-[28px]',
                     headsetHear.isSpeaking
@@ -5282,14 +5286,13 @@ function DecisionConsole({
   selectedResidualRisk: string | null;
   onSelectResidualRisk: (risk: string | null) => void;
   localVoice?: {
-    isEnabled: boolean;
-    isReady: boolean;
+    canSpeak: boolean;
+    canListen: boolean;
     isListening: boolean;
     isSpeaking: boolean;
-    config: { sttEnabled: boolean; ttsEnabled: boolean };
+    speakText: (text: string, priority?: number) => Promise<void>;
     startRecording: () => Promise<boolean>;
     stopRecording: () => Promise<void>;
-    readInject: (title: string, description: string) => Promise<void>;
   };
 }): JSX.Element {
   const extendedInject = inject as unknown as {
@@ -5388,11 +5391,13 @@ function DecisionConsole({
                     <p className="text-sm text-gray-300 leading-relaxed mt-1">{inject.content}</p>
                   </details>
                   <p className="hidden sm:block text-gray-300 leading-relaxed">{inject.content}</p>
-                  {/* Headset: replay net call */}
-                  {localVoice?.isEnabled && localVoice.isReady && localVoice.config.ttsEnabled && (
+                  {/* Headset: replay the same net call (title+pressure) the operator heard */}
+                  {localVoice?.canSpeak && (
                     <button
                       type="button"
-                      onClick={() => localVoice.readInject(inject.title, inject.content)}
+                      onClick={() => {
+                        void localVoice.speakText(getInjectSpokenFallback(inject), 7);
+                      }}
                       className={clsx(
                         'mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-h-[36px]',
                         localVoice.isSpeaking
@@ -5462,7 +5467,7 @@ function DecisionConsole({
                 </div>
               )}
 
-              {localVoice?.isEnabled && localVoice.isReady && localVoice.config.sttEnabled && (
+              {localVoice?.canListen && (
                 <div className="mt-4 p-3 rounded-xl bg-gray-900/50 border border-violet-500/30">
                   <div className="flex items-center gap-3">
                     <Radio className="w-4 h-4 text-violet-400 flex-shrink-0" />
@@ -6465,10 +6470,8 @@ function DebriefModal({
   scenarioId: string;
   onRematch: () => void;
   localVoice?: {
-    isEnabled: boolean;
-    isReady: boolean;
+    canSpeak: boolean;
     isSpeaking: boolean;
-    config: { ttsEnabled: boolean };
     readAAR: (bullets: string[]) => Promise<void>;
   };
 }): JSX.Element {
@@ -6721,7 +6724,7 @@ function DebriefModal({
               </h4>
             </div>
             {/* Headset: hear after-action briefing */}
-            {localVoice?.isEnabled && localVoice.isReady && localVoice.config.ttsEnabled && (
+            {localVoice?.canSpeak && (
               <button
                 onClick={() => {
                   const bullets: string[] = [];
@@ -10434,6 +10437,7 @@ function MicroTaskCard({
   onDismiss,
   onSkip,
   onHear,
+  headset,
   reducedMotion,
   animating,
   currentAnswer,
@@ -10446,6 +10450,7 @@ function MicroTaskCard({
   onDismiss: () => void;
   onSkip: () => void;
   onHear: () => void;
+  headset?: { enabled: boolean; canSpeak: boolean };
   reducedMotion: boolean;
   animating: boolean;
   currentAnswer: string | string[] | null;
@@ -10510,6 +10515,11 @@ function MicroTaskCard({
 
   const isUrgent = timer <= 5;
   const hasAnswered = result !== null;
+  const hearReady = !headset?.enabled || headset.canSpeak;
+  const hearHeadsetCopy = Boolean(headset?.canSpeak);
+  const hearTitle = hearHeadsetCopy ? 'Replay net call' : 'Tap to hear';
+  const hearAria = hearHeadsetCopy ? 'Hear net' : 'Hear task';
+  const questionAria = hearHeadsetCopy ? 'Replay net call' : 'Tap to hear this task';
 
   const moveRankItem = (index: number, direction: 'up' | 'down'): void => {
     if (hasAnswered) return;
@@ -10588,18 +10598,22 @@ function MicroTaskCard({
                   </span>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={onHear}
-                className="flex items-center gap-1.5 mt-0.5 text-left min-w-0 group"
-                aria-label="Hear task"
-                title="Tap to hear"
-              >
-                <h4 className="text-sm font-semibold text-white truncate group-hover:text-emerald-300">
-                  {task.title}
-                </h4>
-                <Volume2 className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 flex-shrink-0" />
-              </button>
+              {hearReady ? (
+                <button
+                  type="button"
+                  onClick={onHear}
+                  className="flex items-center gap-1.5 mt-0.5 text-left min-w-0 group"
+                  aria-label={hearAria}
+                  title={hearTitle}
+                >
+                  <h4 className="text-sm font-semibold text-white truncate group-hover:text-emerald-300">
+                    {task.title}
+                  </h4>
+                  <Volume2 className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 flex-shrink-0" />
+                </button>
+              ) : (
+                <h4 className="text-sm font-semibold text-white truncate mt-0.5">{task.title}</h4>
+              )}
             </div>
           </div>
 
@@ -10643,14 +10657,21 @@ function MicroTaskCard({
         )}
 
         {/* Question — tap to hear if autoplay was blocked */}
-        <button
-          type="button"
-          onClick={onHear}
-          className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed"
-          aria-label="Tap to hear this task"
-        >
-          {task.question}
-        </button>
+        {hearReady ? (
+          <button
+            type="button"
+            onClick={onHear}
+            className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed"
+            aria-label={questionAria}
+            title={hearTitle}
+          >
+            {task.question}
+          </button>
+        ) : (
+          <p className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed">
+            {task.question}
+          </p>
+        )}
 
         {/* Challenge Content based on type */}
         {(task.type === 'MULTIPLE_CHOICE' || task.type === 'SCENARIO') && task.options && (

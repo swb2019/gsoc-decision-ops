@@ -345,8 +345,10 @@ async function loadModels(): Promise<void> {
     message: `Provisioning headset models… (~${totalSize} MB, one-time)`,
   });
 
-  // Load Whisper Base for STT
+  // Load Whisper Base for STT — mark listen-ready independently so PTT can
+  // come up before Kokoro. Speak chrome must still wait for ttsReady.
   await loadWhisperModel();
+  updateState({ sttReady: whisperPipeline !== null });
 
   updateProgress({
     progress: 60,
@@ -761,10 +763,15 @@ async function processTTSQueue(): Promise<void> {
   try {
     updateState({ isSpeaking: true });
 
+    let yieldedToElevenLabs = false;
     if (kokoroInstance) {
-      await speakWithKokoro(item.text);
+      yieldedToElevenLabs = !(await speakWithKokoro(item.text));
     } else if (webSpeechSynth) {
-      await speakWithWebSpeech(item.text);
+      yieldedToElevenLabs = !(await speakWithWebSpeech(item.text));
+    }
+
+    if (yieldedToElevenLabs) {
+      ttsQueue.unshift(item);
     }
   } catch (error) {
     console.error('TTS error:', error);
@@ -780,10 +787,11 @@ async function processTTSQueue(): Promise<void> {
 }
 
 /**
- * Speak using Kokoro TTS
+ * Speak using Kokoro TTS.
+ * @returns false when ElevenLabs took the net during synthesis (caller should requeue).
  */
-async function speakWithKokoro(text: string): Promise<void> {
-  if (!kokoroInstance) return;
+async function speakWithKokoro(text: string): Promise<boolean> {
+  if (!kokoroInstance) return true;
 
   const kokoro = kokoroInstance as {
     generate: (
@@ -795,6 +803,11 @@ async function speakWithKokoro(text: string): Promise<void> {
   const result = await kokoro.generate(text, {
     voice: config.ttsVoice,
   });
+
+  // Scripted VO may have started while Kokoro was synthesizing — don't double-talk.
+  if (isElevenLabsPlaying?.()) {
+    return false;
+  }
 
   const blob = await result.toBlob();
   const url = URL.createObjectURL(blob);
@@ -831,15 +844,22 @@ async function speakWithKokoro(text: string): Promise<void> {
       .play()
       .catch((err) => finish(err instanceof Error ? err : new Error('Audio playback failed')));
   });
+
+  return true;
 }
 
 /**
- * Speak using Web Speech API (fallback)
+ * Speak using Web Speech API (fallback).
+ * @returns false when ElevenLabs took the net before utterance start.
  */
-async function speakWithWebSpeech(text: string): Promise<void> {
-  if (!webSpeechSynth) return;
+async function speakWithWebSpeech(text: string): Promise<boolean> {
+  if (!webSpeechSynth) return true;
 
-  return new Promise<void>((resolve, reject) => {
+  if (isElevenLabsPlaying?.()) {
+    return false;
+  }
+
+  await new Promise<void>((resolve, reject) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = config.ttsRate;
     utterance.pitch = 1.0;
@@ -879,6 +899,8 @@ async function speakWithWebSpeech(text: string): Promise<void> {
 
     webSpeechSynth!.speak(utterance);
   });
+
+  return true;
 }
 
 /**

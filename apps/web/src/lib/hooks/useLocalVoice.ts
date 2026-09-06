@@ -197,6 +197,7 @@ export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLoca
     config,
     progress,
     isEnabled: config.enabled,
+    // OR of STT|TTS — status chrome only. Speak/Hear/Replay must use canSpeak (ttsReady).
     isReady: state.sttReady || state.ttsReady,
     isListening: state.isListening,
     isSpeaking: state.isSpeaking,

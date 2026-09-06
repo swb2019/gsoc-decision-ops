@@ -395,6 +395,26 @@ function speakViaHeadset(text: string, priority?: number): boolean {
   return true;
 }
 
+/**
+ * Headset path for dynamic lines. Waits for scripted ElevenLabs (playing or
+ * queued) so decision_prompt + playSpokenText do not double-talk.
+ */
+function scheduleHeadsetYieldingToScriptedVO(text: string, priority: number): void {
+  const startedAt = Date.now();
+  const maxWaitMs = 20000;
+
+  const attempt = (): void => {
+    const scriptedQueued = voQueue.some((item) => item.type !== 'tts');
+    if ((isVOPlaying || scriptedQueued) && Date.now() - startedAt < maxWaitMs) {
+      window.setTimeout(attempt, 200);
+      return;
+    }
+    void speakLocalTTS(text, priority);
+  };
+
+  attempt();
+}
+
 function cancelTTS(): void {
   currentUtterance = null;
   const synth = getSpeechSynthesis();
@@ -701,7 +721,8 @@ export function playSpokenText(text: string, opts?: SpokenTextOptions): void {
   if (systemPaused && !opts?.force) return;
 
   // Headset path: speak dynamic lines ElevenLabs does not cover. Yields to scripted VO.
-  if (speakViaHeadset(spoken, opts?.priority)) {
+  if (isLocalTTSReady()) {
+    scheduleHeadsetYieldingToScriptedVO(spoken, opts?.priority ?? 5);
     return;
   }
 
@@ -877,6 +898,15 @@ export function skipVO(): void {
  */
 export function clearVOQueue(): void {
   voQueue = [];
+}
+
+/**
+ * Check if scripted ElevenLabs VO is playing or queued (not browser/headset TTS).
+ * Used so local comms yield instead of double-talking with decision_prompt etc.
+ */
+export function isScriptedVOBusy(): boolean {
+  if (isVOPlaying) return true;
+  return voQueue.some((item) => item.type !== 'tts');
 }
 
 /**

@@ -78,7 +78,7 @@ export default function LocalVoicePanel({
           <div
             className={clsx(
               'w-10 h-10 rounded-xl flex items-center justify-center',
-              isEnabled && isReady
+              isEnabled && isReady && !isDownloading
                 ? 'bg-gradient-to-br from-violet-500/30 to-violet-600/30 border border-violet-500/40'
                 : 'bg-gray-800/60 border border-gray-700/50'
             )}
@@ -86,7 +86,7 @@ export default function LocalVoicePanel({
             <Headphones
               className={clsx(
                 'w-5 h-5',
-                isEnabled && isReady ? 'text-violet-400' : 'text-gray-500'
+                isEnabled && isReady && !isDownloading ? 'text-violet-400' : 'text-gray-500'
               )}
             />
           </div>
@@ -361,10 +361,10 @@ export function LocalVoiceToggle({
       disabled={isLoading}
       className={clsx(
         'p-2 rounded-xl transition-all flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px]',
-        isEnabled && isReady
-          ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
-          : isLoading
-            ? 'text-amber-400 bg-amber-500/20'
+        isLoading
+          ? 'text-amber-400 bg-amber-500/20'
+          : isEnabled && isReady
+            ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
             : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50',
         className
       )}
