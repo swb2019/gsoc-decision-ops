@@ -87,7 +87,18 @@ export const LazyChannelIcon3D = lazy(() => import('./ChannelIcon3D'));
 export const LazyCOPMarkers3D = lazy(() => import('./COPMarkers3D'));
 
 interface LazyChannelIcon3DWrapperProps {
-  channel: 'ACS' | 'VMS' | 'ALARM' | 'SIEM' | 'OSINT' | 'TIP' | 'RADIO' | 'FACILITIES' | 'VENDOR' | 'EXECUTIVE' | 'LE';
+  channel:
+    | 'ACS'
+    | 'VMS'
+    | 'ALARM'
+    | 'SIEM'
+    | 'OSINT'
+    | 'TIP'
+    | 'RADIO'
+    | 'FACILITIES'
+    | 'VENDOR'
+    | 'EXECUTIVE'
+    | 'LE';
   size?: number;
   isUrgent?: boolean;
   className?: string;

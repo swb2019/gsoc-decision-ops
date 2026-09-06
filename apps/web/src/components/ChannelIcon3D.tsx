@@ -39,7 +39,10 @@ const CHANNEL_COLORS: Record<IntakeChannel, string> = {
   LE: '#6366f1',
 };
 
-const CHANNEL_GEOMETRIES: Record<IntakeChannel, 'box' | 'sphere' | 'octahedron' | 'torus' | 'cone'> = {
+const CHANNEL_GEOMETRIES: Record<
+  IntakeChannel,
+  'box' | 'sphere' | 'octahedron' | 'torus' | 'cone'
+> = {
   ACS: 'box',
   VMS: 'octahedron',
   ALARM: 'cone',

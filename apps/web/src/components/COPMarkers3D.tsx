@@ -34,7 +34,13 @@ function getHeatColor(heat: number): string {
   return HEAT_COLORS.low;
 }
 
-function HeatPulse({ heat, position }: { heat: number; position: [number, number, number] }): JSX.Element {
+function HeatPulse({
+  heat,
+  position,
+}: {
+  heat: number;
+  position: [number, number, number];
+}): JSX.Element {
   const meshRef = useRef<THREE.Mesh>(null);
   const color = getHeatColor(heat);
   const intensity = heat / 100;
@@ -93,7 +99,11 @@ function ZoneMarker({
       onPointerLeave={() => setHovered(false)}
       onClick={onClick}
     >
-      <Float speed={isCritical ? 4 : 2} rotationIntensity={0.2} floatIntensity={isCritical ? 0.3 : 0.1}>
+      <Float
+        speed={isCritical ? 4 : 2}
+        rotationIntensity={0.2}
+        floatIntensity={isCritical ? 0.3 : 0.1}
+      >
         <mesh>
           <sphereGeometry args={[0.15, 16, 16]} />
           <meshStandardMaterial
@@ -147,7 +157,11 @@ function COPModel(): JSX.Element | null {
 function GridFloor(): JSX.Element {
   return (
     <group>
-      <gridHelper args={[4, 20, '#1e293b', '#1e293b']} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.1]} />
+      <gridHelper
+        args={[4, 20, '#1e293b', '#1e293b']}
+        rotation={[Math.PI / 2, 0, 0]}
+        position={[0, 0, -0.1]}
+      />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.15]}>
         <planeGeometry args={[5, 5]} />
         <meshBasicMaterial color="#0f172a" transparent opacity={0.8} />
