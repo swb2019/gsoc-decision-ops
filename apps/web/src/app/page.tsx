@@ -680,6 +680,10 @@ export default function HomePage(): JSX.Element {
         {/* Footer */}
         <footer className="text-center mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-gray-800/30 safe-area-bottom">
           <p className="text-xs text-gray-600">Training Simulation • Built on ESRM Principles</p>
+          <p className="text-2xs text-gray-700 mt-2">
+            Trains technical decision-ops judgment — not interpersonal leadership or workforce
+            dynamics.
+          </p>
         </footer>
       </main>
     </div>
