@@ -120,8 +120,11 @@ let eventAudioElement: HTMLAudioElement | null = null;
 // Stores inject IDs or slugified titles that have been spoken this session
 const spokenEventIds: Set<string> = new Set();
 
-// Mutex to prevent concurrent processQueue execution
+// Mutex to prevent concurrent queue processing
 let isProcessingQueue = false;
+
+// System pause blocks VO while the simulation is paused mid-game
+let systemPaused = false;
 
 // Reference to BGM element for ducking (set externally)
 let bgmElement: HTMLAudioElement | null = null;
@@ -294,6 +297,14 @@ export function setBGMReference(bgmAudio: HTMLAudioElement | null): void {
   if (bgmAudio) {
     bgmOriginalVolume = bgmAudio.volume;
   }
+}
+
+export function setSystemPaused(paused: boolean): void {
+  systemPaused = paused;
+}
+
+export function isSystemPaused(): boolean {
+  return systemPaused;
 }
 
 function duckBGM(): void {
@@ -525,6 +536,8 @@ function playEventVOImmediate(
  */
 export function playVO(voType: VOType): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  // Allow the pause announcement itself; block other cues while paused
+  if (systemPaused && voType !== 'pause_save') return;
 
   const voInfo = VO_FILES[voType];
   if (!voInfo) return;
@@ -566,7 +579,7 @@ export function playEventVO(
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
   injectId?: string
 ): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;
@@ -597,20 +610,23 @@ export function playEventVO(
 }
 
 /**
- * Play event voice-over for an Intel Feed item when user clicks/selects it.
- * Higher priority than reveal-triggered VO to ensure immediate feedback.
+ * Play event voice-over for an Intel Feed / Situation Board item when the user
+ * clicks it. Higher priority than reveal-triggered VO for immediate feedback.
+ * Still plays while the simulation is paused so reviewing the board is audible.
  *
- * Each inject is spoken at most once per session. If already spoken,
- * this is a silent no-op (user can still see the item, just no re-read).
+ * Each inject is spoken at most once per session unless `force` is set
+ * (tap-to-hear on Situation Board when autoplay was blocked).
  *
  * @param title - The inject title
  * @param triagePriority - Optional triage priority for fallback selection
  * @param injectId - Optional inject ID for tracking (uses slug if not provided)
+ * @param force - Re-queue even if this id was already spoken (tap-to-hear)
  */
 export function playEventVOOnSelect(
   title: string,
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
-  injectId?: string
+  injectId?: string,
+  force = false
 ): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
 
@@ -618,7 +634,7 @@ export function playEventVOOnSelect(
   const trackingId = injectId || slug;
 
   // Skip if this inject has already been spoken this session
-  if (spokenEventIds.has(trackingId)) {
+  if (!force && spokenEventIds.has(trackingId)) {
     return;
   }
 
@@ -751,6 +767,7 @@ export function initVO(): void {
  */
 export function cleanupVO(): void {
   skipVO();
+  systemPaused = false;
 
   // Clear spoken events tracking for new session
   spokenEventIds.clear();

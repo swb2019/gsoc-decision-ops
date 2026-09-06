@@ -152,8 +152,61 @@ export function initAudio(): void {
 // Brighter midrange, seamless loop
 // Cache-bust query ensures CDN/browser serves the new file
 const BGM_FILE = '/audio/ambientBGM_v5.ogg?v=20260905-elevenlabs-v5';
+const BGM_TARGET_VOLUME = 0.12;
 let ambientAudio: HTMLAudioElement | null = null;
 let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
+let ambientPausedBySystem = false;
+const ambientPlaybackListeners = new Set<(playing: boolean) => void>();
+
+function clearAmbientFade(): void {
+  if (ambientFadeInterval) {
+    clearInterval(ambientFadeInterval);
+    ambientFadeInterval = null;
+  }
+}
+
+function notifyAmbientPlayback(): void {
+  const playing = ambientAudio !== null && !ambientAudio.paused;
+  ambientPlaybackListeners.forEach((listener) => listener(playing));
+}
+
+function onAmbientPause(): void {
+  // OS / system media pause must not clear the user's BGM preference.
+  notifyAmbientPlayback();
+}
+
+function onAmbientPlay(): void {
+  notifyAmbientPlayback();
+}
+
+function ensureAmbientAudio(): HTMLAudioElement {
+  if (!ambientAudio) {
+    ambientAudio = new Audio(getAudioUrl(BGM_FILE));
+    ambientAudio.loop = true;
+    ambientAudio.volume = 0;
+    ambientAudio.preload = 'auto';
+    ambientAudio.addEventListener('pause', onAmbientPause);
+    ambientAudio.addEventListener('play', onAmbientPlay);
+  }
+  return ambientAudio;
+}
+
+function fadeAmbientTo(targetVolume: number, step: number, intervalMs: number): void {
+  clearAmbientFade();
+  const fade = (): void => {
+    if (!ambientAudio || ambientPausedBySystem) {
+      clearAmbientFade();
+      return;
+    }
+    if (Math.abs(ambientAudio.volume - targetVolume) > Math.abs(step)) {
+      ambientAudio.volume = Math.max(0, Math.min(1, ambientAudio.volume + step));
+    } else {
+      ambientAudio.volume = targetVolume;
+      clearAmbientFade();
+    }
+  };
+  ambientFadeInterval = setInterval(fade, intervalMs);
+}
 
 /**
  * Get reference to ambient BGM audio element (for VO ducking)
@@ -162,34 +215,31 @@ export function getAmbientAudioElement(): HTMLAudioElement | null {
   return ambientAudio;
 }
 
+export function subscribeAmbientPlayback(listener: (playing: boolean) => void): () => void {
+  ambientPlaybackListeners.add(listener);
+  listener(ambientAudio !== null && !ambientAudio.paused);
+  return () => {
+    ambientPlaybackListeners.delete(listener);
+  };
+}
+
 export function startAmbientMusic(): void {
-  if (typeof window === 'undefined' || !config.enabled) return;
+  if (typeof window === 'undefined') return;
 
-  if (!ambientAudio) {
-    ambientAudio = new Audio(getAudioUrl(BGM_FILE));
-    ambientAudio.loop = true;
-    ambientAudio.volume = 0;
-    ambientAudio.preload = 'auto';
-  }
+  ambientPausedBySystem = false;
 
-  ambientAudio
+  const audio = ensureAmbientAudio();
+
+  clearAmbientFade();
+
+  audio
     .play()
     .then(() => {
-      // Fade in to low volume
-      const targetVolume = 0.12;
-      const fadeIn = (): void => {
-        if (!ambientAudio) return;
-        if (ambientAudio.volume < targetVolume - 0.01) {
-          ambientAudio.volume = Math.min(targetVolume, ambientAudio.volume + 0.01);
-        } else {
-          ambientAudio.volume = targetVolume;
-          if (ambientFadeInterval) {
-            clearInterval(ambientFadeInterval);
-            ambientFadeInterval = null;
-          }
-        }
-      };
-      ambientFadeInterval = setInterval(fadeIn, 50);
+      if (!ambientAudio || ambientPausedBySystem) {
+        ambientAudio?.pause();
+        return;
+      }
+      fadeAmbientTo(BGM_TARGET_VOLUME, 0.01, 50);
     })
     .catch(() => {
       // Audio blocked
@@ -199,19 +249,21 @@ export function startAmbientMusic(): void {
 export function stopAmbientMusic(): void {
   if (!ambientAudio) return;
 
-  // Fade out
+  ambientPausedBySystem = false;
+  clearAmbientFade();
+
   const fadeOut = (): void => {
-    if (!ambientAudio) return;
+    if (!ambientAudio) {
+      clearAmbientFade();
+      return;
+    }
     if (ambientAudio.volume > 0.01) {
       ambientAudio.volume = Math.max(0, ambientAudio.volume - 0.02);
     } else {
       ambientAudio.pause();
       ambientAudio.volume = 0;
       ambientAudio.currentTime = 0;
-      if (ambientFadeInterval) {
-        clearInterval(ambientFadeInterval);
-        ambientFadeInterval = null;
-      }
+      clearAmbientFade();
     }
   };
   ambientFadeInterval = setInterval(fadeOut, 30);
@@ -219,4 +271,46 @@ export function stopAmbientMusic(): void {
 
 export function isAmbientMusicPlaying(): boolean {
   return ambientAudio !== null && !ambientAudio.paused;
+}
+
+/**
+ * Pause ambient BGM for system pause (preserves playback position).
+ */
+export function pauseAmbientMusic(): void {
+  ambientPausedBySystem = true;
+  clearAmbientFade();
+  if (!ambientAudio) return;
+  if (!ambientAudio.paused) {
+    ambientAudio.pause();
+  }
+}
+
+/**
+ * Resume ambient BGM after system unpause.
+ * Recovers playback after a music toggle made during pause (volume may be 0,
+ * or the element may not exist yet if the user enabled BGM while paused).
+ */
+export function resumeAmbientMusic(): void {
+  if (typeof window === 'undefined') return;
+
+  ambientPausedBySystem = false;
+
+  const audio = ensureAmbientAudio();
+  clearAmbientFade();
+  audio
+    .play()
+    .then(() => {
+      if (!ambientAudio || ambientPausedBySystem) {
+        ambientAudio?.pause();
+        return;
+      }
+      if (ambientAudio.volume < BGM_TARGET_VOLUME - 0.01) {
+        fadeAmbientTo(BGM_TARGET_VOLUME, 0.01, 50);
+      } else {
+        ambientAudio.volume = BGM_TARGET_VOLUME;
+      }
+    })
+    .catch(() => {
+      // Audio blocked
+    });
 }
