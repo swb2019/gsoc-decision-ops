@@ -739,6 +739,7 @@ function useSoundEffects(
 ): { playSound: (soundType: keyof typeof SOUND_EFFECTS) => void } {
   useEffect(() => {
     initAudio();
+    initVO();
     loadAudioConfig();
     initVO();
     loadVOConfig();
@@ -876,6 +877,7 @@ import {
 } from '../lib/audio';
 import {
   playVO,
+  playEventVO,
   initVO,
   loadVOConfig,
   setVoiceEnabled,
@@ -1689,6 +1691,9 @@ export default function CommandCenter({
           // Play inject arrival SFX
           playSFX('injectArrive');
 
+          // Play event voice-over (ElevenLabs-generated)
+          playEventVO(inject.title, inject.triagePriority);
+
           triggerInjectAlert(inject);
 
           // Trigger guidance for first noise inject
@@ -1730,6 +1735,9 @@ export default function CommandCenter({
 
           // Play inject arrival SFX
           playSFX('injectArrive');
+
+          // Play event voice-over (ElevenLabs-generated)
+          playEventVO(inject.title, inject.triagePriority);
 
           triggerInjectAlert(inject);
 

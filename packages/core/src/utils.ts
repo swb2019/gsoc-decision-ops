@@ -105,3 +105,24 @@ export function groupBy<T, K extends string>(items: T[], keyFn: (item: T) => K):
 export function countWhere<T>(items: T[], predicate: (item: T) => boolean): number {
   return items.filter(predicate).length;
 }
+
+/**
+ * Slugify a title for VO file naming
+ *
+ * Converts a title to a URL-safe slug matching CoS naming convention:
+ * - Lowercase
+ * - Non-alphanumeric characters → "-"
+ * - Trim leading/trailing dashes
+ * - Collapse multiple consecutive dashes
+ * - Max 80 characters
+ *
+ * Example: "FLASH: CEO Dark Web Mention" → "flash-ceo-dark-web-mention"
+ */
+export function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
+}

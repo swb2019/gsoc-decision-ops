@@ -13,7 +13,13 @@
  * - BGM ducking during VO playback
  * - Separate voiceEnabled toggle (default ON for first-run polish)
  * - Respects user preferences independently of SFX/BGM
+ * - Event-specific VO playback with fallback to generic cues
  */
+
+import { slugifyTitle } from '@gsoc-decision-ops/core';
+
+// Re-export slugifyTitle for convenience
+export { slugifyTitle };
 
 export type VOType =
   // Daniel (ops) - urgent/feedback
@@ -44,9 +50,11 @@ interface VOConfig {
 }
 
 interface VOQueueItem {
-  type: VOType;
+  type: VOType | 'event';
   priority: number;
   timestamp: number;
+  audioUrl?: string;
+  fallbackUrl?: string;
 }
 
 const VOICE_STORAGE_KEY = 'hourglass-voice-config';
@@ -93,10 +101,18 @@ const VO_FILES: Record<VOType, { path: string; priority: number }> = {
   tip_guide: { path: `/audio/voice/tip_guide.ogg?v=${VO_VERSION}`, priority: 3 },
 };
 
+// Event VO priority levels (higher = more urgent, plays first)
+const EVENT_VO_PRIORITY: Record<string, number> = {
+  IMMEDIATE: 10, // Same as inject_critical
+  URGENT: 6, // Between streak_bonus and inject_elevated
+  ROUTINE: 4, // Same as pause_save
+};
+
 let voConfig: VOConfig = { ...DEFAULT_VO_CONFIG };
 const voAudioElements: Map<VOType, HTMLAudioElement> = new Map();
 let voQueue: VOQueueItem[] = [];
-let currentlyPlaying: VOType | null = null;
+let currentlyPlaying: VOType | 'event' | null = null;
+let currentEventAudio: HTMLAudioElement | null = null;
 let isVOPlaying = false;
 let voUnlocked = false;
 
@@ -159,10 +175,16 @@ export function setVoiceEnabled(enabled: boolean): void {
 
   // Stop current playback if disabling
   if (!enabled && currentlyPlaying) {
-    const audio = voAudioElements.get(currentlyPlaying);
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
+    if (currentlyPlaying === 'event' && currentEventAudio) {
+      currentEventAudio.pause();
+      currentEventAudio.currentTime = 0;
+      currentEventAudio = null;
+    } else {
+      const audio = voAudioElements.get(currentlyPlaying as VOType);
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     }
     currentlyPlaying = null;
     isVOPlaying = false;
@@ -221,6 +243,16 @@ function restoreBGMVolume(): void {
   requestAnimationFrame(fade);
 }
 
+function onVOEnded(): void {
+  isVOPlaying = false;
+  currentlyPlaying = null;
+  currentEventAudio = null;
+  restoreBGMVolume();
+
+  // Process next in queue after brief pause
+  setTimeout(processQueue, 100);
+}
+
 function processQueue(): void {
   if (isVOPlaying || voQueue.length === 0 || !voConfig.voiceEnabled) {
     return;
@@ -235,7 +267,11 @@ function processQueue(): void {
   const item = voQueue.shift();
   if (!item) return;
 
-  playVOImmediate(item.type);
+  if (item.type === 'event' && item.audioUrl) {
+    playEventVOImmediate(item.audioUrl, item.fallbackUrl);
+  } else if (item.type !== 'event') {
+    playVOImmediate(item.type);
+  }
 }
 
 function playVOImmediate(voType: VOType): void {
@@ -267,13 +303,48 @@ function playVOImmediate(voType: VOType): void {
     });
 }
 
-function onVOEnded(): void {
-  isVOPlaying = false;
-  currentlyPlaying = null;
-  restoreBGMVolume();
+function playEventVOImmediate(audioUrl: string, fallbackUrl?: string): void {
+  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
 
-  // Process next in queue after brief pause
-  setTimeout(processQueue, 100);
+  isVOPlaying = true;
+  currentlyPlaying = 'event';
+
+  // Duck BGM
+  duckBGM();
+
+  currentEventAudio = new Audio(audioUrl);
+  currentEventAudio.volume = voConfig.volume;
+
+  currentEventAudio.addEventListener('ended', onVOEnded);
+  currentEventAudio.addEventListener('error', () => {
+    // Try fallback if available
+    if (fallbackUrl && audioUrl !== fallbackUrl) {
+      currentEventAudio = new Audio(fallbackUrl);
+      currentEventAudio.volume = voConfig.volume;
+      currentEventAudio.addEventListener('ended', onVOEnded);
+      currentEventAudio.addEventListener('error', onVOEnded);
+      currentEventAudio.play().catch(() => {
+        onVOEnded();
+      });
+    } else {
+      onVOEnded();
+    }
+  });
+
+  currentEventAudio.play().catch(() => {
+    // Try fallback
+    if (fallbackUrl && audioUrl !== fallbackUrl) {
+      currentEventAudio = new Audio(fallbackUrl);
+      currentEventAudio.volume = voConfig.volume;
+      currentEventAudio.addEventListener('ended', onVOEnded);
+      currentEventAudio.addEventListener('error', onVOEnded);
+      currentEventAudio.play().catch(() => {
+        onVOEnded();
+      });
+    } else {
+      onVOEnded();
+    }
+  });
 }
 
 /**
@@ -299,10 +370,49 @@ export function playVO(voType: VOType): void {
 }
 
 /**
+ * Play event voice-over for an inject.
+ * Looks up event-specific VO file by slugified title.
+ * Falls back to inject_critical/inject_elevated if file not found.
+ *
+ * @param title - The inject title (will be slugified to find audio file)
+ * @param triagePriority - Optional triage priority for queue priority and fallback selection
+ */
+export function playEventVO(
+  title: string,
+  triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE'
+): void {
+  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+
+  const basePath = getBasePath();
+  const slug = slugifyTitle(title);
+  const priority = triagePriority ? EVENT_VO_PRIORITY[triagePriority] : EVENT_VO_PRIORITY.ROUTINE;
+
+  const audioUrl = `${basePath}/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`;
+  const fallbackCue = priority >= EVENT_VO_PRIORITY.URGENT ? 'inject_critical' : 'inject_elevated';
+  const fallbackUrl = `${basePath}/audio/voice/${fallbackCue}.ogg?v=${VO_VERSION}`;
+
+  // Add to queue
+  voQueue.push({
+    type: 'event',
+    priority,
+    timestamp: Date.now(),
+    audioUrl,
+    fallbackUrl,
+  });
+
+  // Try to process
+  processQueue();
+}
+
+/**
  * Skip current VO and clear queue
  */
 export function skipVO(): void {
-  if (currentlyPlaying) {
+  if (currentlyPlaying === 'event' && currentEventAudio) {
+    currentEventAudio.pause();
+    currentEventAudio.currentTime = 0;
+    currentEventAudio = null;
+  } else if (currentlyPlaying && currentlyPlaying !== 'event') {
     const audio = voAudioElements.get(currentlyPlaying);
     if (audio) {
       audio.pause();
