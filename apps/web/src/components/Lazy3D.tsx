@@ -96,7 +96,8 @@ export function Lazy3DWrapper<P extends object>({
     if (supported && !hasStartedLoading.current) {
       hasStartedLoading.current = true;
 
-      componentRef.current()
+      componentRef
+        .current()
         .then((mod) => {
           if (!isCancelled && mod.default) {
             setLazyComponent(() => mod.default);
