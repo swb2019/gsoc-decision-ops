@@ -3,7 +3,8 @@
 <p align="center">
   <a href="https://swb2019.github.io/gsoc-decision-ops/"><strong>Enter the simulation ↗</strong></a> &nbsp; · &nbsp;
   <a href="docs/TRAINING.md">Training methodology</a> &nbsp; · &nbsp;
-  <a href="https://swb2019.github.io/shannon-brown-career/">About Shannon Brown</a>
+  <a href="https://swb2019.github.io/shannon-brown-career/work/hourglass-command/">Case study</a> &nbsp; · &nbsp;
+  <a href="https://swb2019.github.io/shannon-brown-career/about/">About Shannon Brown</a>
 </p>
 
 [![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
@@ -14,7 +15,7 @@
 
 When physical, cyber, and intelligence signals converge, security leaders have to act with partial facts and contested assumptions. **Hourglass Command** turns that pressure into a repeatable training experience: assess the situation, commit an operating posture, document the reasoning, and examine the outcome.
 
-Built by **Shannon Brown**, a GSOC manager with experience in security operations, commercial risk, and executive communication.
+An **independent portfolio project** directed by **Shannon Brown**, a GSOC manager with experience in security operations, commercial risk, and executive communication, and developed through AI-assisted design and engineering. All incidents and environments are synthetic. No employer deployment, endorsement, or measured improvement in real-world outcomes is claimed.
 
 ### From signal to defensible decision
 
@@ -45,6 +46,8 @@ Spoken Intel Feed, guidance, and optional 3D operating-picture markers support a
 
 ## Run locally
 
+Use a supported Node.js version (Node 24 is used in CI). Next.js 15 is the maintained framework line for this static export.
+
 ```bash
 git clone https://github.com/swb2019/gsoc-decision-ops.git
 cd gsoc-decision-ops
@@ -73,6 +76,10 @@ npm run dev
 **Stack:** TypeScript · Next.js · React · Tailwind CSS · Three.js · Vitest
 
 The GitHub Pages workflow sets `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops` and deploys `apps/web/out/`. A root deployment can use the default empty base path. Manrope and JetBrains Mono are served locally; their font licenses are in `apps/web/public/brand/`.
+
+### Optional headset and reliability
+
+Headset mode is opt-in and discloses an estimated 232 MB initial model download. You can cancel model-file downloads from its settings panel. Microphone use is separate from loading the models. Quantized loading, sequential initialization, memory-pressure checks, and browser-speech fallback protect the first-enable path; they do not guarantee support on every device. Automated tests cover the load policy and download cancellation. See the [case study](https://swb2019.github.io/shannon-brown-career/work/hourglass-command/) for design tradeoffs and limitations.
 
 ---
 

@@ -8,10 +8,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Enable experimental features for better ES module support
-  experimental: {
-    esmExternals: 'loose',
-  },
   webpack: (config, { isServer }) => {
     // Handle Transformers.js / ONNX Runtime for browser-only usage
     if (!isServer) {
@@ -29,7 +25,7 @@ const nextConfig = {
         'onnxruntime-node': false,
       };
     }
-    
+
     // Mark onnxruntime-node as external to avoid bundling
     config.externals = config.externals || [];
     if (Array.isArray(config.externals)) {

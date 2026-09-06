@@ -9,9 +9,10 @@ export function generateStaticParams(): { scenarioId: string }[] {
 }
 
 interface ScenarioPageProps {
-  params: { scenarioId: string };
+  params: Promise<{ scenarioId: string }>;
 }
 
-export default function ScenarioPage({ params }: ScenarioPageProps): JSX.Element {
-  return <ScenarioClient scenarioId={params.scenarioId} />;
+export default async function ScenarioPage({ params }: ScenarioPageProps): Promise<JSX.Element> {
+  const { scenarioId } = await params;
+  return <ScenarioClient scenarioId={scenarioId} />;
 }

@@ -6414,6 +6414,7 @@ function DebriefModal({
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'png'>('pdf');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   const minutes = Math.floor(elapsedSeconds / 60);
@@ -6444,6 +6445,7 @@ function DebriefModal({
   const handleExportPDF = async (): Promise<void> => {
     if (!exportRef.current) return;
     setIsExporting(true);
+    setExportError(null);
 
     try {
       const canvas = await html2canvas(exportRef.current, {
@@ -6453,24 +6455,101 @@ function DebriefModal({
         useCORS: true,
       });
 
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
+        compress: true,
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-
-      pdf.addImage(imgData, 'PNG', imgX, 10, imgWidth * ratio, imgHeight * ratio);
+      const margin = 10;
+      const contentWidth = pdfWidth - margin * 2;
+      const mmPerPixel = contentWidth / canvas.width;
+      const pagePixels = Math.floor((pdfHeight - margin * 2) / mmPerPixel);
+      const reportBounds = exportRef.current.getBoundingClientRect();
+      const scaleY = canvas.height / reportBounds.height;
+      const keepTogether = [
+        ...Array.from(exportRef.current.children),
+        ...Array.from(exportRef.current.querySelectorAll('[data-pdf-keep]')),
+      ].map((element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          top: Math.floor((bounds.top - reportBounds.top) * scaleY),
+          bottom: Math.ceil((bounds.bottom - reportBounds.top) * scaleY),
+        };
+      });
+      const timelineHeading = exportRef.current.querySelector('[data-pdf-heading]');
+      const firstDecision = timelineHeading?.nextElementSibling?.querySelector('[data-pdf-keep]');
+      if (timelineHeading && firstDecision) {
+        keepTogether.push({
+          top: Math.floor(
+            (timelineHeading.getBoundingClientRect().top - reportBounds.top) * scaleY
+          ),
+          bottom: Math.ceil(
+            (firstDecision.getBoundingClientRect().bottom - reportBounds.top) * scaleY
+          ),
+        });
+      }
+      // Keep sections and decision cards intact when they fit on a page.
+      // Oversized sections can continue across pages without shrinking the type.
+      for (let offset = 0; offset < canvas.height;) {
+        let end = Math.min(offset + pagePixels, canvas.height);
+        for (const block of keepTogether) {
+          if (
+            block.top > offset &&
+            block.top < end &&
+            block.bottom > end &&
+            block.bottom - block.top <= pagePixels
+          ) {
+            end = block.top;
+          }
+        }
+        if (offset > 0) pdf.addPage();
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = end - offset;
+        const context = slice.getContext('2d');
+        if (!context) throw new Error('Unable to prepare the report page');
+        context.drawImage(
+          canvas,
+          0,
+          offset,
+          slice.width,
+          slice.height,
+          0,
+          0,
+          slice.width,
+          slice.height
+        );
+        pdf.addImage(
+          slice.toDataURL('image/png'),
+          'PNG',
+          margin,
+          margin,
+          contentWidth,
+          slice.height * mmPerPixel,
+          undefined,
+          'FAST'
+        );
+        offset = end;
+      }
+      for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
+        pdf.setPage(page);
+        pdf.setFontSize(8);
+        pdf.setTextColor(80, 90, 85);
+        pdf.text('Hourglass Command - Synthetic training record', margin, pdfHeight - 5);
+        pdf.text(`${page} / ${pdf.getNumberOfPages()}`, pdfWidth - margin, pdfHeight - 5, {
+          align: 'right',
+        });
+      }
       pdf.save(`hourglass-aar-${scenarioId}-${Date.now()}.pdf`);
     } catch (error) {
       console.error('PDF export failed:', error);
+      setExportError(
+        'The PDF could not be created. Your review is still here. Try again or choose PNG.'
+      );
     } finally {
       setIsExporting(false);
     }
@@ -6480,6 +6559,7 @@ function DebriefModal({
   const handleExportPNG = async (): Promise<void> => {
     if (!exportRef.current) return;
     setIsExporting(true);
+    setExportError(null);
 
     try {
       const canvas = await html2canvas(exportRef.current, {
@@ -6495,6 +6575,9 @@ function DebriefModal({
       link.click();
     } catch (error) {
       console.error('PNG export failed:', error);
+      setExportError(
+        'The image could not be created. Your review is still here. Please try again.'
+      );
     } finally {
       setIsExporting(false);
     }
@@ -6509,11 +6592,12 @@ function DebriefModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gradient-to-b from-[#121c14] to-[#0b140e] border border-gray-800/80 rounded-3xl max-w-3xl w-full p-8 shadow-2xl animate-scale-in my-8">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 p-4 overflow-y-auto">
+      <div className="relative bg-gradient-to-b from-[#121c14] to-[#0b140e] border border-gray-800/80 rounded-3xl max-w-3xl w-full p-8 shadow-2xl animate-scale-in mx-auto my-8">
         {/* Close Button */}
         <button
           onClick={onClose}
+          aria-label="Close after-action review"
           className="absolute top-6 right-6 p-2 rounded-xl hover:bg-gray-800 transition-colors"
         >
           <X className="w-5 h-5 text-gray-400" />
@@ -6823,6 +6907,7 @@ function DebriefModal({
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowExportPanel(false)}
+                aria-label="Close export preview"
                 className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 <X className="w-5 h-5 text-gray-400" />
@@ -6875,6 +6960,11 @@ function DebriefModal({
           </div>
 
           {/* Export Preview (Scrollable) */}
+          {exportError && (
+            <p role="alert" className="px-6 pt-4 text-sm text-amber-200">
+              {exportError}
+            </p>
+          )}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto">
               {/* The AAR Export Document */}
@@ -6930,14 +7020,18 @@ function DebriefModal({
 
                 {/* Decision Timeline */}
                 <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h2
+                    data-pdf-heading
+                    className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                  >
                     <Clock className="w-5 h-5 text-amber-400" />
                     Decision Timeline
                   </h2>
                   <div className="space-y-3">
-                    {log.decisions.slice(0, 6).map((decision, idx) => (
+                    {log.decisions.map((decision, idx) => (
                       <div
                         key={decision.id}
+                        data-pdf-keep
                         className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40"
                       >
                         <div className="flex items-start gap-4">
@@ -6960,11 +7054,9 @@ function DebriefModal({
                                 {decision.posture}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-500 line-clamp-2">
-                              {decision.rationale}
-                            </p>
+                            <p className="text-sm text-gray-500">{decision.rationale}</p>
                             {decision.esrmFraming && (
-                              <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
                                 <span>Treatment: {decision.esrmFraming.treatment}</span>
                                 <span>Residual: {decision.esrmFraming.residualRisk}</span>
                               </div>
@@ -6973,11 +7065,6 @@ function DebriefModal({
                         </div>
                       </div>
                     ))}
-                    {log.decisions.length > 6 && (
-                      <p className="text-sm text-gray-500 text-center">
-                        + {log.decisions.length - 6} more decisions
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -7112,9 +7199,7 @@ function DebriefModal({
                       </div>
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
-                        <span className="text-gray-300">
-                          {diffConfig.label} difficulty mastered
-                        </span>
+                        <span className="text-gray-300">Difficulty: {diffConfig.label}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />

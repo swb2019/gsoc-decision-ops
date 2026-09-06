@@ -26,6 +26,7 @@ import {
   type HeapMeasurement,
   type InferenceDevice,
 } from './local-voice-load-policy';
+import { createModelDownloadSession } from './model-download-session';
 
 // Configuration
 const LOCAL_VOICE_STORAGE_KEY = 'hourglass-local-voice-config';
@@ -105,6 +106,7 @@ let whisperPipeline: unknown = null;
 let kokoroInstance: unknown = null;
 let webSpeechSynth: SpeechSynthesis | null = null;
 let enableInFlight = false;
+let downloadSession: ReturnType<typeof createModelDownloadSession> | null = null;
 let initPromise: Promise<void> | null = null;
 let transformersLoadPromise: Promise<{
   pipeline: unknown;
@@ -447,7 +449,9 @@ export async function enableLocalVoice(): Promise<boolean> {
       message: `Provisioning headset models… (~${WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB} MB, one-time)`,
     });
 
+    downloadSession = createModelDownloadSession(window);
     await loadModels();
+    downloadSession.assertActive();
 
     const ttsReady = kokoroInstance !== null || webSpeechSynth !== null;
     if (!whisperPipeline && !ttsReady) {
@@ -464,6 +468,17 @@ export async function enableLocalVoice(): Promise<boolean> {
 
     return true;
   } catch (error) {
+    if (downloadSession?.signal.aborted) {
+      patchConfig({ enabled: false }, true);
+      updateState({ isLoading: false, sttReady: false, ttsReady: false, error: null });
+      updateProgress({
+        stage: 'idle',
+        progress: 0,
+        currentModel: null,
+        message: 'Setup cancelled',
+      });
+      return false;
+    }
     const errorMessage = isMemoryError(error)
       ? 'Headset provision ran out of memory. Close other tabs and try again.'
       : error instanceof Error
@@ -474,6 +489,8 @@ export async function enableLocalVoice(): Promise<boolean> {
     updateProgress({ stage: 'error', error: errorMessage, message: errorMessage });
     return false;
   } finally {
+    downloadSession?.restore();
+    downloadSession = null;
     enableInFlight = false;
   }
 }
@@ -482,10 +499,21 @@ export async function enableLocalVoice(): Promise<boolean> {
  * Disable local voice mode
  */
 export function disableLocalVoice(): void {
+  const cancelling = downloadSession !== null && enableInFlight;
+  downloadSession?.cancel();
+  if (cancelling) {
+    updateProgress({
+      stage: 'loading',
+      progress: 0,
+      currentModel: null,
+      message: 'Cancelling model setup…',
+    });
+  }
   saveLocalVoiceConfig({ enabled: false });
   stopListening();
   stopSpeaking();
   updateState({
+    isLoading: cancelling,
     sttReady: false,
     ttsReady: false,
     isListening: false,
@@ -510,6 +538,7 @@ export async function toggleLocalVoice(): Promise<boolean> {
  * Concurrent load would overlap two ONNX heaps; we yield between them so GC can run.
  */
 async function loadModels(): Promise<void> {
+  downloadSession?.assertActive();
   const totalSize = WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB;
 
   updateProgress({
@@ -520,9 +549,11 @@ async function loadModels(): Promise<void> {
   });
 
   const whisper = await loadWhisperModel();
+  downloadSession?.assertActive();
   updateState({ sttReady: whisperPipeline !== null });
 
   await yieldToMain(INTER_MODEL_YIELD_MS);
+  downloadSession?.assertActive();
 
   const skipKokoro = shouldSkipKokoro({
     whisperMemoryError: whisper.memoryError,
@@ -547,6 +578,7 @@ async function loadModels(): Promise<void> {
   });
 
   await loadKokoroModel();
+  downloadSession?.assertActive();
 
   updateProgress({
     stage: 'ready',
@@ -650,6 +682,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
 
     const { pipeline, env } = await loadTransformersFromCDN();
     await yieldToMain();
+    downloadSession?.assertActive();
 
     if (env) {
       env.useBrowserCache = true;
@@ -676,6 +709,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
         device,
         dtype: getWhisperDtype(),
         progress_callback: (progress: { progress?: number; status?: string }) => {
+          if (downloadSession?.signal.aborted) return;
           if (progress.progress !== undefined) {
             const pct = Math.min(55, 20 + progress.progress * 0.35);
             updateProgress({ progress: pct });
@@ -688,6 +722,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
     return { memoryError: false };
   } catch (error) {
     console.warn('Failed to load Whisper model:', error);
+    downloadSession?.assertActive();
     whisperPipeline = null;
     return { memoryError: isMemoryError(error) };
   }
@@ -742,6 +777,7 @@ async function loadKokoroModel(): Promise<void> {
 
     const { KokoroTTS } = await loadKokoroFromCDN();
     await yieldToMain();
+    downloadSession?.assertActive();
 
     updateProgress({
       progress: 70,
@@ -758,6 +794,7 @@ async function loadKokoroModel(): Promise<void> {
     updateState({ fallbackTTS: null });
   } catch (error) {
     console.warn('Failed to load Kokoro model, falling back to Web Speech:', error);
+    downloadSession?.assertActive();
     applyWebSpeechFallback();
     if (webSpeechSynth) {
       updateProgress({ progress: 95, message: 'Headset online (browser speech)' });
