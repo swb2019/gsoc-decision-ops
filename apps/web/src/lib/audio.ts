@@ -154,6 +154,7 @@ export function initAudio(): void {
 const BGM_FILE = '/audio/ambientBGM_v5.ogg?v=20260905-elevenlabs-v5';
 let ambientAudio: HTMLAudioElement | null = null;
 let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
+let ambientPausedBySystem = false;
 
 /**
  * Get reference to ambient BGM audio element (for VO ducking)
@@ -208,6 +209,7 @@ export function stopAmbientMusic(): void {
       ambientAudio.pause();
       ambientAudio.volume = 0;
       ambientAudio.currentTime = 0;
+      ambientPausedBySystem = false;
       if (ambientFadeInterval) {
         clearInterval(ambientFadeInterval);
         ambientFadeInterval = null;
@@ -219,4 +221,30 @@ export function stopAmbientMusic(): void {
 
 export function isAmbientMusicPlaying(): boolean {
   return ambientAudio !== null && !ambientAudio.paused;
+}
+
+/**
+ * Pause ambient BGM for system pause (preserves playback position).
+ */
+export function pauseAmbientMusic(): void {
+  if (!ambientAudio || ambientAudio.paused) return;
+
+  ambientPausedBySystem = true;
+  if (ambientFadeInterval) {
+    clearInterval(ambientFadeInterval);
+    ambientFadeInterval = null;
+  }
+  ambientAudio.pause();
+}
+
+/**
+ * Resume ambient BGM after system unpause (only if paused by system pause).
+ */
+export function resumeAmbientMusic(): void {
+  if (!ambientAudio || !ambientPausedBySystem) return;
+
+  ambientPausedBySystem = false;
+  ambientAudio.play().catch(() => {
+    // Audio blocked
+  });
 }

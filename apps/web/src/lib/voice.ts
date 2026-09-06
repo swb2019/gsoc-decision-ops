@@ -120,8 +120,11 @@ let eventAudioElement: HTMLAudioElement | null = null;
 // Stores inject IDs or slugified titles that have been spoken this session
 const spokenEventIds: Set<string> = new Set();
 
-// Mutex to prevent concurrent processQueue execution
+// Mutex to prevent concurrent queue processing
 let isProcessingQueue = false;
+
+// System pause blocks VO while the simulation is paused mid-game
+let systemPaused = false;
 
 // Reference to BGM element for ducking (set externally)
 let bgmElement: HTMLAudioElement | null = null;
@@ -296,6 +299,14 @@ export function setBGMReference(bgmAudio: HTMLAudioElement | null): void {
   }
 }
 
+export function setSystemPaused(paused: boolean): void {
+  systemPaused = paused;
+}
+
+export function isSystemPaused(): boolean {
+  return systemPaused;
+}
+
 function duckBGM(): void {
   if (!bgmElement || bgmElement.paused) return;
 
@@ -391,8 +402,8 @@ function processQueue(): void {
     return;
   }
 
-  // Don't process if already playing, queue empty, or voice disabled
-  if (isVOPlaying || voQueue.length === 0 || !voConfig.voiceEnabled) {
+  // Don't process if already playing, queue empty, voice disabled, or system paused
+  if (isVOPlaying || voQueue.length === 0 || !voConfig.voiceEnabled || systemPaused) {
     return;
   }
 
@@ -524,7 +535,7 @@ function playEventVOImmediate(
  * Won't overlap - lines queue and play sequentially.
  */
 export function playVO(voType: VOType): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
 
   const voInfo = VO_FILES[voType];
   if (!voInfo) return;
@@ -566,7 +577,7 @@ export function playEventVO(
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
   injectId?: string
 ): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;
@@ -612,7 +623,7 @@ export function playEventVOOnSelect(
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
   injectId?: string
 ): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;
@@ -751,6 +762,7 @@ export function initVO(): void {
  */
 export function cleanupVO(): void {
   skipVO();
+  systemPaused = false;
 
   // Clear spoken events tracking for new session
   spokenEventIds.clear();

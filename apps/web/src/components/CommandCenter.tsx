@@ -862,6 +862,8 @@ import {
   saveAudioConfig,
   startAmbientMusic,
   stopAmbientMusic,
+  pauseAmbientMusic,
+  resumeAmbientMusic,
   isAmbientMusicPlaying,
   getAmbientAudioElement,
 } from '../lib/audio';
@@ -873,6 +875,7 @@ import {
   loadVOConfig,
   setVoiceEnabled,
   setBGMReference,
+  setSystemPaused,
   skipVO,
 } from '../lib/voice';
 import { getBasePath } from '../lib/base-path';
@@ -1527,6 +1530,28 @@ export default function CommandCenter({
     }, 500);
   }, []);
 
+  const handleRunningToggle = useCallback(() => {
+    if (isRunning) {
+      skipVO();
+      pauseAmbientMusic();
+      setActiveMicroTask(null);
+      setMicroTaskAnswer(null);
+      setMicroTaskResult(null);
+      setMicroTaskExplanationShown(false);
+      setIsRunning(false);
+      playVO('pause_save');
+      setSystemPaused(true);
+    } else {
+      setSystemPaused(false);
+      setIsRunning(true);
+      if (ambientMusicEnabled && !reducedMotion) {
+        resumeAmbientMusic();
+        setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
+      }
+    }
+    tapFeedback();
+  }, [isRunning, ambientMusicEnabled, reducedMotion, tapFeedback]);
+
   // Start game with arc scheduler initialization
   const handleStartGame = useCallback(
     (customSeed?: string) => {
@@ -1536,6 +1561,7 @@ export default function CommandCenter({
       const scheduler = createArcFromLog(initialLog, seed, arcDifficulty);
 
       arcSchedulerRef.current = scheduler;
+      setSystemPaused(false);
       setIsRunning(true);
 
       // Play scenario start VO
@@ -2385,7 +2411,7 @@ export default function CommandCenter({
       switch (e.key.toLowerCase()) {
         case ' ':
           e.preventDefault();
-          setIsRunning((r) => !r);
+          handleRunningToggle();
           break;
         case 'c':
           if (pendingDecision && selectedAsset) handlePostureCommit('CONTINUE');
@@ -2405,7 +2431,7 @@ export default function CommandCenter({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [pendingDecision, selectedAsset]);
+  }, [pendingDecision, selectedAsset, handleRunningToggle]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -2913,10 +2939,7 @@ export default function CommandCenter({
               )}
             >
               <button
-                onClick={() => {
-                  setIsRunning(!isRunning);
-                  tapFeedback();
-                }}
+                onClick={handleRunningToggle}
                 className={clsx(
                   'p-1.5 sm:p-2 rounded-lg transition-all touch-target flex items-center justify-center animate-press',
                   isRunning
@@ -2967,7 +2990,7 @@ export default function CommandCenter({
               )}
 
               <button
-                onClick={() => setIsRunning(!isRunning)}
+                onClick={handleRunningToggle}
                 className={clsx(
                   'relative z-10 p-2.5 rounded-xl transition-all duration-200 touch-target flex items-center justify-center',
                   isRunning
@@ -3841,8 +3864,17 @@ export default function CommandCenter({
                 }}
                 onInjectClick={(injectId) => {
                   const inject = log.injects.find((i) => i.id === injectId);
-                  if (inject && !processedInjectsRef.current.has(injectId)) {
+                  const isHandled = log.decisions.some((d) => d.title === inject?.title);
+                  if (inject && !isHandled) {
                     setPendingDecision(inject);
+                    setSelectedAsset(null);
+                    setAssetOwnerBriefed(false);
+                    setResidualRiskNote('');
+                    setSelectedTreatmentCategory(null);
+                    setSelectedTreatmentOption(null);
+                    setSelectedResidualRisk(null);
+                    setTreatmentBonusGiven(false);
+                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
                   }
                 }}
                 consequenceAnimation={
@@ -4223,9 +4255,18 @@ export default function CommandCenter({
                   }}
                   onInjectClick={(injectId) => {
                     const inject = log.injects.find((i) => i.id === injectId);
-                    if (inject && !processedInjectsRef.current.has(injectId)) {
+                    const isHandled = log.decisions.some((d) => d.title === inject?.title);
+                    if (inject && !isHandled) {
                       setPendingDecision(inject);
+                      setSelectedAsset(null);
+                      setAssetOwnerBriefed(false);
+                      setResidualRiskNote('');
+                      setSelectedTreatmentCategory(null);
+                      setSelectedTreatmentOption(null);
+                      setSelectedResidualRisk(null);
+                      setTreatmentBonusGiven(false);
                       setMobileTab('decision');
+                      playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
                     }
                   }}
                   consequenceAnimation={
@@ -4466,6 +4507,7 @@ export default function CommandCenter({
             setActiveMicroTask(null);
             setCompletedMicroTasks([]);
             setSkippedMicroTasks([]);
+            setSystemPaused(false);
             setCalcTrails([]);
             sessionStorage.removeItem(SESSION_STORAGE_KEY);
           }}
