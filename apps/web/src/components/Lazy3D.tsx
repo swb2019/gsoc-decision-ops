@@ -27,12 +27,7 @@ function NoWebGLFallback({ width, height }: { width?: number; height?: number })
       style={{ width: width || 48, height: height || 48 }}
       title="3D not available"
     >
-      <svg
-        className="w-4 h-4 text-gray-600"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+      <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"

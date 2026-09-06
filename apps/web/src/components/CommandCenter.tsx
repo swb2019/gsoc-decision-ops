@@ -4639,7 +4639,20 @@ function InjectCard({
         {intake?.channel && !isHandled && !isNoise && (
           <div className="flex-shrink-0">
             <ChannelIcon3DWrapper
-              channel={intake.channel as 'ACS' | 'VMS' | 'ALARM' | 'SIEM' | 'OSINT' | 'TIP' | 'RADIO' | 'FACILITIES' | 'VENDOR' | 'EXECUTIVE' | 'LE'}
+              channel={
+                intake.channel as
+                  | 'ACS'
+                  | 'VMS'
+                  | 'ALARM'
+                  | 'SIEM'
+                  | 'OSINT'
+                  | 'TIP'
+                  | 'RADIO'
+                  | 'FACILITIES'
+                  | 'VENDOR'
+                  | 'EXECUTIVE'
+                  | 'LE'
+              }
               size={40}
               isUrgent={urgency === 'IMMEDIATE'}
             />
@@ -4663,140 +4676,142 @@ function InjectCard({
                   {channelConfig.shortName}
                 </span>
               )}
-          {/* Correction/Update badge */}
-          {isCorrection && (
-            <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
-              <RefreshCw className="w-3 h-3" />
-              UPDATE
-            </span>
-          )}
-          {/* Urgency badge */}
-          {urgency === 'IMMEDIATE' && !isNoise && (
-            <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 animate-pulse">
-              <AlertCircle className="w-3 h-3" />
-              URGENT
-            </span>
-          )}
-          {/* Domain badge (only if no channel or for context) */}
-          {config && !channelConfig && (
-            <span
-              className={clsx(
-                'text-2xs font-semibold px-2 py-0.5 rounded',
-                config.bgColor,
-                config.color
+              {/* Correction/Update badge */}
+              {isCorrection && (
+                <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
+                  <RefreshCw className="w-3 h-3" />
+                  UPDATE
+                </span>
               )}
-            >
-              {config.label}
-            </span>
-          )}
-          {/* Noise/Low-priority indicator */}
-          {isNoise && (
-            <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-500">
-              <EyeOff className="w-3 h-3" />
-              Routine
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {/* Confidence indicator */}
-          {confidenceDisplay && !isHandled && (
-            <span
-              className={clsx(
-                'flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded',
-                confidenceDisplay.bgColor,
-                confidenceDisplay.color
+              {/* Urgency badge */}
+              {urgency === 'IMMEDIATE' && !isNoise && (
+                <span className="flex items-center gap-1 text-2xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-red-500/20 text-red-400 animate-pulse">
+                  <AlertCircle className="w-3 h-3" />
+                  URGENT
+                </span>
               )}
-              title={`Confidence: ${intake?.confidence}`}
-            >
-              <Signal className="w-2.5 h-2.5" />
-              {confidenceDisplay.label}
-            </span>
-          )}
-          {/* Attachments indicator */}
-          {hasAttachments && !isHandled && (
-            <span
-              className="flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400"
-              title={`${intake?.attachments?.length} attachment(s)`}
-            >
-              <Paperclip className="w-2.5 h-2.5" />
-              {intake?.attachments?.length}
-            </span>
-          )}
-          {/* Pending verification indicator */}
-          {isPendingVerification && !isHandled && (
-            <span
-              className="flex items-center text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400"
-              title="Pending verification"
-            >
-              <Eye className="w-2.5 h-2.5" />
-            </span>
-          )}
-          {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
-        </div>
-      </div>
+              {/* Domain badge (only if no channel or for context) */}
+              {config && !channelConfig && (
+                <span
+                  className={clsx(
+                    'text-2xs font-semibold px-2 py-0.5 rounded',
+                    config.bgColor,
+                    config.color
+                  )}
+                >
+                  {config.label}
+                </span>
+              )}
+              {/* Noise/Low-priority indicator */}
+              {isNoise && (
+                <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-500">
+                  <EyeOff className="w-3 h-3" />
+                  Routine
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {/* Confidence indicator */}
+              {confidenceDisplay && !isHandled && (
+                <span
+                  className={clsx(
+                    'flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded',
+                    confidenceDisplay.bgColor,
+                    confidenceDisplay.color
+                  )}
+                  title={`Confidence: ${intake?.confidence}`}
+                >
+                  <Signal className="w-2.5 h-2.5" />
+                  {confidenceDisplay.label}
+                </span>
+              )}
+              {/* Attachments indicator */}
+              {hasAttachments && !isHandled && (
+                <span
+                  className="flex items-center gap-0.5 text-2xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400"
+                  title={`${intake?.attachments?.length} attachment(s)`}
+                >
+                  <Paperclip className="w-2.5 h-2.5" />
+                  {intake?.attachments?.length}
+                </span>
+              )}
+              {/* Pending verification indicator */}
+              {isPendingVerification && !isHandled && (
+                <span
+                  className="flex items-center text-2xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400"
+                  title="Pending verification"
+                >
+                  <Eye className="w-2.5 h-2.5" />
+                </span>
+              )}
+              {isHandled && <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
+            </div>
+          </div>
 
-      {/* Resource requirements */}
-      {hasResourceRequirement && !isHandled && (
-        <div className="flex items-center gap-1 mb-2">
-          <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
-            <Users className="w-3 h-3" />
-            Requires:
-            {resourcesNeeded?.guards ? ` ${resourcesNeeded.guards}G` : ''}
-            {resourcesNeeded?.analysts ? ` ${resourcesNeeded.analysts}A` : ''}
-            {resourcesNeeded?.responders ? ` ${resourcesNeeded.responders}R` : ''}
-          </span>
-        </div>
-      )}
-
-      <h4
-        className={clsx(
-          'text-sm font-semibold mb-1.5',
-          isHandled ? 'text-gray-500' : 'text-gray-200'
-        )}
-      >
-        {inject.title}
-      </h4>
-
-      <p
-        className={clsx(
-          'text-xs leading-relaxed line-clamp-2',
-          isHandled ? 'text-gray-600' : 'text-gray-400'
-        )}
-      >
-        {inject.content}
-      </p>
-
-      {/* Entity chips */}
-      {entityChips && entityChips.length > 0 && !isHandled && (
-        <div className="flex items-center gap-1 mt-2 flex-wrap">
-          <Link2 className="w-3 h-3 text-cyan-500/60" />
-          {entityChips.map((entity) => {
-            const eConfig = ENTITY_TYPE_CONFIG[entity.type];
-            const isHighlighted = highlightedEntityId === entity.id;
-            return (
-              <span
-                key={entity.id}
-                className={clsx(
-                  'text-2xs px-1.5 py-0.5 rounded transition-all',
-                  isHighlighted
-                    ? 'bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50'
-                    : `${eConfig.bgColor} ${eConfig.color}`
-                )}
-              >
-                {entity.shortName || entity.name}
+          {/* Resource requirements */}
+          {hasResourceRequirement && !isHandled && (
+            <div className="flex items-center gap-1 mb-2">
+              <span className="flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-gray-700/50 text-gray-400">
+                <Users className="w-3 h-3" />
+                Requires:
+                {resourcesNeeded?.guards ? ` ${resourcesNeeded.guards}G` : ''}
+                {resourcesNeeded?.analysts ? ` ${resourcesNeeded.analysts}A` : ''}
+                {resourcesNeeded?.responders ? ` ${resourcesNeeded.responders}R` : ''}
               </span>
-            );
-          })}
-          {linkedEntityIds.length > 3 && (
-            <span className="text-2xs text-gray-500">+{linkedEntityIds.length - 3}</span>
+            </div>
           )}
-        </div>
-      )}
+
+          <h4
+            className={clsx(
+              'text-sm font-semibold mb-1.5',
+              isHandled ? 'text-gray-500' : 'text-gray-200'
+            )}
+          >
+            {inject.title}
+          </h4>
+
+          <p
+            className={clsx(
+              'text-xs leading-relaxed line-clamp-2',
+              isHandled ? 'text-gray-600' : 'text-gray-400'
+            )}
+          >
+            {inject.content}
+          </p>
+
+          {/* Entity chips */}
+          {entityChips && entityChips.length > 0 && !isHandled && (
+            <div className="flex items-center gap-1 mt-2 flex-wrap">
+              <Link2 className="w-3 h-3 text-cyan-500/60" />
+              {entityChips.map((entity) => {
+                const eConfig = ENTITY_TYPE_CONFIG[entity.type];
+                const isHighlighted = highlightedEntityId === entity.id;
+                return (
+                  <span
+                    key={entity.id}
+                    className={clsx(
+                      'text-2xs px-1.5 py-0.5 rounded transition-all',
+                      isHighlighted
+                        ? 'bg-cyan-500/30 text-cyan-300 ring-1 ring-cyan-500/50'
+                        : `${eConfig.bgColor} ${eConfig.color}`
+                    )}
+                  >
+                    {entity.shortName || entity.name}
+                  </span>
+                );
+              })}
+              {linkedEntityIds.length > 3 && (
+                <span className="text-2xs text-gray-500">+{linkedEntityIds.length - 3}</span>
+              )}
+            </div>
+          )}
 
           {/* Footer: Source system and timestamp */}
           <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
             <div className="flex items-center gap-2">
-              <span className="text-2xs text-gray-500">{intake?.sourceSystem || inject.source}</span>
+              <span className="text-2xs text-gray-500">
+                {intake?.sourceSystem || inject.source}
+              </span>
               {intake?.sourceId && (
                 <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
               )}
@@ -5840,7 +5855,10 @@ function transformZonesTo3D(
     id: name,
     name: name.charAt(0).toUpperCase() + name.slice(1),
     heat,
-    position: [((index % gridSize) / gridSize) * 100, (Math.floor(index / gridSize) / gridSize) * 100] as [number, number],
+    position: [
+      ((index % gridSize) / gridSize) * 100,
+      (Math.floor(index / gridSize) / gridSize) * 100,
+    ] as [number, number],
   }));
 }
 
