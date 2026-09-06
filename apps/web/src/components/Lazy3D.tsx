@@ -29,11 +29,11 @@ function NoWebGLFallback({ width, height }: { width?: number; height?: number })
       style={{ width: width || 48, height: height || 48 }}
       title="Simplified view"
     >
-      <svg 
-        className="text-gray-500" 
+      <svg
+        className="text-gray-500"
         style={{ width: iconSize, height: iconSize }}
-        fill="none" 
-        viewBox="0 0 24 24" 
+        fill="none"
+        viewBox="0 0 24 24"
         stroke="currentColor"
       >
         <path
@@ -69,7 +69,9 @@ function check3DSupport(): boolean {
 
   const checkMobilePerformance = (): boolean => {
     // Allow mobile 3D unless device is clearly constrained (Shannon P0: assets missing on phone)
-    const isVeryLowPower = navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 1 : false;
+    const isVeryLowPower = navigator.hardwareConcurrency
+      ? navigator.hardwareConcurrency <= 1
+      : false;
     const deviceMemory = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
     const hasLowMemory = deviceMemory !== undefined && deviceMemory < 2;
     return !isVeryLowPower && !hasLowMemory;
@@ -161,26 +163,71 @@ type IntakeChannel =
   | 'EXECUTIVE'
   | 'LE';
 
-const CHANNEL_FALLBACK_COLORS: Record<IntakeChannel, { bg: string; text: string; border: string }> = {
-  ACS: { bg: 'from-cyan-500/20 to-cyan-600/10', text: 'text-cyan-400', border: 'border-cyan-500/30' },
-  VMS: { bg: 'from-violet-500/20 to-violet-600/10', text: 'text-violet-400', border: 'border-violet-500/30' },
-  ALARM: { bg: 'from-red-500/20 to-red-600/10', text: 'text-red-400', border: 'border-red-500/30' },
-  SIEM: { bg: 'from-blue-500/20 to-blue-600/10', text: 'text-blue-400', border: 'border-blue-500/30' },
-  OSINT: { bg: 'from-amber-500/20 to-amber-600/10', text: 'text-amber-400', border: 'border-amber-500/30' },
-  TIP: { bg: 'from-emerald-500/20 to-emerald-600/10', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  RADIO: { bg: 'from-pink-500/20 to-pink-600/10', text: 'text-pink-400', border: 'border-pink-500/30' },
-  FACILITIES: { bg: 'from-gray-500/20 to-gray-600/10', text: 'text-gray-400', border: 'border-gray-500/30' },
-  VENDOR: { bg: 'from-orange-500/20 to-orange-600/10', text: 'text-orange-400', border: 'border-orange-500/30' },
-  EXECUTIVE: { bg: 'from-yellow-500/20 to-yellow-600/10', text: 'text-yellow-400', border: 'border-yellow-500/30' },
-  LE: { bg: 'from-indigo-500/20 to-indigo-600/10', text: 'text-indigo-400', border: 'border-indigo-500/30' },
-};
+const CHANNEL_FALLBACK_COLORS: Record<IntakeChannel, { bg: string; text: string; border: string }> =
+  {
+    ACS: {
+      bg: 'from-cyan-500/20 to-cyan-600/10',
+      text: 'text-cyan-400',
+      border: 'border-cyan-500/30',
+    },
+    VMS: {
+      bg: 'from-violet-500/20 to-violet-600/10',
+      text: 'text-violet-400',
+      border: 'border-violet-500/30',
+    },
+    ALARM: {
+      bg: 'from-red-500/20 to-red-600/10',
+      text: 'text-red-400',
+      border: 'border-red-500/30',
+    },
+    SIEM: {
+      bg: 'from-blue-500/20 to-blue-600/10',
+      text: 'text-blue-400',
+      border: 'border-blue-500/30',
+    },
+    OSINT: {
+      bg: 'from-amber-500/20 to-amber-600/10',
+      text: 'text-amber-400',
+      border: 'border-amber-500/30',
+    },
+    TIP: {
+      bg: 'from-emerald-500/20 to-emerald-600/10',
+      text: 'text-emerald-400',
+      border: 'border-emerald-500/30',
+    },
+    RADIO: {
+      bg: 'from-pink-500/20 to-pink-600/10',
+      text: 'text-pink-400',
+      border: 'border-pink-500/30',
+    },
+    FACILITIES: {
+      bg: 'from-gray-500/20 to-gray-600/10',
+      text: 'text-gray-400',
+      border: 'border-gray-500/30',
+    },
+    VENDOR: {
+      bg: 'from-orange-500/20 to-orange-600/10',
+      text: 'text-orange-400',
+      border: 'border-orange-500/30',
+    },
+    EXECUTIVE: {
+      bg: 'from-yellow-500/20 to-yellow-600/10',
+      text: 'text-yellow-400',
+      border: 'border-yellow-500/30',
+    },
+    LE: {
+      bg: 'from-indigo-500/20 to-indigo-600/10',
+      text: 'text-indigo-400',
+      border: 'border-indigo-500/30',
+    },
+  };
 
-function ChannelIconFallback({ 
-  channel, 
+function ChannelIconFallback({
+  channel,
   size = 48,
   isUrgent = false,
-}: { 
-  channel: IntakeChannel; 
+}: {
+  channel: IntakeChannel;
   size?: number;
   isUrgent?: boolean;
 }): JSX.Element {
@@ -192,7 +239,10 @@ function ChannelIconFallback({
       style={{ width: size, height: size }}
       title={channel}
     >
-      <span className={`font-bold text-xs ${colors.text}`} style={{ fontSize: Math.max(10, size * 0.25) }}>
+      <span
+        className={`font-bold text-xs ${colors.text}`}
+        style={{ fontSize: Math.max(10, size * 0.25) }}
+      >
         {abbrev}
       </span>
     </div>
@@ -212,7 +262,9 @@ export function ChannelIcon3DWrapper(props: LazyChannelIcon3DWrapperProps): JSX.
       component={() => import('./ChannelIcon3D')}
       props={props}
       fallback={<DefaultFallback width={props.size} height={props.size} />}
-      noWebGLFallback={<ChannelIconFallback channel={props.channel} size={props.size} isUrgent={props.isUrgent} />}
+      noWebGLFallback={
+        <ChannelIconFallback channel={props.channel} size={props.size} isUrgent={props.isUrgent} />
+      }
     />
   );
 }

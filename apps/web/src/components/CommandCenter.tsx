@@ -5195,7 +5195,9 @@ function DecisionConsole({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
-                  <h3 className="text-sm sm:text-base font-semibold text-gray-200">2. Owner Handoff</h3>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-200">
+                    2. Owner Handoff
+                  </h3>
                   {assetOwnerBriefed && <CheckCircle className="w-4 h-4 text-emerald-400" />}
                 </div>
                 <span className="text-2xs sm:text-xs text-emerald-400 font-medium">+75 pts</span>
@@ -5204,7 +5206,9 @@ function DecisionConsole({
               {/* Compact Owner Info + Brief Button */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-200 truncate">{selectedAsset.owner.name}</p>
+                  <p className="text-sm font-medium text-gray-200 truncate">
+                    {selectedAsset.owner.name}
+                  </p>
                   <p className="text-2xs text-gray-500 truncate">{selectedAsset.owner.title}</p>
                 </div>
                 <button
@@ -5217,7 +5221,9 @@ function DecisionConsole({
                   )}
                 >
                   <Phone className="w-4 h-4" />
-                  <span className="hidden sm:inline">{assetOwnerBriefed ? 'Briefed ✓' : 'Brief Owner'}</span>
+                  <span className="hidden sm:inline">
+                    {assetOwnerBriefed ? 'Briefed ✓' : 'Brief Owner'}
+                  </span>
                   <span className="sm:hidden">{assetOwnerBriefed ? '✓' : 'Brief'}</span>
                 </button>
               </div>
@@ -5296,7 +5302,9 @@ function DecisionConsole({
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-semibold text-gray-200">3. Select Risk Treatment</h3>
-                <span className="text-2xs sm:text-xs text-emerald-400 font-medium ml-auto">Required</span>
+                <span className="text-2xs sm:text-xs text-emerald-400 font-medium ml-auto">
+                  Required
+                </span>
               </div>
 
               {/* Step 1: Select Treatment Category with Icons */}

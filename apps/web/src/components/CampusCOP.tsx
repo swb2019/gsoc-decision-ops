@@ -261,19 +261,22 @@ export default function CampusCOP({
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [expandedFAU, setExpandedFAU] = useState<'facts' | 'assumptions' | 'unknowns' | null>(null);
 
-  const toggleLayer = useCallback((layerId: string) => {
-    const next = new Set(activeLayers);
-    if (next.has(layerId)) {
-      next.delete(layerId);
-    } else {
-      next.add(layerId);
-    }
-    if (onLayersChange) {
-      onLayersChange(next);
-    } else {
-      setInternalLayers(next);
-    }
-  }, [activeLayers, onLayersChange]);
+  const toggleLayer = useCallback(
+    (layerId: string) => {
+      const next = new Set(activeLayers);
+      if (next.has(layerId)) {
+        next.delete(layerId);
+      } else {
+        next.add(layerId);
+      }
+      if (onLayersChange) {
+        onLayersChange(next);
+      } else {
+        setInternalLayers(next);
+      }
+    },
+    [activeLayers, onLayersChange]
+  );
 
   const handleZoneClick = useCallback(
     (zoneId: string) => {
@@ -695,7 +698,11 @@ function FAUCard({
               {criticalCount}!
             </span>
           )}
-          {expanded ? <ChevronUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+          {expanded ? (
+            <ChevronUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          ) : (
+            <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+          )}
         </div>
       </button>
       {expanded && items.length > 0 && (
