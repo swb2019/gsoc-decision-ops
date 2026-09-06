@@ -36,6 +36,8 @@ interface ZoneConfig {
   name: string;
   shortName: string;
   color: string;
+  iconBgClass: string;
+  iconTextClass: string;
   icon: typeof Building;
   svgPath: string;
   labelPosition: { x: number; y: number };
@@ -96,6 +98,8 @@ const ZONE_CONFIGS: ZoneConfig[] = [
     name: 'Executive Suite',
     shortName: 'EXEC',
     color: 'amber',
+    iconBgClass: 'bg-amber-500/20',
+    iconTextClass: 'text-amber-400',
     icon: Building,
     svgPath: 'M 20 20 L 120 20 L 120 80 L 20 80 Z',
     labelPosition: { x: 70, y: 50 },
@@ -110,6 +114,8 @@ const ZONE_CONFIGS: ZoneConfig[] = [
     name: 'Operations Center',
     shortName: 'OPS',
     color: 'cyan',
+    iconBgClass: 'bg-cyan-500/20',
+    iconTextClass: 'text-cyan-400',
     icon: Activity,
     svgPath: 'M 140 20 L 280 20 L 280 100 L 140 100 Z',
     labelPosition: { x: 210, y: 60 },
@@ -125,6 +131,8 @@ const ZONE_CONFIGS: ZoneConfig[] = [
     name: 'Perimeter / Entry',
     shortName: 'PERIM',
     color: 'emerald',
+    iconBgClass: 'bg-emerald-500/20',
+    iconTextClass: 'text-emerald-400',
     icon: Shield,
     svgPath: 'M 20 100 L 120 100 L 120 180 L 20 180 Z',
     labelPosition: { x: 70, y: 140 },
@@ -139,6 +147,8 @@ const ZONE_CONFIGS: ZoneConfig[] = [
     name: 'Cyber / IT Infra',
     shortName: 'CYBER',
     color: 'violet',
+    iconBgClass: 'bg-violet-500/20',
+    iconTextClass: 'text-violet-400',
     icon: Zap,
     svgPath: 'M 140 120 L 280 120 L 280 180 L 140 180 Z',
     labelPosition: { x: 210, y: 150 },
@@ -151,14 +161,44 @@ const ZONE_CONFIGS: ZoneConfig[] = [
 ];
 
 /**
- * Layer toggle configurations
+ * Layer toggle configurations with static Tailwind classes
  */
-const LAYER_CONFIGS: LayerConfig[] = [
-  { id: 'cameras', label: 'Cameras', icon: Camera, color: 'blue' },
-  { id: 'access', label: 'Access', icon: Shield, color: 'emerald' },
-  { id: 'heat', label: 'Heat', icon: Thermometer, color: 'orange' },
-  { id: 'entities', label: 'Entities', icon: Users, color: 'cyan' },
-  { id: 'injects', label: 'Intel', icon: Radio, color: 'purple' },
+const LAYER_CONFIGS: (LayerConfig & { activeClass: string })[] = [
+  {
+    id: 'cameras',
+    label: 'Cameras',
+    icon: Camera,
+    color: 'blue',
+    activeClass: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+  },
+  {
+    id: 'access',
+    label: 'Access',
+    icon: Shield,
+    color: 'emerald',
+    activeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+  },
+  {
+    id: 'heat',
+    label: 'Heat',
+    icon: Thermometer,
+    color: 'orange',
+    activeClass: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+  },
+  {
+    id: 'entities',
+    label: 'Entities',
+    icon: Users,
+    color: 'cyan',
+    activeClass: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40',
+  },
+  {
+    id: 'injects',
+    label: 'Intel',
+    icon: Radio,
+    color: 'purple',
+    activeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
+  },
 ];
 
 /**
@@ -296,10 +336,10 @@ export default function CampusCOP({
                 key={layer.id}
                 onClick={() => toggleLayer(layer.id)}
                 className={clsx(
-                  'flex items-center gap-1 px-2 py-1 rounded-md text-2xs font-medium transition-all',
+                  'flex items-center gap-1 px-2 py-1 rounded-md text-2xs font-medium transition-all border',
                   isActive
-                    ? `bg-${layer.color}-500/20 text-${layer.color}-400 border border-${layer.color}-500/40`
-                    : 'bg-gray-800/50 text-gray-500 border border-gray-700/40 hover:bg-gray-800'
+                    ? layer.activeClass
+                    : 'bg-gray-800/50 text-gray-500 border-gray-700/40 hover:bg-gray-800'
                 )}
                 title={`Toggle ${layer.label}`}
               >
@@ -687,8 +727,8 @@ function ZoneDetailPanel({
     <div className="rounded-xl border border-gray-700/50 bg-gray-800/50 p-3 animate-fade-in">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg bg-${zone.color}-500/20`}>
-            <Icon className={`w-4 h-4 text-${zone.color}-400`} />
+          <div className={clsx('p-1.5 rounded-lg', zone.iconBgClass)}>
+            <Icon className={clsx('w-4 h-4', zone.iconTextClass)} />
           </div>
           <div>
             <h4 className="text-sm font-semibold text-gray-200">{zone.name}</h4>
