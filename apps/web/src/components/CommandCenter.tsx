@@ -1567,7 +1567,7 @@ export default function CommandCenter({
       setMicroTaskResult(null);
       setMicroTaskExplanationShown(false);
       setIsRunning(false);
-      playVO('pause_save');
+      // Do not speak Pause/Resume chrome — save-on-exit VO stays on handleConfirmExit
       setSystemPaused(true);
     } else {
       setSystemPaused(false);
@@ -2811,6 +2811,23 @@ export default function CommandCenter({
   };
 
   const assets = esrmConfig?.primaryAssets || [];
+
+  const pickDefaultAsset = useCallback((list: ProtectedAsset[]): ProtectedAsset | null => {
+    if (!list.length) return null;
+    const rank: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+    return [...list].sort((a, b) => (rank[a.criticality] ?? 9) - (rank[b.criticality] ?? 9))[0];
+  }, []);
+
+  // When a decision opens, clear micro-task overlay and ensure an asset is selected
+  // so Risk Treatment / posture actions are immediately visible and tappable on mobile.
+  useEffect(() => {
+    if (!pendingDecision) return;
+    setActiveMicroTask(null);
+    setMicroTaskAnswer(null);
+    setMicroTaskResult(null);
+    setMicroTaskExplanationShown(false);
+    setSelectedAsset((prev) => prev ?? pickDefaultAsset(assets));
+  }, [pendingDecision?.id, assets, pickDefaultAsset]);
 
   // Update value metrics, KRI dashboard, and pipeline health
   useEffect(() => {
@@ -5128,6 +5145,22 @@ function DecisionConsole({
     <div
       className={clsx('flex-1 flex flex-col overflow-hidden', !reducedMotion && 'animate-fade-in')}
     >
+      {selectedAsset && (
+        <div className="sm:hidden px-3 py-2 border-b border-gray-800/60 bg-gray-900/80 flex gap-2">
+          <a
+            href="#decision-identify-asset"
+            className="flex-1 text-center text-2xs font-semibold text-amber-300 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30"
+          >
+            1. Asset
+          </a>
+          <a
+            href="#decision-risk-treatment"
+            className="flex-1 text-center text-2xs font-semibold text-emerald-300 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30"
+          >
+            3. Treatments
+          </a>
+        </div>
+      )}
       {/* Decision Timer Bar */}
       <div
         className={clsx(
@@ -5148,12 +5181,12 @@ function DecisionConsole({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto scroll-smooth">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 space-y-4 sm:space-y-6">
-          {/* Intel Card */}
+      <div className="flex-1 overflow-y-auto scroll-smooth overscroll-contain">
+        <div className="max-w-4xl mx-auto p-3 sm:p-6 lg:p-8 pb-36 lg:pb-8 space-y-3 sm:space-y-6">
+          {/* Intel Card — compact on mobile so action chain stays above the fold */}
           <div
             className={clsx(
-              'p-6 rounded-2xl border-2 relative overflow-hidden',
+              'p-3 sm:p-6 rounded-2xl border-2 relative overflow-hidden',
               config
                 ? `bg-gradient-to-br ${config.bgColor} ${config.borderColor}`
                 : 'bg-gray-800/30 border-gray-700/40'
@@ -5180,9 +5213,17 @@ function DecisionConsole({
                     <config.icon className="w-7 h-7 text-white" />
                   </div>
                 )}
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-white mb-2">{inject.title}</h2>
-                  <p className="text-gray-300 leading-relaxed">{inject.content}</p>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2 break-words">
+                    {inject.title}
+                  </h2>
+                  <details className="sm:hidden mb-1">
+                    <summary className="text-2xs text-emerald-400/90 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden py-1">
+                      Show intel details
+                    </summary>
+                    <p className="text-sm text-gray-300 leading-relaxed mt-1">{inject.content}</p>
+                  </details>
+                  <p className="hidden sm:block text-gray-300 leading-relaxed">{inject.content}</p>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1">
                   <div
@@ -5241,20 +5282,30 @@ function DecisionConsole({
           </div>
 
           {/* ESRM: Asset Selection */}
-          <div className="p-5 rounded-2xl bg-gray-800/30 border border-gray-700/40">
-            <div className="flex items-center gap-2 mb-4">
+          <div
+            id="decision-identify-asset"
+            className="p-3 sm:p-5 rounded-2xl bg-gray-800/30 border border-gray-700/40 scroll-mt-4"
+          >
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <Target className="w-5 h-5 text-amber-400" />
               <h3 className="font-semibold text-gray-200">1. Identify Affected Asset</h3>
               {selectedAsset && <CheckCircle className="w-4 h-4 text-emerald-400 ml-auto" />}
             </div>
 
+            {assets.length === 0 && (
+              <p className="text-sm text-amber-300/90 mb-3">
+                No assets loaded for this scenario. Restart the scenario if treatment controls stay
+                missing.
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {assets.map((asset) => (
                 <button
                   key={asset.id}
+                  type="button"
                   onClick={() => onSelectAsset(asset)}
                   className={clsx(
-                    'p-4 rounded-xl border-2 text-left transition-all',
+                    'p-3 sm:p-4 rounded-xl border-2 text-left transition-all',
                     selectedAsset?.id === asset.id
                       ? 'bg-amber-500/15 border-amber-500/50 ring-2 ring-amber-500/20'
                       : 'bg-gray-800/40 border-gray-700/50 hover:border-gray-600'
@@ -5396,7 +5447,10 @@ function DecisionConsole({
 
           {/* ESRM: Treatment Selection - All 4 Options with Icons */}
           {selectedAsset && (
-            <div className="p-3 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-gray-800/30 border-2 border-emerald-500/30">
+            <div
+              id="decision-risk-treatment"
+              className="p-3 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-gray-800/30 border-2 border-emerald-500/30 scroll-mt-4 relative z-20"
+            >
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-semibold text-gray-200">3. Select Risk Treatment</h3>
