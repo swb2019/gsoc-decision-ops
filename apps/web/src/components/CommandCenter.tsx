@@ -40,6 +40,7 @@ import {
   Package,
   Crown,
   MessageSquare,
+  Mic2,
   Paperclip,
   RefreshCw,
   Eye,
@@ -739,6 +740,8 @@ function useSoundEffects(
   useEffect(() => {
     initAudio();
     loadAudioConfig();
+    initVO();
+    loadVOConfig();
   }, []);
 
   useEffect(() => {
@@ -869,7 +872,19 @@ import {
   startAmbientMusic,
   stopAmbientMusic,
   isAmbientMusicPlaying,
+  getAmbientAudioElement,
 } from '../lib/audio';
+import {
+  playVO,
+  initVO,
+  loadVOConfig,
+  isVoiceEnabled,
+  setVoiceEnabled,
+  setBGMReference,
+  skipVO,
+  clearVOQueue,
+  type VOType,
+} from '../lib/voice';
 import {
   loadFieldGuideConfig,
   saveSeenTip,
@@ -1067,6 +1082,7 @@ export default function CommandCenter({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [voiceEnabled, setVoiceEnabledState] = useState(true);
   const [showDebrief, setShowDebrief] = useState(false);
   const [pendingDecision, setPendingDecision] = useState<ScenarioInject | null>(null);
   const [decisionTimer, setDecisionTimer] = useState(0);
@@ -1306,6 +1322,22 @@ export default function CommandCenter({
     }
   }, [ambientMusicEnabled]);
 
+  // Load voice preference from voice config
+  useEffect(() => {
+    const config = loadVOConfig();
+    setVoiceEnabledState(config.voiceEnabled);
+  }, []);
+
+  // Handle voice toggle
+  const handleVoiceToggle = useCallback(() => {
+    const newValue = !voiceEnabled;
+    setVoiceEnabledState(newValue);
+    setVoiceEnabled(newValue);
+    if (!newValue) {
+      skipVO();
+    }
+  }, [voiceEnabled]);
+
   // Stop ambient music when disabled or reducedMotion is enabled
   useEffect(() => {
     if (!ambientMusicEnabled || reducedMotion) {
@@ -1338,14 +1370,18 @@ export default function CommandCenter({
       setAmbientMusicEnabled(true);
       startAmbientMusic();
       setIsMusicPlaying(true);
+      // Set BGM reference for VO ducking after brief delay to let it start
+      setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
     } else if (ambientMusicEnabled) {
       setAmbientMusicEnabled(false);
       stopAmbientMusic();
       setIsMusicPlaying(false);
+      setBGMReference(null);
     } else {
       setAmbientMusicEnabled(true);
       startAmbientMusic();
       setIsMusicPlaying(true);
+      setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
     }
   }, [ambientMusicEnabled, ambientMusicUnlocked]);
 
@@ -1484,9 +1520,15 @@ export default function CommandCenter({
   }, [isRunning, elapsedSeconds]);
 
   const handleConfirmExit = useCallback(() => {
+    // Play pause/save VO before navigating away
+    playVO('pause_save');
+
     // Session is auto-saved, navigate home with basePath
-    const basePath = getBasePath();
-    window.location.href = basePath ? `${basePath}/` : '/';
+    // Brief delay to allow VO to start playing
+    setTimeout(() => {
+      const basePath = getBasePath();
+      window.location.href = basePath ? `${basePath}/` : '/';
+    }, 500);
   }, []);
 
   // Start game with arc scheduler initialization
@@ -1499,6 +1541,9 @@ export default function CommandCenter({
 
       arcSchedulerRef.current = scheduler;
       setIsRunning(true);
+
+      // Play scenario start VO
+      playVO('scenario_start');
 
       // Trigger first-visit guidance for main surfaces
       setTimeout(() => {
@@ -1550,6 +1595,9 @@ export default function CommandCenter({
             setIsRunning(false);
             setShowDebrief(true);
 
+            // Play AAR ready VO
+            playVO('aar_ready');
+
             // Mark campaign arc as complete and unlock next arcs
             completeScenario(scenarioId);
 
@@ -1590,6 +1638,10 @@ export default function CommandCenter({
         DECISION_TIMER_CONFIG.BASE_TIMER * difficultyConfig.timerMultiplier
       );
       setDecisionTimer(adjustedTimer);
+
+      // Play decision prompt VO when decision window opens
+      playVO('decision_prompt');
+
       decisionTimerRef.current = setInterval(() => {
         setDecisionTimer((t) => {
           if (t <= 1) {
@@ -1599,6 +1651,10 @@ export default function CommandCenter({
           // Play urgent timer SFX when time is low
           if (t <= 10 && t > 0) {
             playSFX('timerUrgent');
+            // Play timer_urgent VO once at 10 seconds
+            if (t === 10) {
+              playVO('timer_urgent');
+            }
           }
           if (t <= 0) {
             playSFX('error');
@@ -2217,10 +2273,14 @@ export default function CommandCenter({
         setScreenFlash('red');
         playSound('escalation');
         urgentFeedback();
+        // Play critical inject VO
+        playVO('inject_critical');
       } else if (urgency === 'URGENT') {
         setScreenFlash('amber');
         playSound('injectArrive');
         tapFeedback();
+        // Play elevated inject VO
+        playVO('inject_elevated');
       } else {
         playSound('injectArrive');
         tapFeedback();
@@ -2427,11 +2487,17 @@ export default function CommandCenter({
       // Play SFX based on decision outcome
       if (isCorrect) {
         playSFX('correctDecision');
+        // Play decision correct VO
+        playVO('decision_correct');
         if (newStreak >= 3) {
           setTimeout(() => playSFX('streakBonus'), 300);
+          // Play streak bonus VO after SFX
+          setTimeout(() => playVO('streak_bonus'), 500);
         }
       } else {
         playSFX('wrongDecision');
+        // Play decision miss VO
+        playVO('decision_miss');
       }
 
       // Score up sound for positive points
@@ -3001,6 +3067,21 @@ export default function CommandCenter({
               <Music className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
+            {/* Voice-over toggle - hidden on very small mobile, accessible via menu */}
+            <button
+              onClick={handleVoiceToggle}
+              className={clsx(
+                'hidden xs:flex p-2 rounded-xl transition-all items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex-shrink-0',
+                voiceEnabled
+                  ? 'text-emerald-400 bg-emerald-500/20 hover:bg-emerald-500/30'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
+              )}
+              aria-label={voiceEnabled ? 'Disable voice-over' : 'Enable voice-over'}
+              title={voiceEnabled ? 'Voice-over on' : 'Voice-over off'}
+            >
+              <Mic2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
             {/* Field Guide Tips toggle - hidden on mobile, accessible via menu */}
             <button
               onClick={() => {
@@ -3375,6 +3456,28 @@ export default function CommandCenter({
                       Ambient Music
                       {ambientMusicEnabled && isMusicPlaying && (
                         <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
+                          On
+                        </span>
+                      )}
+                    </button>
+
+                    {/* Voice-over Toggle in mobile menu */}
+                    <button
+                      onClick={() => {
+                        handleVoiceToggle();
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
+                        voiceEnabled
+                          ? 'text-emerald-400 hover:bg-emerald-500/10'
+                          : 'text-gray-400 hover:bg-gray-800/50'
+                      )}
+                      role="menuitem"
+                    >
+                      <Mic2 className="w-4 h-4" />
+                      Voice-over
+                      {voiceEnabled && (
+                        <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                           On
                         </span>
                       )}
