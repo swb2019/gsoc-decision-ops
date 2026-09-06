@@ -1686,7 +1686,7 @@ export default function CommandCenter({
           playSFX('injectArrive');
 
           // Play event voice-over (ElevenLabs-generated)
-          playEventVO(inject.title, inject.triagePriority);
+          playEventVO(inject.title, inject.triagePriority, inject.id);
 
           triggerInjectAlert(inject);
 
@@ -1736,7 +1736,7 @@ export default function CommandCenter({
           playSFX('injectArrive');
 
           // Play event voice-over (ElevenLabs-generated)
-          playEventVO(inject.title, inject.triagePriority);
+          playEventVO(inject.title, inject.triagePriority, inject.id);
 
           triggerInjectAlert(inject);
 
@@ -3665,7 +3665,7 @@ export default function CommandCenter({
                         setSelectedTreatmentOption(null);
                         setSelectedResidualRisk(null);
                         setTreatmentBonusGiven(false);
-                        playEventVOOnSelect(inject.title, inject.triagePriority);
+                        playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
                       }
                     }}
                     reducedMotion={reducedMotion}
@@ -3710,7 +3710,7 @@ export default function CommandCenter({
                   setPendingDecision(inject);
                   setSelectedAsset(null);
                   setAssetOwnerBriefed(false);
-                  playEventVOOnSelect(inject.title, inject.triagePriority);
+                  playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
                 }}
                 difficulty={difficulty}
                 onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
@@ -4017,7 +4017,7 @@ export default function CommandCenter({
                           setSelectedResidualRisk(null);
                           setTreatmentBonusGiven(false);
                           setMobileTab('decision');
-                          playEventVOOnSelect(inject.title, inject.triagePriority);
+                          playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
                         }
                       }}
                       reducedMotion={reducedMotion}
@@ -4069,7 +4069,7 @@ export default function CommandCenter({
                     setPendingDecision(inject);
                     setSelectedAsset(null);
                     setAssetOwnerBriefed(false);
-                    playEventVOOnSelect(inject.title, inject.triagePriority);
+                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id);
                   }}
                   difficulty={difficulty}
                   onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}

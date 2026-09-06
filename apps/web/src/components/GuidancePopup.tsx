@@ -52,7 +52,8 @@ export default function GuidancePopup({
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [showDontShowAgain, setShowDontShowAgain] = useState(false);
-  const lastPlayedTipRef = useRef<string | null>(null);
+  // Track all tip VOs that have been played this session (persists across tab switches)
+  const playedTipVOsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     loadGuidanceState();
@@ -71,12 +72,12 @@ export default function GuidancePopup({
         setIsVisible(true);
         setShowDontShowAgain(false);
 
-        // Play tip VO if voice is enabled and we haven't played this tip yet
-        if (isVoiceEnabled() && tip.id !== lastPlayedTipRef.current) {
+        // Play tip VO if voice is enabled and we haven't played this tip yet this session
+        if (isVoiceEnabled() && !playedTipVOsRef.current.has(tip.id)) {
           const voType = SURFACE_TO_VO[tip.surface];
           if (voType) {
             playVO(voType);
-            lastPlayedTipRef.current = tip.id;
+            playedTipVOsRef.current.add(tip.id);
           }
         }
       }

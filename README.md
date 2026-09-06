@@ -26,11 +26,11 @@ It is a **training simulation** — not a system of record, not a vendor suite, 
 
 ## What leaders practice
 
-- Separating **facts**, **assumptions**, and **unknowns** under time pressure  
-- Committing a defensible posture: **CONTINUE** · **DEGRADE** · **PAUSE** (ESRM-aligned treatment logic)  
-- Managing fused intake pressure across access, video, alarm, SIEM, OSINT, tips, and radio-class injects  
-- Seeing consequence on trust, KRIs, and the common operating picture  
-- Producing an after-action artifact suitable for leadership review  
+- Separating **facts**, **assumptions**, and **unknowns** under time pressure
+- Committing a defensible posture: **CONTINUE** · **DEGRADE** · **PAUSE** (ESRM-aligned treatment logic)
+- Managing fused intake pressure across access, video, alarm, SIEM, OSINT, tips, and radio-class injects
+- Seeing consequence on trust, KRIs, and the common operating picture
+- Producing an after-action artifact suitable for leadership review
 
 Pedagogy and methodology notes: [docs/TRAINING.md](docs/TRAINING.md) (when present).
 
@@ -38,12 +38,12 @@ Pedagogy and methodology notes: [docs/TRAINING.md](docs/TRAINING.md) (when prese
 
 ## Design bar
 
-| Principle | Application |
-| --- | --- |
+| Principle             | Application                                                |
+| --------------------- | ---------------------------------------------------------- |
 | Judgment over tooling | The product measures decision quality, not console theatre |
-| ESRM fidelity | Asset-owner risk ownership; GSOC advises on residual risk |
-| Honesty | Closed defaults; no fabricated customers or payments |
-| Operable surface | Dense first-hour injects; learnable without a manual |
+| ESRM fidelity         | Asset-owner risk ownership; GSOC advises on residual risk  |
+| Honesty               | Closed defaults; no fabricated customers or payments       |
+| Operable surface      | Dense first-hour injects; learnable without a manual       |
 
 Spoken Intel Feed, light guidance, and optional 3D COP markers support attention — they do not replace the decision.
 
@@ -62,10 +62,10 @@ npm install
 npm run dev
 ```
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Local server |
-| `npm test` | Test suite |
+| Command         | Purpose       |
+| --------------- | ------------- |
+| `npm run dev`   | Local server  |
+| `npm test`      | Test suite    |
 | `npm run build` | Static export |
 
 ---

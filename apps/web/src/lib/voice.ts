@@ -116,6 +116,13 @@ const MAX_PLAY_ATTEMPTS = 3;
 // Single reusable Audio element for event VO - avoids autoplay-block on fresh Audio()
 let eventAudioElement: HTMLAudioElement | null = null;
 
+// Track spoken event IDs to prevent re-reading the same item (Bug fix: re-read on tab switch)
+// Stores inject IDs or slugified titles that have been spoken this session
+const spokenEventIds: Set<string> = new Set();
+
+// Mutex to prevent concurrent processQueue execution
+let isProcessingQueue = false;
+
 // Reference to BGM element for ducking (set externally)
 let bgmElement: HTMLAudioElement | null = null;
 let bgmOriginalVolume = 0.12;
@@ -379,39 +386,50 @@ function handlePlayFailure(item?: VOQueueItem): void {
 }
 
 function processQueue(): void {
+  // Mutex: prevent concurrent queue processing
+  if (isProcessingQueue) {
+    return;
+  }
+
+  // Don't process if already playing, queue empty, or voice disabled
   if (isVOPlaying || voQueue.length === 0 || !voConfig.voiceEnabled) {
     return;
   }
 
-  // Stuck state recovery - check if audio is actually playing
-  if (isVOPlaying && playAttemptCount === 0) {
-    const timeout = setTimeout(() => {
-      if (isVOPlaying) {
-        const eventPlaying = eventAudioElement && !eventAudioElement.paused;
-        const cueAudio = currentlyPlaying ? voAudioElements.get(currentlyPlaying as VOType) : null;
-        const cuePlaying = cueAudio && !cueAudio.paused;
-        if (!eventPlaying && !cuePlaying) {
-          isVOPlaying = false;
-          currentlyPlaying = null;
-          processQueue();
-        }
+  isProcessingQueue = true;
+
+  try {
+    // Stuck state recovery: if isVOPlaying is true but nothing is actually playing,
+    // reset the state (handles edge cases where ended event didn't fire)
+    if (isVOPlaying) {
+      const eventPlaying = eventAudioElement && !eventAudioElement.paused;
+      const cueAudio = currentlyPlaying ? voAudioElements.get(currentlyPlaying as VOType) : null;
+      const cuePlaying = cueAudio && !cueAudio.paused;
+      if (!eventPlaying && !cuePlaying) {
+        isVOPlaying = false;
+        currentlyPlaying = null;
+      } else {
+        // Something is actually playing, don't process
+        return;
       }
-    }, 5000);
-    return void timeout;
-  }
+    }
 
-  voQueue.sort((a, b) => {
-    if (b.priority !== a.priority) return b.priority - a.priority;
-    return a.timestamp - b.timestamp;
-  });
+    // Sort by priority (higher first), then by timestamp (earlier first)
+    voQueue.sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority;
+      return a.timestamp - b.timestamp;
+    });
 
-  const item = voQueue.shift();
-  if (!item) return;
+    const item = voQueue.shift();
+    if (!item) return;
 
-  if (item.type === 'event' && item.audioUrl) {
-    playEventVOImmediate(item.audioUrl, item.fallbackUrl, item);
-  } else if (item.type !== 'event') {
-    playVOImmediate(item.type, item);
+    if (item.type === 'event' && item.audioUrl) {
+      playEventVOImmediate(item.audioUrl, item.fallbackUrl, item);
+    } else if (item.type !== 'event') {
+      playVOImmediate(item.type, item);
+    }
+  } finally {
+    isProcessingQueue = false;
   }
 }
 
@@ -536,16 +554,31 @@ export function getEventVOUrl(title: string): string {
  * Looks up event-specific VO file by slugified title.
  * Falls back to inject_critical/inject_elevated if file not found.
  *
+ * Each inject is spoken at most once per session (tracked by slug).
+ * Re-opening an already-spoken inject is silent.
+ *
  * @param title - The inject title (will be slugified to find audio file)
  * @param triagePriority - Optional triage priority for queue priority and fallback selection
+ * @param injectId - Optional inject ID for tracking (uses slug if not provided)
  */
 export function playEventVO(
   title: string,
-  triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE'
+  triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
+  injectId?: string
 ): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
 
   const slug = slugifyTitle(title);
+  const trackingId = injectId || slug;
+
+  // Skip if this inject has already been spoken this session
+  if (spokenEventIds.has(trackingId)) {
+    return;
+  }
+
+  // Mark as spoken immediately to prevent duplicates from rapid calls
+  spokenEventIds.add(trackingId);
+
   const priority = triagePriority ? EVENT_VO_PRIORITY[triagePriority] : EVENT_VO_PRIORITY.ROUTINE;
 
   const audioUrl = getAudioUrl(`/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`);
@@ -567,20 +600,36 @@ export function playEventVO(
  * Play event voice-over for an Intel Feed item when user clicks/selects it.
  * Higher priority than reveal-triggered VO to ensure immediate feedback.
  *
+ * Each inject is spoken at most once per session. If already spoken,
+ * this is a silent no-op (user can still see the item, just no re-read).
+ *
  * @param title - The inject title
  * @param triagePriority - Optional triage priority for fallback selection
+ * @param injectId - Optional inject ID for tracking (uses slug if not provided)
  */
 export function playEventVOOnSelect(
   title: string,
-  triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE'
+  triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
+  injectId?: string
 ): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+
+  const slug = slugifyTitle(title);
+  const trackingId = injectId || slug;
+
+  // Skip if this inject has already been spoken this session
+  if (spokenEventIds.has(trackingId)) {
+    return;
+  }
+
+  // Mark as spoken immediately to prevent duplicates from rapid calls
+  spokenEventIds.add(trackingId);
 
   const priority = triagePriority
     ? Math.min(EVENT_VO_PRIORITY[triagePriority] + 1, 10)
     : EVENT_VO_PRIORITY.ROUTINE + 1;
 
-  const audioUrl = getAudioUrl(`/audio/voice/events/${slugifyTitle(title)}.ogg?v=${VO_VERSION}`);
+  const audioUrl = getAudioUrl(`/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`);
   const fallbackCue = priority >= EVENT_VO_PRIORITY.URGENT ? 'inject_critical' : 'inject_elevated';
   const fallbackUrl = getAudioUrl(`/audio/voice/${fallbackCue}.ogg?v=${VO_VERSION}`);
 
@@ -639,6 +688,36 @@ export function getVOQueueLength(): number {
 }
 
 /**
+ * Check if an inject/event has been spoken this session.
+ * Uses inject ID or slugified title for tracking.
+ */
+export function hasEventBeenSpoken(titleOrId: string): boolean {
+  return spokenEventIds.has(titleOrId) || spokenEventIds.has(slugifyTitle(titleOrId));
+}
+
+/**
+ * Mark an event as spoken (for external use, e.g., when skipping VO).
+ */
+export function markEventAsSpoken(titleOrId: string): void {
+  spokenEventIds.add(titleOrId);
+}
+
+/**
+ * Clear the spoken events set (for new game/session).
+ * Called automatically by cleanupVO.
+ */
+export function clearSpokenEvents(): void {
+  spokenEventIds.clear();
+}
+
+/**
+ * Get the count of spoken events this session.
+ */
+export function getSpokenEventCount(): number {
+  return spokenEventIds.size;
+}
+
+/**
  * Initialize the voice-over system.
  * Call once on app mount.
  */
@@ -672,6 +751,9 @@ export function initVO(): void {
  */
 export function cleanupVO(): void {
   skipVO();
+
+  // Clear spoken events tracking for new session
+  spokenEventIds.clear();
 
   // Clean up cue audio elements
   voAudioElements.forEach((audio) => {
