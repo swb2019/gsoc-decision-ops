@@ -11,7 +11,7 @@
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspaces && node scripts/prepare-static.mjs",
     "build:core": "npm run build --workspace=packages/core",
-    "test": "npm run test --workspace=packages/core",
+    "test": "npm run test --workspace=packages/core && vitest run apps/web/src/lib/local-voice-load-policy.test.ts",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
