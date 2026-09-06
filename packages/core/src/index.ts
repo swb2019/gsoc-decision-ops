@@ -388,3 +388,29 @@ export {
 } from './decision-scoring.js';
 
 export type { DecisionScoringInput, DecisionScoringResult } from './decision-scoring.js';
+
+// Seeded RNG (Reproducible Randomization)
+export {
+  createSeededRNG,
+  seedFromString,
+  generateTimestampSeed,
+  SeededRandom,
+  createSessionSeed,
+} from './seeded-rng.js';
+
+// Arc Scheduler (One-Hour Gameplay Arc Management)
+export {
+  ArcScheduler,
+  createArcFromLog,
+  generateSeedCode,
+  parseSeedCode,
+  PACING_CONFIGS,
+} from './arc-scheduler.js';
+
+export type {
+  ArcDifficulty,
+  PacingConfig,
+  DecisionConsequence,
+  ScheduledInject,
+  ArcState,
+} from './arc-scheduler.js';
