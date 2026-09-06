@@ -1535,6 +1535,18 @@ export default function CommandCenter({
       arcSchedulerRef.current = scheduler;
       setIsRunning(true);
 
+      // Debug logging for scheduler initialization
+      const schedulerState = scheduler.getState();
+      console.log('[GameStart]', {
+        difficulty: arcDifficulty,
+        seed: schedulerState.seed,
+        initialLogInjectsCount: initialLog.injects.length,
+        scheduledInjectsCount: schedulerState.scheduledInjects.length,
+        firstScheduledSecond: schedulerState.scheduledInjects[0]?.actualRevealSecond,
+        firstScheduledTitle: schedulerState.scheduledInjects[0]?.inject.title,
+        schedulerRefSet: !!arcSchedulerRef.current,
+      });
+
       // Play scenario start VO
       playVO('scenario_start');
 
@@ -1671,15 +1683,47 @@ export default function CommandCenter({
 
     // Use ArcScheduler if available for randomized coherent timing
     const scheduler = arcSchedulerRef.current;
+
+    // Debug logging at every second for first 5 seconds, then every 10 seconds
+    if (elapsedSeconds <= 5 || elapsedSeconds % 10 === 0) {
+      console.log('[InjectReveal-Check]', {
+        elapsedSeconds,
+        hasScheduler: !!scheduler,
+        processedCount: processedInjectsRef.current.size,
+      });
+    }
+
     if (scheduler) {
       // Tick the scheduler and get newly revealed injects
       const newlyRevealed = scheduler.tick(elapsedSeconds);
 
+      // Debug logging for inject reveal
+      if (elapsedSeconds % 10 === 0 || newlyRevealed.length > 0) {
+        console.log('[InjectReveal]', {
+          elapsedSeconds,
+          newlyRevealedCount: newlyRevealed.length,
+          newlyRevealedTitles: newlyRevealed.map((r) => r.inject.title),
+          processedCount: processedInjectsRef.current.size,
+          logInjectsCount: log.injects.length,
+          revealedInLogCount: log.injects.filter((i) => i.revealed).length,
+        });
+      }
+
       for (const scheduled of newlyRevealed) {
         const inject = scheduled.inject;
         if (!processedInjectsRef.current.has(inject.id)) {
+          console.log('[InjectReveal-Processing]', {
+            injectId: inject.id,
+            title: inject.title,
+            foundInLog: !!log.injects.find((i) => i.id === inject.id),
+          });
           processedInjectsRef.current.add(inject.id);
-          setLog(revealInject(log, inject.id));
+          const newLog = revealInject(log, inject.id);
+          console.log('[InjectReveal-AfterReveal]', {
+            logChanged: newLog !== log,
+            newRevealedCount: newLog.injects.filter((i) => i.revealed).length,
+          });
+          setLog(newLog);
           setLastInjectTime(elapsedSeconds);
 
           // Play inject arrival SFX
