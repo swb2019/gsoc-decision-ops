@@ -1,5 +1,7 @@
 # Security Policy
 
+[Hourglass Command](README.md) · [Live simulation](https://swb2019.github.io/gsoc-decision-ops/) · [Training methodology](docs/TRAINING.md)
+
 ## Overview
 
 Hourglass Command is a training and exercise toolkit for corporate security operations professionals. It is designed for educational purposes and does not process, store, or transmit sensitive operational data in production environments.

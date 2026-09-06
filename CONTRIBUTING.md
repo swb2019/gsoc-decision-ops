@@ -1,5 +1,7 @@
 # Contributing to Hourglass Command
 
+[Hourglass Command](README.md) · [Live simulation](https://swb2019.github.io/gsoc-decision-ops/) · [Training methodology](docs/TRAINING.md)
+
 Thank you for your interest in contributing to Hourglass Command. This document provides guidelines for contributing to the project.
 
 ## Code of Conduct

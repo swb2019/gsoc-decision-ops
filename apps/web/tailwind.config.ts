@@ -17,6 +17,19 @@ const config: Config = {
     },
     extend: {
       colors: {
+        gray: {
+          '50': '#f0f3ed',
+          '100': '#e7ede3',
+          '200': '#d4dfce',
+          '300': '#bdcbb5',
+          '400': '#a5b39a',
+          '500': '#86987a',
+          '600': '#627555',
+          '700': '#3a4a32',
+          '800': '#273321',
+          '900': '#141f12',
+          '950': '#080e0d',
+        },
         'ops-dark': {
           50: '#fafafa',
           100: '#f4f4f5',
@@ -83,7 +96,7 @@ const config: Config = {
       },
       fontFamily: {
         mono: ['var(--font-mono)', 'JetBrains Mono', 'Fira Code', 'monospace'],
-        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'Manrope', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '0.875rem' }],

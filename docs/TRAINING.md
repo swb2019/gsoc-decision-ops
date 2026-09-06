@@ -1,5 +1,7 @@
 # Hourglass Command — Training Methodology
 
+[Project overview](../README.md) · [Live simulation](https://swb2019.github.io/gsoc-decision-ops/) · [Contributing](../CONTRIBUTING.md)
+
 > **Version:** 2.0 (ESRM Textbook-Faithful)  
 > **Effective:** September 2026  
 > **Purpose:** Document the ESRM textbook-faithful pedagogical foundations for first-hour decision training.
@@ -33,25 +35,14 @@ This document maps each feature to its pedagogical foundation, enabling trainers
 
 The complete ESRM cycle is playable, not brochure content. Each step has corresponding game mechanics:
 
-```
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  1. CONTEXT │ ──► │ 2. IDENTIFY &    │ ──► │ 3. IDENTIFY &    │
-│  (Scenario  │     │    PRIORITIZE    │     │    PRIORITIZE    │
-│   Framing)  │     │    ASSETS        │     │    RISKS         │
-└─────────────┘     └──────────────────┘     └──────────────────┘
-                              │                        │
-                              ▼                        ▼
-┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│ 6. RESPONSE │ ◄── │ 5. ADVISOR →     │ ◄── │ 4. TREAT THE     │
-│    & REVIEW │     │    ASSET OWNER   │     │    RISK          │
-│    (AAR)    │     │    (Briefing)    │     │ (Accept/Mit/Xfr) │
-└─────────────┘     └──────────────────┘     └──────────────────┘
-        │
-        └──────────► Continuous Improvement (Lessons feed back) ──┐
-                                                                  │
-        ┌─────────────────────────────────────────────────────────┘
-        ▼
-    Next Incident
+```mermaid
+flowchart TD
+  A["1. Context and scenario framing"] --> B["2. Identify and prioritize assets"]
+  B --> C["3. Identify and prioritize risks"]
+  C --> D["4. Treat the risk"]
+  D --> E["5. Advisor briefs asset owner"]
+  E --> F["6. Response and after-action review"]
+  F -->|Lessons inform the next incident| A
 ```
 
 | Cycle Step                      | In-Sim Mechanic                                           | Scoring Impact     |

@@ -33,7 +33,7 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-[#080e0d] flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20" />
@@ -49,8 +49,8 @@ export default function ScenarioClient({ scenarioId }: ScenarioClientProps): JSX
 
   if (!log) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="text-center max-w-md mx-4 p-8 rounded-2xl bg-[#12121a] border border-gray-800">
+      <div className="min-h-screen bg-[#080e0d] flex items-center justify-center">
+        <div className="text-center max-w-md mx-4 p-8 rounded-2xl bg-[#182218] border border-gray-800">
           <div className="w-16 h-16 rounded-2xl bg-amber-500/15 flex items-center justify-center mx-auto mb-5">
             <AlertTriangle className="w-8 h-8 text-amber-400" />
           </div>

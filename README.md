@@ -1,108 +1,81 @@
-# Hourglass Command
+<a href="https://swb2019.github.io/gsoc-decision-ops/"><img src="apps/web/public/brand/hourglass-banner.webp" alt="Hourglass Command — First-hour judgment" width="100%" /></a>
 
-**First-hour judgment under incomplete information.**
+<p align="center">
+  <a href="https://swb2019.github.io/gsoc-decision-ops/"><strong>Enter the simulation ↗</strong></a> &nbsp; · &nbsp;
+  <a href="docs/TRAINING.md">Training methodology</a> &nbsp; · &nbsp;
+  <a href="https://swb2019.github.io/shannon-brown-career/">About Shannon Brown</a>
+</p>
 
 [![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
 [![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-dbfca9?labelColor=182218)](LICENSE)
 
-[**Live demonstration**](https://swb2019.github.io/gsoc-decision-ops/) · Shannon Brown
+## The first hour. Every decision counts.
+
+When physical, cyber, and intelligence signals converge, security leaders have to act with partial facts and contested assumptions. **Hourglass Command** turns that pressure into a repeatable training experience: assess the situation, commit an operating posture, document the reasoning, and examine the outcome.
+
+Built by **Shannon Brown**, a GSOC manager with experience in security operations, commercial risk, and executive communication.
+
+### From signal to defensible decision
+
+| 01 / Read the situation                                                                             | 02 / Make the call                                                                                               | 03 / Learn from the result                                                                  |
+| :-------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
+| Triage converging signals. Separate facts, assumptions, and unknowns in a common operating picture. | Choose **CONTINUE**, **DEGRADE**, or **PAUSE**. Document the treatment, rationale, ownership, and residual risk. | Inspect the decision trail and export an after-action review for discussion and reflection. |
+
+### Choose your training path
+
+- **Six-chapter campaign:** build decision craft through progressive scenarios and chapter unlocks. Progress is saved in your browser.
+- **Free play:** open any available scenario directly for a focused practice session.
+- **Command interface:** timed injects, posture decisions, operating-picture discipline, and after-action documentation in one workspace.
 
 <p align="center">
-  <img src="docs/images/hourglass-readme-hero.png" alt="Hourglass Command common operating picture" width="100%" />
+  <img src="docs/images/hourglass-readme-hero.png" alt="Hourglass Command training interface with a three-dimensional campus operating picture" width="100%" />
 </p>
 
----
+### Training scope
 
-## Purpose
+| Practices                                                         | Boundaries                                                                            |
+| :---------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| Technical GSOC judgment under incomplete information              | Does not reproduce executive relationships or stakeholder politics                    |
+| Multi-channel triage: access, video, SIEM, OSINT, tips, and radio | Does not train workforce management or negotiation dynamics                           |
+| ESRM-aligned treatment selection and asset-owner risk ownership   | Does not evaluate vendors or replace operational authority                            |
+| Defensible decision logs and after-action review                  | A training simulation; unsuitable as a production incident system or system of record |
 
-When physical, cyber, and intelligence channels converge, GSOC leaders must decide with partial facts, contested assumptions, and real consequence. Production rarely offers clean repetitions of that hour.
+Spoken Intel Feed, guidance, and optional 3D operating-picture markers support attention. The purpose is to practice decision quality and make the reasoning inspectable. See the [training methodology](docs/TRAINING.md) for the pedagogical foundations and scoring model.
 
-**Hourglass Command** is a decision simulation for that problem: structured posture calls, an explicit decision log, and after-action documentation that can withstand scrutiny.
-
-It is a **training simulation** — not a system of record, not a vendor suite, and not a substitute for operational authority.
-
----
-
-## Training Scope
-
-| **What this trains**                                                 | **What it does not simulate**                         |
-| -------------------------------------------------------------------- | ----------------------------------------------------- |
-| Technical GSOC/decision-ops judgment under incomplete information    | Interpersonal relationships with executive leadership |
-| Multi-channel intake triage (ACS, VMS, SIEM, OSINT, tips, radio)     | Stakeholder politics or negotiation dynamics          |
-| Common Operating Picture discipline (Facts / Assumptions / Unknowns) | Workforce management or people-leadership scenarios   |
-| ESRM-aligned treatment selection (Accept, Mitigate, Transfer, Avoid) | Soft-skill communication coaching                     |
-| Timed inject handling and posture calls                              | Vendor evaluation or procurement decisions            |
-| Defensible decision logs and after-action review                     | Production incident management tooling                |
-
-The sim targets **transferable operator decision quality**: how to read converging signals, commit a posture, document residual risk, and brief an asset owner — the technical core of first-hour GSOC work. It does not attempt to replicate interpersonal dynamics with executives, workforce friction, or relationship-building that real leadership roles require alongside technical judgment.
-
----
-
-## What leaders practice
-
-- Separating **facts**, **assumptions**, and **unknowns** under time pressure
-- Committing a defensible posture: **CONTINUE** · **DEGRADE** · **PAUSE** (ESRM-aligned treatment logic)
-- Managing fused intake pressure across access, video, alarm, SIEM, OSINT, tips, and radio-class injects
-- Seeing consequence on trust, KRIs, and the common operating picture
-- Producing an after-action artifact suitable for leadership review
-
-Pedagogy and methodology notes: [docs/TRAINING.md](docs/TRAINING.md) (when present).
-
----
-
-## Design bar
-
-| Principle             | Application                                                |
-| --------------------- | ---------------------------------------------------------- |
-| Judgment over tooling | The product measures decision quality, not console theatre |
-| ESRM fidelity         | Asset-owner risk ownership; GSOC advises on residual risk  |
-| Honesty               | Closed defaults; no fabricated customers or payments       |
-| Operable surface      | Dense first-hour injects; learnable without a manual       |
-
-Spoken Intel Feed, light guidance, and optional 3D COP markers support attention — they do not replace the decision.
-
----
-
-## Run
-
-**Browser:** [swb2019.github.io/gsoc-decision-ops](https://swb2019.github.io/gsoc-decision-ops/)
-
-**Local:**
+## Run locally
 
 ```bash
 git clone https://github.com/swb2019/gsoc-decision-ops.git
 cd gsoc-decision-ops
-npm install
+npm ci
 npm run dev
 ```
 
-| Command         | Purpose       |
-| --------------- | ------------- |
-| `npm run dev`   | Local server  |
-| `npm test`      | Test suite    |
-| `npm run build` | Static export |
+| Command                | Purpose                                                    |
+| :--------------------- | :--------------------------------------------------------- |
+| `npm run dev`          | Start the Next.js development server                       |
+| `npm test`             | Run the core test suite                                    |
+| `npm run typecheck`    | Check core and application TypeScript                      |
+| `npm run lint`         | Run ESLint                                                 |
+| `npm run format:check` | Check source and documentation formatting                  |
+| `npm run build`        | Build the workspaces and stage the static export in `out/` |
+
+### Architecture
+
+| Directory        | Responsibility                                                           |
+| :--------------- | :----------------------------------------------------------------------- |
+| `apps/web/`      | Next.js interface, static routes, campaign progression, and presentation |
+| `packages/core/` | Scenarios, scoring, ESRM logic, and arc scheduling                       |
+| `docs/`          | Training methodology and product documentation                           |
+| `scripts/`       | Build and static-export preparation                                      |
+
+**Stack:** TypeScript · Next.js · React · Tailwind CSS · Three.js · Vitest
+
+The GitHub Pages workflow sets `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops` and deploys `apps/web/out/`. A root deployment can use the default empty base path. Manrope and JetBrains Mono are served locally; their font licenses are in `apps/web/public/brand/`.
 
 ---
 
-## Architecture
+[Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [MIT license](LICENSE)
 
-```
-apps/web/         Next.js application (static export)
-packages/core/    Domain logic — scenarios, scoring, ESRM, arc scheduling
-docs/             Training and product documentation
-```
-
-**Stack:** TypeScript · Next.js · Tailwind CSS · Vitest
-
----
-
-## Author
-
-**Shannon Brown** — GSOC / crisis management and intelligence practice. Hourglass Command is built as both working software and a public demonstration of operational decision craft.
-
----
-
-## License
-
-MIT
+[Shannon Brown](https://swb2019.github.io/shannon-brown-career/) · Operational judgment, made tangible.
