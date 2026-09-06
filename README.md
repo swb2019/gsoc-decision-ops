@@ -2,8 +2,8 @@
 
 **First-hour judgment under incomplete information.**
 
-[![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
-[![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
+[![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
+[![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 [**Live demonstration**](https://swb2019.github.io/gsoc-decision-ops/) · Shannon Brown
