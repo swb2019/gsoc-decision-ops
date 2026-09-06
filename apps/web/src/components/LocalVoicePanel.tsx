@@ -101,7 +101,11 @@ export default function LocalVoicePanel({
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
+          <button
+            onClick={onClose}
+            aria-label="Close headset settings"
+            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+          >
             <X className="w-4 h-4 text-gray-500" />
           </button>
         )}
@@ -120,6 +124,9 @@ export default function LocalVoicePanel({
           </div>
           <button
             onClick={handleToggle}
+            role="switch"
+            aria-label="Enable headset"
+            aria-checked={isEnabled}
             disabled={isDownloading || state.isLoading}
             className={clsx(
               'relative w-12 h-7 rounded-full transition-all duration-200',
@@ -139,6 +146,14 @@ export default function LocalVoicePanel({
         {/* Download Progress */}
         {isDownloading && (
           <div className="mt-3">
+            <button
+              type="button"
+              onClick={disable}
+              disabled={!isEnabled}
+              className="mb-3 min-h-11 rounded-lg border border-gray-600 px-4 text-sm text-gray-200 hover:bg-gray-800 disabled:opacity-50"
+            >
+              {isEnabled ? 'Cancel model download' : 'Cancelling…'}
+            </button>
             <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
               <span className="flex items-center gap-1.5">
                 <Loader2 className="w-3 h-3 animate-spin" />

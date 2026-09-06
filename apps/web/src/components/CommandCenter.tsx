@@ -6414,6 +6414,7 @@ function DebriefModal({
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'png'>('pdf');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   const minutes = Math.floor(elapsedSeconds / 60);
@@ -6444,6 +6445,7 @@ function DebriefModal({
   const handleExportPDF = async (): Promise<void> => {
     if (!exportRef.current) return;
     setIsExporting(true);
+    setExportError(null);
 
     try {
       const canvas = await html2canvas(exportRef.current, {
@@ -6453,7 +6455,6 @@ function DebriefModal({
         useCORS: true,
       });
 
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -6462,15 +6463,45 @@ function DebriefModal({
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-
-      pdf.addImage(imgData, 'PNG', imgX, 10, imgWidth * ratio, imgHeight * ratio);
+      const margin = 10;
+      const contentWidth = pdfWidth - margin * 2;
+      const mmPerPixel = contentWidth / canvas.width;
+      const pagePixels = Math.floor((pdfHeight - margin * 2) / mmPerPixel);
+      // Preserve readable type across long decision records instead of shrinking
+      // the entire review into one page. Each page includes its own margins.
+      for (let offset = 0; offset < canvas.height; offset += pagePixels) {
+        if (offset > 0) pdf.addPage();
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = Math.min(pagePixels, canvas.height - offset);
+        const context = slice.getContext('2d');
+        if (!context) throw new Error('Unable to prepare the report page');
+        context.drawImage(
+          canvas,
+          0,
+          offset,
+          slice.width,
+          slice.height,
+          0,
+          0,
+          slice.width,
+          slice.height
+        );
+        pdf.addImage(
+          slice.toDataURL('image/png'),
+          'PNG',
+          margin,
+          margin,
+          contentWidth,
+          slice.height * mmPerPixel
+        );
+      }
       pdf.save(`hourglass-aar-${scenarioId}-${Date.now()}.pdf`);
     } catch (error) {
       console.error('PDF export failed:', error);
+      setExportError(
+        'The PDF could not be created. Your review is still here. Try again or choose PNG.'
+      );
     } finally {
       setIsExporting(false);
     }
@@ -6480,6 +6511,7 @@ function DebriefModal({
   const handleExportPNG = async (): Promise<void> => {
     if (!exportRef.current) return;
     setIsExporting(true);
+    setExportError(null);
 
     try {
       const canvas = await html2canvas(exportRef.current, {
@@ -6495,6 +6527,9 @@ function DebriefModal({
       link.click();
     } catch (error) {
       console.error('PNG export failed:', error);
+      setExportError(
+        'The image could not be created. Your review is still here. Please try again.'
+      );
     } finally {
       setIsExporting(false);
     }
@@ -6514,6 +6549,7 @@ function DebriefModal({
         {/* Close Button */}
         <button
           onClick={onClose}
+          aria-label="Close after-action review"
           className="absolute top-6 right-6 p-2 rounded-xl hover:bg-gray-800 transition-colors"
         >
           <X className="w-5 h-5 text-gray-400" />
@@ -6823,6 +6859,7 @@ function DebriefModal({
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowExportPanel(false)}
+                aria-label="Close export preview"
                 className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 <X className="w-5 h-5 text-gray-400" />
@@ -6875,6 +6912,11 @@ function DebriefModal({
           </div>
 
           {/* Export Preview (Scrollable) */}
+          {exportError && (
+            <p role="alert" className="px-6 pt-4 text-sm text-amber-200">
+              {exportError}
+            </p>
+          )}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto">
               {/* The AAR Export Document */}
