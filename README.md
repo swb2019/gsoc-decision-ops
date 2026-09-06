@@ -1,52 +1,59 @@
 # Hourglass Command
 
-First-hour decision training for corporate security operations leaders.
+**First-hour judgment under incomplete information.**
 
 [![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
 [![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-[**Play Now →**](https://swb2019.github.io/gsoc-decision-ops/)
+[**Live demonstration**](https://swb2019.github.io/gsoc-decision-ops/) · Shannon Brown
+
+<p align="center">
+  <img src="docs/images/hourglass-readme-hero.png" alt="Hourglass Command common operating picture" width="100%" />
+</p>
 
 ---
 
-## What
+## Purpose
 
-A first-hour decision simulation for GSOC leaders. Practice structured decision-making under time pressure through realistic vendor compromise scenarios. Document facts vs. assumptions, make posture calls (CONTINUE/DEGRADE/PAUSE), follow a 60-minute playbook, and export after-action reports.
+When physical, cyber, and intelligence channels converge, GSOC leaders must decide with partial facts, contested assumptions, and real consequence. Production rarely offers clean repetitions of that hour.
 
-_Training simulation — not a production system of record._
+**Hourglass Command** is a decision simulation for that problem: structured posture calls, an explicit decision log, and after-action documentation that can withstand scrutiny.
 
-## Why
-
-When a critical vendor reports a security incident, GSOC leaders must make rapid decisions with incomplete information. This skill is difficult to practice in production. Hourglass Command provides a structured training environment to build first-hour judgment.
-
-## Who
-
-GSOC managers and security operations leads who want to practice:
-
-- Separating facts from assumptions under time pressure
-- Making defensible posture calls with explicit rationale
-- Following structured response frameworks
-- Generating after-action documentation
+It is a **training simulation** — not a system of record, not a vendor suite, and not a substitute for operational authority.
 
 ---
 
-## Foundation
+## What leaders practice
 
-Built on **enterprise incident management patterns** and **ASIS ESRM risk methodology**:
+- Separating **facts**, **assumptions**, and **unknowns** under time pressure  
+- Committing a defensible posture: **CONTINUE** · **DEGRADE** · **PAUSE** (ESRM-aligned treatment logic)  
+- Managing fused intake pressure across access, video, alarm, SIEM, OSINT, tips, and radio-class injects  
+- Seeing consequence on trust, KRIs, and the common operating picture  
+- Producing an after-action artifact suitable for leadership review  
 
-| Foundation                  | Application                                               |
-| --------------------------- | --------------------------------------------------------- |
-| Decision log with ownership | Every decision captures timestamp, owner, role, rationale |
-| Common Operating Picture    | Facts / Assumptions / Unknowns as distinct categories     |
-| ESRM risk framing           | Asset owner owns risk; GSOC advises on residual risk      |
-| Treatment mapping           | CONTINUE (accept) · DEGRADE (mitigate) · PAUSE (avoid)    |
-
-See [TRAINING.md](docs/TRAINING.md) for pedagogy details.
+Pedagogy and methodology notes: [docs/TRAINING.md](docs/TRAINING.md) (when present).
 
 ---
 
-## Quickstart
+## Design bar
+
+| Principle | Application |
+| --- | --- |
+| Judgment over tooling | The product measures decision quality, not console theatre |
+| ESRM fidelity | Asset-owner risk ownership; GSOC advises on residual risk |
+| Honesty | Closed defaults; no fabricated customers or payments |
+| Operable surface | Dense first-hour injects; learnable without a manual |
+
+Spoken Intel Feed, light guidance, and optional 3D COP markers support attention — they do not replace the decision.
+
+---
+
+## Run
+
+**Browser:** [swb2019.github.io/gsoc-decision-ops](https://swb2019.github.io/gsoc-decision-ops/)
+
+**Local:**
 
 ```bash
 git clone https://github.com/swb2019/gsoc-decision-ops.git
@@ -55,90 +62,32 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-### Commands
-
-| Command             | Description           |
-| ------------------- | --------------------- |
-| `npm run dev`       | Development server    |
-| `npm run build`     | Production build      |
-| `npm test`          | Run tests (109 tests) |
-| `npm run typecheck` | TypeScript checking   |
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Local server |
+| `npm test` | Test suite |
+| `npm run build` | Static export |
 
 ---
 
 ## Architecture
 
 ```
-gsoc-decision-ops/
-├── apps/web/              # Next.js application (static export)
-│   └── src/
-│       ├── app/           # Routes: / (home), /scenarios/[id]
-│       └── lib/           # Client utilities
-├── packages/core/         # Domain logic library
-│   └── src/
-│       ├── scenarios/     # Training scenarios
-│       ├── playbooks/     # Response frameworks
-│       ├── decision-log.ts
-│       ├── export.ts
-│       └── types.ts
-├── docs/                  # Documentation
-└── examples/              # Sample exports
+apps/web/         Next.js application (static export)
+packages/core/    Domain logic — scenarios, scoring, ESRM, arc scheduling
+docs/             Training and product documentation
 ```
 
-**Stack:** Next.js 14 · TypeScript · Tailwind CSS · Vitest
-
----
-
-## Decision Framework
-
-### Postures
-
-| Posture      | ESRM Treatment | When to Use                                    |
-| ------------ | -------------- | ---------------------------------------------- |
-| **CONTINUE** | Accept         | Risk within tolerance; proceed with monitoring |
-| **DEGRADE**  | Mitigate       | Reduce exposure via compensating controls      |
-| **PAUSE**    | Avoid          | Halt operations to eliminate exposure          |
-
-### Information Categories
-
-| Category       | Definition               | Required Fields                   |
-| -------------- | ------------------------ | --------------------------------- |
-| **Fact**       | Verified information     | Description, source, confidence   |
-| **Assumption** | Working belief           | Description, basis, risk-if-wrong |
-| **Unknown**    | Gap requiring resolution | Question, priority, assignee      |
-
-### 60-Minute Playbook Phases
-
-| Phase   | Duration  | Focus                                   |
-| ------- | --------- | --------------------------------------- |
-| Declare | 0–10 min  | Confirm incident, initial posture       |
-| Assess  | 10–20 min | Scope impact, map dependencies          |
-| Bridge  | 20–35 min | Stakeholder notification, coordination  |
-| Brief   | 35–50 min | Executive communication, documentation  |
-| Learn   | 50–60 min | First checkpoint, assumption validation |
-
----
-
-## Documentation
-
-| Document                           | Purpose                                            |
-| ---------------------------------- | -------------------------------------------------- |
-| [PRD 1.1](docs/PRD.md)             | Product definition, invariants, release gates      |
-| [TRAINING](docs/TRAINING.md)       | Pedagogy: Klein RPD, military AAR, ESRM principles |
-| [ENGINEERING](docs/ENGINEERING.md) | Technical approach and decisions                   |
-| [CONTRIBUTING](CONTRIBUTING.md)    | Contribution guidelines                            |
-| [SECURITY](SECURITY.md)            | Security policy                                    |
+**Stack:** TypeScript · Next.js · Tailwind CSS · Vitest
 
 ---
 
 ## Author
 
-**Shannon Brown** — GSOC Manager · Harvard ALM/ALB · CompTIA CySA+
+**Shannon Brown** — GSOC / crisis management and intelligence practice. Hourglass Command is built as both working software and a public demonstration of operational decision craft.
 
 ---
 
 ## License
 
-MIT — See [LICENSE](LICENSE)
+MIT
