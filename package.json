@@ -15,7 +15,7 @@
     "build": "npm run build --workspaces && node scripts/prepare-static.mjs",
     "build:core": "npm run build --workspace=packages/core",
     "test": "npm run test --workspace=packages/core && vitest run apps/web/src/lib/local-voice-load-policy.test.ts apps/web/src/lib/model-download-session.test.ts",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "typecheck": "tsc -b && tsc --noEmit -p apps/web/tsconfig.json",
@@ -35,14 +35,15 @@
   "author": "Shannon Brown",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.55.0",
-    "eslint-config-prettier": "^9.1.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.0.0",
     "prettier": "^3.9.6",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "typescript-eslint": "8.69.0",
+    "vitest": "^5.0.0"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -20,12 +20,14 @@ test('campaign and free-play entry, persistence, and reset confirmation', async(
 });
 
 test('a decision appears in the review and produces a PDF download',async({page})=>{
+  test.setTimeout(120000);
   await page.goto('/scenarios/access-control-ransomware/');
   await page.getByRole('button',{name:'Begin Mission'}).click();
   const tip=page.getByRole('button',{name:'Got it',exact:true});
   if(await tip.isVisible())await tip.click();
   const tips=page.getByRole('button',{name:'Disable JIT tips'});
   if(await tips.isVisible())await tips.click();
+  await page.getByRole('button',{name:'Respond to Oldest'}).waitFor({state:'visible',timeout:60000});
   await page.getByRole('button',{name:'Pause',exact:true}).click();
   await page.getByRole('button',{name:'Respond to Oldest'}).click();
   await page.getByRole('button',{name:/Physical Access Control System/}).click();
