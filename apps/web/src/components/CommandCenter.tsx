@@ -6459,6 +6459,7 @@ function DebriefModal({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
+        compress: true,
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -6467,13 +6468,48 @@ function DebriefModal({
       const contentWidth = pdfWidth - margin * 2;
       const mmPerPixel = contentWidth / canvas.width;
       const pagePixels = Math.floor((pdfHeight - margin * 2) / mmPerPixel);
-      // Preserve readable type across long decision records instead of shrinking
-      // the entire review into one page. Each page includes its own margins.
-      for (let offset = 0; offset < canvas.height; offset += pagePixels) {
+      const reportBounds = exportRef.current.getBoundingClientRect();
+      const scaleY = canvas.height / reportBounds.height;
+      const keepTogether = [
+        ...Array.from(exportRef.current.children),
+        ...Array.from(exportRef.current.querySelectorAll('[data-pdf-keep]')),
+      ].map((element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          top: Math.floor((bounds.top - reportBounds.top) * scaleY),
+          bottom: Math.ceil((bounds.bottom - reportBounds.top) * scaleY),
+        };
+      });
+      const timelineHeading = exportRef.current.querySelector('[data-pdf-heading]');
+      const firstDecision = timelineHeading?.nextElementSibling?.querySelector('[data-pdf-keep]');
+      if (timelineHeading && firstDecision) {
+        keepTogether.push({
+          top: Math.floor(
+            (timelineHeading.getBoundingClientRect().top - reportBounds.top) * scaleY
+          ),
+          bottom: Math.ceil(
+            (firstDecision.getBoundingClientRect().bottom - reportBounds.top) * scaleY
+          ),
+        });
+      }
+      // Keep sections and decision cards intact when they fit on a page.
+      // Oversized sections can continue across pages without shrinking the type.
+      for (let offset = 0; offset < canvas.height;) {
+        let end = Math.min(offset + pagePixels, canvas.height);
+        for (const block of keepTogether) {
+          if (
+            block.top > offset &&
+            block.top < end &&
+            block.bottom > end &&
+            block.bottom - block.top <= pagePixels
+          ) {
+            end = block.top;
+          }
+        }
         if (offset > 0) pdf.addPage();
         const slice = document.createElement('canvas');
         slice.width = canvas.width;
-        slice.height = Math.min(pagePixels, canvas.height - offset);
+        slice.height = end - offset;
         const context = slice.getContext('2d');
         if (!context) throw new Error('Unable to prepare the report page');
         context.drawImage(
@@ -6493,8 +6529,20 @@ function DebriefModal({
           margin,
           margin,
           contentWidth,
-          slice.height * mmPerPixel
+          slice.height * mmPerPixel,
+          undefined,
+          'FAST'
         );
+        offset = end;
+      }
+      for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
+        pdf.setPage(page);
+        pdf.setFontSize(8);
+        pdf.setTextColor(80, 90, 85);
+        pdf.text('Hourglass Command - Synthetic training record', margin, pdfHeight - 5);
+        pdf.text(`${page} / ${pdf.getNumberOfPages()}`, pdfWidth - margin, pdfHeight - 5, {
+          align: 'right',
+        });
       }
       pdf.save(`hourglass-aar-${scenarioId}-${Date.now()}.pdf`);
     } catch (error) {
@@ -6544,8 +6592,8 @@ function DebriefModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-gradient-to-b from-[#121c14] to-[#0b140e] border border-gray-800/80 rounded-3xl max-w-3xl w-full p-8 shadow-2xl animate-scale-in my-8">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 p-4 overflow-y-auto">
+      <div className="relative bg-gradient-to-b from-[#121c14] to-[#0b140e] border border-gray-800/80 rounded-3xl max-w-3xl w-full p-8 shadow-2xl animate-scale-in mx-auto my-8">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -6972,14 +7020,18 @@ function DebriefModal({
 
                 {/* Decision Timeline */}
                 <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h2
+                    data-pdf-heading
+                    className="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                  >
                     <Clock className="w-5 h-5 text-amber-400" />
                     Decision Timeline
                   </h2>
                   <div className="space-y-3">
-                    {log.decisions.slice(0, 6).map((decision, idx) => (
+                    {log.decisions.map((decision, idx) => (
                       <div
                         key={decision.id}
+                        data-pdf-keep
                         className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40"
                       >
                         <div className="flex items-start gap-4">
@@ -7002,11 +7054,9 @@ function DebriefModal({
                                 {decision.posture}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-500 line-clamp-2">
-                              {decision.rationale}
-                            </p>
+                            <p className="text-sm text-gray-500">{decision.rationale}</p>
                             {decision.esrmFraming && (
-                              <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-500">
                                 <span>Treatment: {decision.esrmFraming.treatment}</span>
                                 <span>Residual: {decision.esrmFraming.residualRisk}</span>
                               </div>
@@ -7015,11 +7065,6 @@ function DebriefModal({
                         </div>
                       </div>
                     ))}
-                    {log.decisions.length > 6 && (
-                      <p className="text-sm text-gray-500 text-center">
-                        + {log.decisions.length - 6} more decisions
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -7154,9 +7199,7 @@ function DebriefModal({
                       </div>
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
-                        <span className="text-gray-300">
-                          {diffConfig.label} difficulty mastered
-                        </span>
+                        <span className="text-gray-300">Difficulty: {diffConfig.label}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />

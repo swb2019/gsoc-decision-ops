@@ -60,6 +60,7 @@ test('a decision appears in the review and produces a PDF download', async ({ pa
   const bytes = await readFile('qa-output/decision-review.pdf');
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
   expect(bytes.length).toBeGreaterThan(10000);
+  expect(bytes.length).toBeLessThan(2000000);
   await page.getByRole('button', { name: 'Close export preview' }).click();
   await page.getByRole('button', { name: 'Close after-action review' }).click();
   await expect(page.getByRole('heading', { name: 'Decision Log' })).toBeVisible();
