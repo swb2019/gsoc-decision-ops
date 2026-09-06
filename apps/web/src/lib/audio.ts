@@ -167,6 +167,13 @@ const BGM_FILE = '/audio/ambientBGM_v5.ogg?v=20260905-elevenlabs-v5';
 let ambientAudio: HTMLAudioElement | null = null;
 let ambientFadeInterval: ReturnType<typeof setInterval> | null = null;
 
+/**
+ * Get reference to ambient BGM audio element (for VO ducking)
+ */
+export function getAmbientAudioElement(): HTMLAudioElement | null {
+  return ambientAudio;
+}
+
 export function startAmbientMusic(): void {
   if (typeof window === 'undefined' || !config.enabled) return;
 

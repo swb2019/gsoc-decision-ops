@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Lightbulb, X, ChevronRight, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { GuidanceTip, GuidanceSurface } from '../lib/guidance';
@@ -15,6 +15,7 @@ import {
   queueTipByTrigger,
   getActiveTip,
 } from '../lib/guidance';
+import { playVO, isVoiceEnabled, type VOType } from '../lib/voice';
 
 interface GuidancePopupProps {
   reducedMotion?: boolean;
@@ -34,6 +35,15 @@ const SURFACE_LABELS: Record<GuidanceSurface, string> = {
   AAR_EXPORT: 'AAR Export',
 };
 
+const SURFACE_TO_VO: Partial<Record<GuidanceSurface, VOType>> = {
+  INTEL_FEED: 'tip_intel',
+  COP_LAYERS: 'tip_cop',
+  TACTICAL: 'tip_tactical',
+  TEAM_STAKEHOLDERS: 'tip_team',
+  KRI_VALUE: 'tip_kri',
+  FIELD_GUIDE: 'tip_guide',
+};
+
 export default function GuidancePopup({
   reducedMotion = false,
   onNavigateToSurface,
@@ -42,6 +52,7 @@ export default function GuidancePopup({
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [showDontShowAgain, setShowDontShowAgain] = useState(false);
+  const lastPlayedTipRef = useRef<string | null>(null);
 
   useEffect(() => {
     loadGuidanceState();
@@ -59,6 +70,15 @@ export default function GuidancePopup({
         setActiveTip(tip);
         setIsVisible(true);
         setShowDontShowAgain(false);
+
+        // Play tip VO if voice is enabled and we haven't played this tip yet
+        if (isVoiceEnabled() && tip.id !== lastPlayedTipRef.current) {
+          const voType = SURFACE_TO_VO[tip.surface];
+          if (voType) {
+            playVO(voType);
+            lastPlayedTipRef.current = tip.id;
+          }
+        }
       }
     };
 
