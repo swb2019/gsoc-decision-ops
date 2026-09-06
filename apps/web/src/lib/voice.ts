@@ -20,6 +20,7 @@
 
 import { slugifyTitle } from '@gsoc-decision-ops/core';
 import { getBasePath, getAudioUrl } from './base-path';
+import { isLocalTTSReady, speak as speakLocalTTS } from './local-voice';
 
 // Re-export for convenience
 export { slugifyTitle, getBasePath };
@@ -388,6 +389,12 @@ function getSpeechSynthesis(): SpeechSynthesis | null {
   return window.speechSynthesis;
 }
 
+function speakViaHeadset(text: string, priority?: number): boolean {
+  if (!isLocalTTSReady()) return false;
+  void speakLocalTTS(text, priority ?? 5);
+  return true;
+}
+
 function cancelTTS(): void {
   currentUtterance = null;
   const synth = getSpeechSynthesis();
@@ -401,15 +408,24 @@ function onEventAudioError(): void {
   if (currentlyPlaying === 'tts') return;
 
   const spoken = currentEventSpokenFallback;
-  if (spoken && getSpeechSynthesis()) {
+  if (spoken) {
     currentEventSpokenFallback = null;
     currentEventUrl = null;
     currentEventFallbackUrl = null;
     if (eventAudioElement) {
       eventAudioElement.pause();
     }
-    playTTSImmediate(spoken);
-    return;
+    if (speakViaHeadset(spoken, 7)) {
+      isVOPlaying = false;
+      currentlyPlaying = null;
+      restoreBGMVolume();
+      setTimeout(processQueue, 100);
+      return;
+    }
+    if (getSpeechSynthesis()) {
+      playTTSImmediate(spoken);
+      return;
+    }
   }
   currentEventSpokenFallback = null;
 
@@ -669,7 +685,7 @@ export function playVO(voType: VOType): void {
  * Ducks BGM, respects voiceEnabled/systemPaused, clears on skipVO, and does not overlap other VO.
  */
 export function playSpokenText(text: string, opts?: SpokenTextOptions): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
+  if (typeof window === 'undefined') return;
 
   const spoken = text.trim();
   if (!spoken) return;
@@ -681,6 +697,15 @@ export function playSpokenText(text: string, opts?: SpokenTextOptions): void {
     }
     spokenEventIds.add(trackingId);
   }
+
+  if (systemPaused && !opts?.force) return;
+
+  // Headset path: speak dynamic lines ElevenLabs does not cover. Yields to scripted VO.
+  if (speakViaHeadset(spoken, opts?.priority)) {
+    return;
+  }
+
+  if (!voConfig.voiceEnabled) return;
 
   voQueue.push({
     type: 'tts',
@@ -721,7 +746,7 @@ export function playEventVO(
   injectId?: string,
   options?: EventVOOptions
 ): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined' || systemPaused) return;
+  if (typeof window === 'undefined' || systemPaused) return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;
@@ -735,11 +760,19 @@ export function playEventVO(
   spokenEventIds.add(trackingId);
 
   const priority = triagePriority ? EVENT_VO_PRIORITY[triagePriority] : EVENT_VO_PRIORITY.ROUTINE;
+  const spokenFallback = options?.spokenFallback?.trim() || undefined;
+
+  // Headset-only: no ElevenLabs cue path — speak the dynamic inject line in-headset
+  if (!voConfig.voiceEnabled) {
+    if (spokenFallback) {
+      speakViaHeadset(spokenFallback, priority);
+    }
+    return;
+  }
 
   const audioUrl = getAudioUrl(`/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`);
   const fallbackCue = priority >= EVENT_VO_PRIORITY.URGENT ? 'inject_critical' : 'inject_elevated';
   const fallbackUrl = getAudioUrl(`/audio/voice/${fallbackCue}.ogg?v=${VO_VERSION}`);
-  const spokenFallback = options?.spokenFallback?.trim() || undefined;
 
   voQueue.push({
     type: 'event',
@@ -772,7 +805,7 @@ export function playEventVOOnSelect(
   injectId?: string,
   options?: EventVOOptions
 ): void {
-  if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return;
 
   const slug = slugifyTitle(title);
   const trackingId = injectId || slug;
@@ -789,11 +822,19 @@ export function playEventVOOnSelect(
   const priority = triagePriority
     ? Math.min(EVENT_VO_PRIORITY[triagePriority] + 1, 10)
     : EVENT_VO_PRIORITY.ROUTINE + 1;
+  const spokenFallback = options?.spokenFallback?.trim() || undefined;
+
+  // Headset-only tap-to-hear: speak the inject in-headset when scripted VO is off
+  if (!voConfig.voiceEnabled) {
+    if (spokenFallback) {
+      speakViaHeadset(spokenFallback, priority);
+    }
+    return;
+  }
 
   const audioUrl = getAudioUrl(`/audio/voice/events/${slug}.ogg?v=${VO_VERSION}`);
   const fallbackCue = priority >= EVENT_VO_PRIORITY.URGENT ? 'inject_critical' : 'inject_elevated';
   const fallbackUrl = getAudioUrl(`/audio/voice/${fallbackCue}.ogg?v=${VO_VERSION}`);
-  const spokenFallback = options?.spokenFallback?.trim() || undefined;
 
   voQueue.push({
     type: 'event',
