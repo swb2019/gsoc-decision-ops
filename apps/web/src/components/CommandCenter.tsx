@@ -888,6 +888,7 @@ import {
 } from '../lib/field-guide';
 import GuidancePopup, { useGuidance } from './GuidancePopup';
 import type { GuidanceSurface } from '../lib/guidance';
+import { ChannelIcon3DWrapper, COPMarkers3DWrapper } from './Lazy3D';
 import {
   ArcScheduler,
   createArcFromLog,
@@ -3822,6 +3823,22 @@ export default function CommandCenter({
               )}
             </div>
 
+            {/* 3D COP Zone Visualization */}
+            <div className="p-4 border-b border-gray-800/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Layers className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                  3D Zone View
+                </span>
+              </div>
+              <COPMarkers3DWrapper
+                zones={transformZonesTo3D(zoneHeatLevels)}
+                width={280}
+                height={160}
+                className="mx-auto rounded-xl overflow-hidden"
+              />
+            </div>
+
             {/* Visual COP Zone Display */}
             <div className="p-4 border-b border-gray-800/50">
               <COPZoneDisplay
@@ -4114,6 +4131,22 @@ export default function CommandCenter({
                     reducedMotion={reducedMotion}
                   />
                 </div>
+              </div>
+
+              {/* 3D COP Zone Visualization - Mobile */}
+              <div className="p-4 border-b border-gray-800/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Layers className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    3D Zone View
+                  </span>
+                </div>
+                <COPMarkers3DWrapper
+                  zones={transformZonesTo3D(zoneHeatLevels)}
+                  width={280}
+                  height={160}
+                  className="mx-auto rounded-xl overflow-hidden"
+                />
               </div>
 
               {/* Visual COP Zone Display - Mobile */}
@@ -4601,23 +4634,35 @@ function InjectCard({
               : 'bg-gray-800/30 border-gray-700/40 hover:border-gray-600/60 hover:bg-gray-800/50'
       )}
     >
-      {/* Top row: Channel badge and urgency */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Intake Channel Badge */}
-          {channelConfig && (
-            <span
-              className={clsx(
-                'flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded',
-                channelConfig.bgColor,
-                channelConfig.color
+      <div className="flex gap-3">
+        {/* 3D Channel Icon - only show for non-handled, non-noise injects with valid channel */}
+        {intake?.channel && !isHandled && !isNoise && (
+          <div className="flex-shrink-0">
+            <ChannelIcon3DWrapper
+              channel={intake.channel as 'ACS' | 'VMS' | 'ALARM' | 'SIEM' | 'OSINT' | 'TIP' | 'RADIO' | 'FACILITIES' | 'VENDOR' | 'EXECUTIVE' | 'LE'}
+              size={40}
+              isUrgent={urgency === 'IMMEDIATE'}
+            />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          {/* Top row: Channel badge and urgency */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Intake Channel Badge */}
+              {channelConfig && (
+                <span
+                  className={clsx(
+                    'flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded',
+                    channelConfig.bgColor,
+                    channelConfig.color
+                  )}
+                  title={`${channelConfig.name}${intake?.sourceSystem ? ` - ${intake.sourceSystem}` : ''}`}
+                >
+                  <ChannelIcon className="w-3 h-3" />
+                  {channelConfig.shortName}
+                </span>
               )}
-              title={`${channelConfig.name}${intake?.sourceSystem ? ` - ${intake.sourceSystem}` : ''}`}
-            >
-              <ChannelIcon className="w-3 h-3" />
-              {channelConfig.shortName}
-            </span>
-          )}
           {/* Correction/Update badge */}
           {isCorrection && (
             <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">
@@ -4748,15 +4793,17 @@ function InjectCard({
         </div>
       )}
 
-      {/* Footer: Source system and timestamp */}
-      <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
-        <div className="flex items-center gap-2">
-          <span className="text-2xs text-gray-500">{intake?.sourceSystem || inject.source}</span>
-          {intake?.sourceId && (
-            <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
-          )}
+          {/* Footer: Source system and timestamp */}
+          <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-700/30">
+            <div className="flex items-center gap-2">
+              <span className="text-2xs text-gray-500">{intake?.sourceSystem || inject.source}</span>
+              {intake?.sourceId && (
+                <span className="text-2xs text-gray-600 font-mono">[{intake.sourceId}]</span>
+              )}
+            </div>
+            {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
+          </div>
         </div>
-        {!isHandled && <ChevronRight className="w-4 h-4 text-gray-600" />}
       </div>
     </button>
   );
@@ -5779,6 +5826,22 @@ function ConsequenceTheatreOverlay({
       </div>
     </div>
   );
+}
+
+/**
+ * Transform zone heat levels to 3D format for COPMarkers3D
+ */
+function transformZonesTo3D(
+  zoneHeatLevels: Record<string, number>
+): Array<{ id: string; name: string; heat: number; position: [number, number] }> {
+  const entries = Object.entries(zoneHeatLevels);
+  const gridSize = Math.ceil(Math.sqrt(entries.length));
+  return entries.map(([name, heat], index) => ({
+    id: name,
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    heat,
+    position: [((index % gridSize) / gridSize) * 100, (Math.floor(index / gridSize) / gridSize) * 100] as [number, number],
+  }));
 }
 
 /**
