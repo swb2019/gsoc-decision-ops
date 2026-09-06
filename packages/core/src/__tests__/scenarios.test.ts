@@ -74,6 +74,45 @@ describe('Scenarios', () => {
         expect(scenario.severity).toBeDefined();
         expect(scenario.vendorType).toBeDefined();
         expect(scenario.createFn).toBeInstanceOf(Function);
+        expect(scenario.esrmConfig?.primaryAssets.length).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('wires esrmConfig with primaryAssets for classic starter scenarios', () => {
+      const classicIds = [
+        'access-control-ransomware',
+        'video-system-compromise',
+        'alarm-monitoring-outage',
+      ];
+      const scenarios = getAvailableScenarios();
+
+      for (const id of classicIds) {
+        const scenario = scenarios.find((s) => s.id === id);
+        expect(scenario, `missing scenario ${id}`).toBeDefined();
+        const config = scenario!.esrmConfig;
+        expect(config, `${id} missing esrmConfig`).toBeDefined();
+        expect(config!.primaryAssets.length).toBeGreaterThanOrEqual(3);
+        expect(config!.requiredCommunications.length).toBeGreaterThanOrEqual(3);
+        expect(config!.governanceGuidelines.length).toBeGreaterThanOrEqual(3);
+        expect(config!.initialRiskLevel).toBeDefined();
+        expect(config!.riskToleranceThreshold).toBeDefined();
+
+        for (const asset of config!.primaryAssets) {
+          expect(asset.id).toBeTruthy();
+          expect(asset.name).toBeTruthy();
+          expect(asset.description).toBeTruthy();
+          expect(asset.businessFunction).toBeTruthy();
+          expect(asset.currentExposure).toBeTruthy();
+          expect(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).toContain(asset.criticality);
+          expect(asset.owner.name).toBeTruthy();
+          expect(asset.owner.title).toBeTruthy();
+          expect(asset.owner.organization).toBeTruthy();
+          expect(asset.owner.contactMethod).toBeTruthy();
+          expect(asset.owner.notified).toBe(false);
+        }
+
+        const bundled = JSON.stringify(config);
+        expect(bundled).not.toMatch(/resolver/i);
       }
     });
   });

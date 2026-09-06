@@ -8,6 +8,7 @@
 import type { DecisionLog, VendorContext, LearningObjective, ScenarioInject } from '../types.js';
 import { createDecisionLog } from '../decision-log.js';
 import { generateId } from '../utils.js';
+import type { ProtectedAsset, ScenarioESRMConfig } from '../esrm.js';
 
 export {
   FUSED_SCENARIOS,
@@ -366,9 +367,281 @@ export function createAlarmMonitoringOutageScenario(): DecisionLog {
 }
 
 /**
- * Get all available training scenarios
+ * ESRM assets for Arc 1 starter: Access Control Vendor Ransomware
  */
-import type { ScenarioESRMConfig } from '../esrm.js';
+const ACCESS_CONTROL_ASSETS: ProtectedAsset[] = [
+  {
+    id: 'asset-pacs',
+    name: 'Physical Access Control System',
+    description: 'Badge readers, local panel caches, and credential provisioning across sites',
+    criticality: 'CRITICAL',
+    businessFunction: 'Facility Security',
+    owner: {
+      name: 'VP of Facilities',
+      title: 'Vice President, Global Facilities',
+      organization: 'Corporate Services',
+      contactMethod: 'Teams / Mobile',
+      riskTolerance: 'MODERATE',
+      notified: false,
+    },
+    currentExposure:
+      'Vendor cloud ransomware; local panel caches still serving access with unknown integrity',
+  },
+  {
+    id: 'asset-visitor-mgmt',
+    name: 'Visitor Management',
+    description: 'Guest credentialing, lobby processing, and executive/board visitor access',
+    criticality: 'HIGH',
+    businessFunction: 'Physical Security',
+    owner: {
+      name: 'Director of Physical Security',
+      title: 'Director, Physical Security',
+      organization: 'Corporate Security',
+      contactMethod: 'Bridge / Mobile',
+      riskTolerance: 'MODERATE',
+      notified: false,
+    },
+    currentExposure: 'Automated visitor provisioning depends on the affected vendor cloud',
+  },
+  {
+    id: 'asset-credential-records',
+    name: 'Badge Credential Records',
+    description: 'Employee and contractor credentials, mobile credentials, and vendor API accounts',
+    criticality: 'HIGH',
+    businessFunction: 'Identity & Access',
+    owner: {
+      name: 'CISO',
+      title: 'Chief Information Security Officer',
+      organization: 'Information Security',
+      contactMethod: 'Secure channel / Bridge',
+      riskTolerance: 'LOW',
+      notified: false,
+    },
+    currentExposure: 'Cloud credential database affected; data exposure unconfirmed',
+  },
+];
+
+/**
+ * ESRM configuration for Access Control Vendor Ransomware (Foundations: Vendor Crisis)
+ */
+export const ACCESS_CONTROL_ESRM: ScenarioESRMConfig = {
+  primaryAssets: ACCESS_CONTROL_ASSETS,
+  initialRiskLevel: 'HIGH',
+  riskToleranceThreshold: 'MEDIUM',
+  requiredCommunications: [
+    {
+      role: 'VP of Facilities',
+      timing: 'IMMEDIATE',
+      purpose: 'Badge operations posture and local-cache residual risk',
+    },
+    {
+      role: 'CISO',
+      timing: 'WITHIN_15MIN',
+      purpose: 'Vendor API isolation and credential-rotation advice',
+    },
+    {
+      role: 'Director of Physical Security',
+      timing: 'WITHIN_15MIN',
+      purpose: 'Visitor and lobby compensating controls',
+    },
+    {
+      role: 'Chief of Staff',
+      timing: 'WITHIN_HOUR',
+      purpose: 'Executive/board visitor access when automated provisioning is suspect',
+    },
+  ],
+  governanceGuidelines: [
+    'Operational continuity on local panel caches is a separate decision from forensic investigation',
+    'Automated provisioning pause does not by itself require pausing badge reader operations',
+    'Credential rotation that breaks badge sync requires Facilities and IT Security alignment',
+    'Asset owners accept residual risk on visitor and board access when systems are degraded',
+  ],
+};
+
+/**
+ * ESRM assets for Video Management System Supply Chain Concern
+ */
+const VIDEO_SYSTEM_ASSETS: ProtectedAsset[] = [
+  {
+    id: 'asset-live-video',
+    name: 'Live Video Operations',
+    description: 'Live streaming, analytics, and GSOC monitoring from the VMS platform',
+    criticality: 'CRITICAL',
+    businessFunction: 'Physical Security',
+    owner: {
+      name: 'Director of Physical Security',
+      title: 'Director, Physical Security',
+      organization: 'Corporate Security',
+      contactMethod: 'Direct line / Bridge',
+      riskTolerance: 'LOW',
+      notified: false,
+    },
+    currentExposure:
+      'Unusual outbound traffic from VMS servers; vendor has not confirmed a compromise',
+  },
+  {
+    id: 'asset-video-evidence',
+    name: 'Recorded Video Evidence',
+    description: 'Stored footage required for workplace investigations and audit',
+    criticality: 'HIGH',
+    businessFunction: 'Investigations',
+    owner: {
+      name: 'Director of Corporate Investigations',
+      title: 'Director, Corporate Investigations',
+      organization: 'Corporate Security',
+      contactMethod: 'Bridge / Email',
+      riskTolerance: 'LOW',
+      notified: false,
+    },
+    currentExposure: 'Evidence may be lost or tainted if VMS servers are isolated without a plan',
+  },
+  {
+    id: 'asset-remote-viewing',
+    name: 'Remote Viewing Access',
+    description: 'Off-network viewing application and remote VMS connectivity',
+    criticality: 'HIGH',
+    businessFunction: 'Facility Security',
+    owner: {
+      name: 'VP of Facilities',
+      title: 'Vice President, Global Facilities',
+      organization: 'Corporate Services',
+      contactMethod: 'Teams / Mobile',
+      riskTolerance: 'MODERATE',
+      notified: false,
+    },
+    currentExposure: 'Remote viewing shares the suspect update path; local NVR recording remains',
+  },
+];
+
+/**
+ * ESRM configuration for Video Management System Supply Chain Concern
+ */
+export const VIDEO_SYSTEM_ESRM: ScenarioESRMConfig = {
+  primaryAssets: VIDEO_SYSTEM_ASSETS,
+  initialRiskLevel: 'HIGH',
+  riskToleranceThreshold: 'MEDIUM',
+  requiredCommunications: [
+    {
+      role: 'IT Security Operations',
+      timing: 'IMMEDIATE',
+      purpose: 'C2-pattern isolation request vs. GSOC operational need',
+    },
+    {
+      role: 'Director of Physical Security',
+      timing: 'IMMEDIATE',
+      purpose: 'Live video posture and compensating observation',
+    },
+    {
+      role: 'Director of Corporate Investigations',
+      timing: 'WITHIN_15MIN',
+      purpose: 'Evidence preservation before any isolation',
+    },
+    {
+      role: 'VP of Facilities',
+      timing: 'WITHIN_HOUR',
+      purpose: 'Remote viewing pause and local NVR coverage',
+    },
+  ],
+  governanceGuidelines: [
+    'GSOC owns operational video posture; IT Security owns forensic isolation of VMS hosts',
+    'Evidence preservation is coordinated before isolating servers that hold recordings',
+    'Remote viewing can be paused independently of on-site live monitoring',
+    'Vendor patches on isolated systems require an asset-owner restoration decision',
+  ],
+};
+
+/**
+ * ESRM assets for Third-Party Alarm Monitoring Outage
+ */
+const ALARM_MONITORING_ASSETS: ProtectedAsset[] = [
+  {
+    id: 'asset-life-safety-alarms',
+    name: 'Life Safety Alarm Supervision',
+    description: 'Fire, panic/duress, and environmental alarms that require immediate dispatch',
+    criticality: 'CRITICAL',
+    businessFunction: 'Life Safety',
+    owner: {
+      name: 'Director of EHS',
+      title: 'Director, Environment Health & Safety',
+      organization: 'Corporate Services',
+      contactMethod: 'Emergency line / Mobile',
+      riskTolerance: 'LOW',
+      notified: false,
+    },
+    currentExposure:
+      'Central station not receiving or processing signals; overnight sites without vendor backup',
+  },
+  {
+    id: 'asset-intrusion-monitoring',
+    name: 'Intrusion Alarm Monitoring',
+    description: 'Intrusion detection and after-hours physical security monitoring across sites',
+    criticality: 'CRITICAL',
+    businessFunction: 'Physical Security',
+    owner: {
+      name: 'CSO',
+      title: 'Chief Security Officer',
+      organization: 'Corporate Security',
+      contactMethod: 'Direct line / Signal',
+      riskTolerance: 'MODERATE',
+      notified: false,
+    },
+    currentExposure:
+      'Third-party monitoring dark at all sites; GSOC direct monitoring is the backup',
+  },
+  {
+    id: 'asset-overnight-sites',
+    name: 'Overnight Site Operations',
+    description: 'Unoccupied and high-value sites that depend on monitored alarms overnight',
+    criticality: 'HIGH',
+    businessFunction: 'Operations',
+    owner: {
+      name: 'VP of Site Operations',
+      title: 'Vice President, Site Operations',
+      organization: 'Operations',
+      contactMethod: 'EA / Mobile',
+      riskTolerance: 'MODERATE',
+      notified: false,
+    },
+    currentExposure: 'Site managers lack confirmed coverage; residual risk sits with asset owners',
+  },
+];
+
+/**
+ * ESRM configuration for Third-Party Alarm Monitoring Outage
+ */
+export const ALARM_MONITORING_ESRM: ScenarioESRMConfig = {
+  primaryAssets: ALARM_MONITORING_ASSETS,
+  initialRiskLevel: 'CRITICAL',
+  riskToleranceThreshold: 'HIGH',
+  requiredCommunications: [
+    {
+      role: 'Director of EHS',
+      timing: 'IMMEDIATE',
+      purpose: 'Fire and life-safety supervision without central station',
+    },
+    {
+      role: 'CSO',
+      timing: 'IMMEDIATE',
+      purpose: 'Intrusion monitoring posture and GSOC staffing',
+    },
+    {
+      role: 'VP of Site Operations',
+      timing: 'WITHIN_15MIN',
+      purpose: 'Residual risk framing for overnight site managers',
+    },
+    {
+      role: 'Local fire authority',
+      timing: 'AS_NEEDED',
+      purpose: 'Direct notification when fire supervision cannot be confirmed',
+    },
+  ],
+  governanceGuidelines: [
+    'Life-safety alarms take precedence over property and inventory alarms',
+    'Fire department notification is required when fire supervision cannot be confirmed',
+    'Site managers own residual risk; GSOC advises on compensating controls',
+    'Emergency backup-vendor spend requires documented owner approval',
+  ],
+};
 
 /**
  * Campaign difficulty levels
@@ -536,6 +809,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
         'Badge system vendor experiences ransomware attack affecting credential management.',
       severity: 'HIGH',
       vendorType: 'Physical Access Control',
+      esrmConfig: ACCESS_CONTROL_ESRM,
       createFn: createAccessControlVendorScenario,
       campaign: CAMPAIGN_ARCS['access-control-ransomware'],
     },
@@ -546,6 +820,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
         'Anomalous network behavior from VMS suggests potential supply chain compromise.',
       severity: 'HIGH',
       vendorType: 'Video Management System',
+      esrmConfig: VIDEO_SYSTEM_ESRM,
       createFn: createVideoSystemCompromiseScenario,
       campaign: CAMPAIGN_ARCS['video-system-compromise'],
     },
@@ -556,6 +831,7 @@ export function getAvailableScenarios(): ScenarioInfo[] {
         'Third-party alarm monitoring service experiences critical infrastructure failure.',
       severity: 'CRITICAL',
       vendorType: 'Alarm Monitoring Service',
+      esrmConfig: ALARM_MONITORING_ESRM,
       createFn: createAlarmMonitoringOutageScenario,
     },
   ];
