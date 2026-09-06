@@ -876,7 +876,6 @@ import {
   setVoiceEnabled,
   setBGMReference,
   setSystemPaused,
-  isSystemPaused,
   skipVO,
 } from '../lib/voice';
 import { getBasePath } from '../lib/base-path';
@@ -924,6 +923,10 @@ interface MicroTask {
   tradeoffOptions?: { id: string; text: string; consequence: string; points: number }[];
   scenarioOutcomes?: { choice: string; result: string; points: number }[];
   explanation?: string;
+}
+
+function getMicroTaskVOTitle(task: Pick<MicroTask, 'title' | 'question'>): string {
+  return `${task.title}. ${task.question}`;
 }
 
 interface GameState {
@@ -1298,9 +1301,6 @@ export default function CommandCenter({
   const { playSound } = useSoundEffects(soundEnabled, reducedMotion);
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
 
-  // Track ambient music playing state (synced with audio.ts)
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-
   // Load ambient music preference from localStorage
   useEffect(() => {
     try {
@@ -1342,7 +1342,6 @@ export default function CommandCenter({
   useEffect(() => {
     if (!ambientMusicEnabled || reducedMotion) {
       stopAmbientMusic();
-      setIsMusicPlaying(false);
     }
   }, [ambientMusicEnabled, reducedMotion]);
 
@@ -1353,39 +1352,35 @@ export default function CommandCenter({
     };
   }, []);
 
-  // Sync isMusicPlaying state with actual playing state
-  useEffect(() => {
-    const syncPlayingState = (): void => {
-      const playing = isAmbientMusicPlaying();
-      setIsMusicPlaying(playing);
-    };
-    const interval = setInterval(syncPlayingState, 500);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Handle ambient music toggle - requires user gesture to unlock
+  // Handle ambient music toggle - requires user gesture to unlock.
+  // System media pause stops playback without clearing ambientMusicEnabled;
+  // a tap while enabled-but-paused resumes instead of turning music off.
   const handleAmbientMusicToggle = useCallback(() => {
-    const startIfUnpaused = (): void => {
-      if (isSystemPaused()) return;
+    const startMusic = (): void => {
       startAmbientMusic();
-      setIsMusicPlaying(true);
-      // Set BGM reference for VO ducking after brief delay to let it start
       setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
     };
 
     if (!ambientMusicUnlocked) {
       setAmbientMusicUnlocked(true);
       setAmbientMusicEnabled(true);
-      startIfUnpaused();
-    } else if (ambientMusicEnabled) {
+      startMusic();
+      return;
+    }
+
+    if (ambientMusicEnabled) {
+      if (!isAmbientMusicPlaying()) {
+        startMusic();
+        return;
+      }
       setAmbientMusicEnabled(false);
       stopAmbientMusic();
-      setIsMusicPlaying(false);
       setBGMReference(null);
-    } else {
-      setAmbientMusicEnabled(true);
-      startIfUnpaused();
+      return;
     }
+
+    setAmbientMusicEnabled(true);
+    startMusic();
   }, [ambientMusicEnabled, ambientMusicUnlocked]);
 
   // Check for reduced motion preference
@@ -1550,9 +1545,6 @@ export default function CommandCenter({
       setIsRunning(true);
       if (ambientMusicEnabled && !reducedMotion) {
         resumeAmbientMusic();
-        if (!isAmbientMusicPlaying()) {
-          startAmbientMusic();
-        }
         setTimeout(() => setBGMReference(getAmbientAudioElement()), 100);
       }
     }
@@ -1832,6 +1824,7 @@ export default function CommandCenter({
       if (availableTasks.length > 0) {
         const randomTask = availableTasks[Math.floor(Math.random() * availableTasks.length)];
         setActiveMicroTask(randomTask);
+        playEventVO(getMicroTaskVOTitle(randomTask), 'ROUTINE', randomTask.id);
         setMicroTaskTimer(randomTask.duration);
         setMicroTaskAnimating(true);
         setMicroTaskAnswer(null);
@@ -3092,7 +3085,7 @@ export default function CommandCenter({
               onClick={handleAmbientMusicToggle}
               className={clsx(
                 'hidden xs:flex p-2 rounded-xl transition-all items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex-shrink-0',
-                ambientMusicEnabled && isMusicPlaying
+                ambientMusicEnabled
                   ? 'text-violet-400 bg-violet-500/20 hover:bg-violet-500/30'
                   : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70'
               )}
@@ -3481,7 +3474,7 @@ export default function CommandCenter({
                       }}
                       className={clsx(
                         'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all',
-                        ambientMusicEnabled && isMusicPlaying
+                        ambientMusicEnabled
                           ? 'text-violet-400 hover:bg-violet-500/10'
                           : 'text-gray-400 hover:bg-gray-800/50'
                       )}
@@ -3489,7 +3482,7 @@ export default function CommandCenter({
                     >
                       <Music className="w-4 h-4" />
                       Ambient Music
-                      {ambientMusicEnabled && isMusicPlaying && (
+                      {ambientMusicEnabled && (
                         <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
                           On
                         </span>
@@ -4694,6 +4687,14 @@ export default function CommandCenter({
           onSubmitAnswer={submitMicroTaskAnswer}
           onDismiss={dismissMicroTask}
           onSkip={skipMicroTask}
+          onHear={() =>
+            playEventVOOnSelect(
+              getMicroTaskVOTitle(activeMicroTask),
+              'ROUTINE',
+              activeMicroTask.id,
+              true
+            )
+          }
           reducedMotion={reducedMotion}
           animating={microTaskAnimating}
           currentAnswer={microTaskAnswer}
@@ -9967,6 +9968,7 @@ function MicroTaskCard({
   onSubmitAnswer,
   onDismiss,
   onSkip,
+  onHear,
   reducedMotion,
   animating,
   currentAnswer,
@@ -9978,6 +9980,7 @@ function MicroTaskCard({
   onSubmitAnswer: (answer: string | string[]) => void;
   onDismiss: () => void;
   onSkip: () => void;
+  onHear: () => void;
   reducedMotion: boolean;
   animating: boolean;
   currentAnswer: string | string[] | null;
@@ -10120,7 +10123,18 @@ function MicroTaskCard({
                   </span>
                 )}
               </div>
-              <h4 className="text-sm font-semibold text-white mt-0.5 truncate">{task.title}</h4>
+              <button
+                type="button"
+                onClick={onHear}
+                className="flex items-center gap-1.5 mt-0.5 text-left min-w-0 group"
+                aria-label="Hear task"
+                title="Tap to hear"
+              >
+                <h4 className="text-sm font-semibold text-white truncate group-hover:text-emerald-300">
+                  {task.title}
+                </h4>
+                <Volume2 className="w-3.5 h-3.5 text-gray-500 group-hover:text-emerald-400 flex-shrink-0" />
+              </button>
             </div>
           </div>
 
@@ -10163,8 +10177,15 @@ function MicroTaskCard({
           </div>
         )}
 
-        {/* Question */}
-        <p className="text-sm text-gray-200 mb-4 leading-relaxed">{task.question}</p>
+        {/* Question — tap to hear if autoplay was blocked */}
+        <button
+          type="button"
+          onClick={onHear}
+          className="w-full text-left text-sm text-gray-200 mb-4 leading-relaxed"
+          aria-label="Tap to hear this task"
+        >
+          {task.question}
+        </button>
 
         {/* Challenge Content based on type */}
         {(task.type === 'MULTIPLE_CHOICE' || task.type === 'SCENARIO') && task.options && (

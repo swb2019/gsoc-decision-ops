@@ -614,17 +614,19 @@ export function playEventVO(
  * clicks it. Higher priority than reveal-triggered VO for immediate feedback.
  * Still plays while the simulation is paused so reviewing the board is audible.
  *
- * Each inject is spoken at most once per session. If already spoken,
- * this is a silent no-op (user can still see the item, just no re-read).
+ * Each inject is spoken at most once per session unless `force` is set
+ * (tap-to-hear on Situation Board when autoplay was blocked).
  *
  * @param title - The inject title
  * @param triagePriority - Optional triage priority for fallback selection
  * @param injectId - Optional inject ID for tracking (uses slug if not provided)
+ * @param force - Re-queue even if this id was already spoken (tap-to-hear)
  */
 export function playEventVOOnSelect(
   title: string,
   triagePriority?: 'IMMEDIATE' | 'URGENT' | 'ROUTINE',
-  injectId?: string
+  injectId?: string,
+  force = false
 ): void {
   if (!voConfig.voiceEnabled || typeof window === 'undefined') return;
 
@@ -632,7 +634,7 @@ export function playEventVOOnSelect(
   const trackingId = injectId || slug;
 
   // Skip if this inject has already been spoken this session
-  if (spokenEventIds.has(trackingId)) {
+  if (!force && spokenEventIds.has(trackingId)) {
     return;
   }
 
