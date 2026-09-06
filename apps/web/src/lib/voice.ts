@@ -94,7 +94,7 @@ const VO_FILES: Record<VOType, { path: string; priority: number }> = {
 };
 
 let voConfig: VOConfig = { ...DEFAULT_VO_CONFIG };
-let voAudioElements: Map<VOType, HTMLAudioElement> = new Map();
+const voAudioElements: Map<VOType, HTMLAudioElement> = new Map();
 let voQueue: VOQueueItem[] = [];
 let currentlyPlaying: VOType | null = null;
 let isVOPlaying = false;

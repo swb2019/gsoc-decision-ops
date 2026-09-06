@@ -878,12 +878,9 @@ import {
   playVO,
   initVO,
   loadVOConfig,
-  isVoiceEnabled,
   setVoiceEnabled,
   setBGMReference,
   skipVO,
-  clearVOQueue,
-  type VOType,
 } from '../lib/voice';
 import {
   loadFieldGuideConfig,
