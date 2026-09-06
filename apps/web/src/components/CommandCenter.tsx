@@ -75,10 +75,8 @@ import {
   Calculator,
   DollarSign,
   Percent,
-  Thermometer,
   ArrowUp,
   ArrowDown,
-  Hexagon,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -888,7 +886,8 @@ import {
 } from '../lib/field-guide';
 import GuidancePopup, { useGuidance } from './GuidancePopup';
 import type { GuidanceSurface } from '../lib/guidance';
-import { ChannelIcon3DWrapper, COPMarkers3DWrapper } from './Lazy3D';
+import { ChannelIcon3DWrapper } from './Lazy3D';
+import CampusCOP from './CampusCOP';
 import {
   ArcScheduler,
   createArcFromLog,
@@ -3823,31 +3822,101 @@ export default function CommandCenter({
               )}
             </div>
 
-            {/* 3D COP Zone Visualization */}
+            {/* Full Campus COP - Spatial Visualization */}
             <div className="p-4 border-b border-gray-800/50">
-              <div className="flex items-center gap-2 mb-3">
-                <Layers className="w-4 h-4 text-cyan-400" />
-                <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                  3D Zone View
-                </span>
-              </div>
-              <COPMarkers3DWrapper
-                zones={transformZonesTo3D(zoneHeatLevels)}
-                width={280}
-                height={160}
-                className="mx-auto rounded-xl overflow-hidden"
+              <CampusCOP
+                zoneHeatLevels={zoneHeatLevels}
+                linkedEntities={log.linkedEntities}
+                revealedInjects={getRevealedInjects(log)}
+                facts={log.facts}
+                assumptions={log.assumptions}
+                unknowns={log.unknowns}
+                highlightedEntityId={highlightedEntityId}
+                onEntityClick={(entityId) => {
+                  setHighlightedEntityId(entityId);
+                  setShowEntityPanel(true);
+                }}
+                onInjectClick={(injectId) => {
+                  const inject = log.injects.find((i) => i.id === injectId);
+                  if (inject && !processedInjectsRef.current.has(injectId)) {
+                    setPendingDecision(inject);
+                  }
+                }}
+                consequenceAnimation={
+                  consequenceAnimation
+                    ? {
+                        ...consequenceAnimation,
+                        zoneChanges: Object.entries(zoneHeatLevels).map(([zone]) => ({
+                          zone,
+                          delta: 0,
+                        })),
+                      }
+                    : null
+                }
+                reducedMotion={reducedMotion}
               />
             </div>
 
-            {/* Visual COP Zone Display */}
+            {/* Trust & Residual Risk Summary */}
             <div className="p-4 border-b border-gray-800/50">
-              <COPZoneDisplay
-                zoneHeatLevels={zoneHeatLevels}
-                overallResidualRisk={overallResidualRisk}
-                stakeholderTrust={stakeholderTrust}
-                reducedMotion={reducedMotion}
-                animating={!!consequenceAnimation?.active}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div
+                  className={clsx(
+                    'p-2.5 rounded-xl border transition-all duration-300',
+                    stakeholderTrust >= 70
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : stakeholderTrust >= 40
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-red-500/10 border-red-500/30',
+                    consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Users
+                      className={clsx(
+                        'w-3 h-3',
+                        stakeholderTrust >= 70
+                          ? 'text-emerald-400'
+                          : stakeholderTrust >= 40
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                      )}
+                    />
+                    <span className="text-2xs text-gray-400">Trust</span>
+                  </div>
+                  <div
+                    className={clsx(
+                      'text-lg font-bold font-mono',
+                      stakeholderTrust >= 70
+                        ? 'text-emerald-400'
+                        : stakeholderTrust >= 40
+                          ? 'text-amber-400'
+                          : 'text-red-400'
+                    )}
+                  >
+                    {stakeholderTrust}%
+                  </div>
+                </div>
+                <div
+                  className={clsx(
+                    'p-2.5 rounded-xl border transition-all duration-300',
+                    overallResidualRisk === 'LOW'
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : overallResidualRisk === 'MEDIUM'
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                        : overallResidualRisk === 'HIGH'
+                          ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                          : 'bg-red-500/20 text-red-400 border-red-500/40',
+                    consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Shield className="w-3 h-3" />
+                    <span className="text-2xs text-gray-400">Residual</span>
+                  </div>
+                  <div className="text-sm font-bold">{overallResidualRisk}</div>
+                </div>
+              </div>
             </div>
 
             {/* Dispatch Pressure with Resource Chips */}
@@ -4133,31 +4202,103 @@ export default function CommandCenter({
                 </div>
               </div>
 
-              {/* 3D COP Zone Visualization - Mobile */}
+              {/* Full Campus COP - Mobile */}
               <div className="p-4 border-b border-gray-800/50">
-                <div className="flex items-center gap-2 mb-3">
-                  <Layers className="w-4 h-4 text-cyan-400" />
-                  <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                    3D Zone View
-                  </span>
-                </div>
-                <COPMarkers3DWrapper
-                  zones={transformZonesTo3D(zoneHeatLevels)}
-                  width={280}
-                  height={160}
-                  className="mx-auto rounded-xl overflow-hidden"
+                <CampusCOP
+                  zoneHeatLevels={zoneHeatLevels}
+                  linkedEntities={log.linkedEntities}
+                  revealedInjects={getRevealedInjects(log)}
+                  facts={log.facts}
+                  assumptions={log.assumptions}
+                  unknowns={log.unknowns}
+                  highlightedEntityId={highlightedEntityId}
+                  onEntityClick={(entityId) => {
+                    setHighlightedEntityId(entityId);
+                    setShowEntityPanel(true);
+                  }}
+                  onInjectClick={(injectId) => {
+                    const inject = log.injects.find((i) => i.id === injectId);
+                    if (inject && !processedInjectsRef.current.has(injectId)) {
+                      setPendingDecision(inject);
+                      setMobileTab('decision');
+                    }
+                  }}
+                  consequenceAnimation={
+                    consequenceAnimation
+                      ? {
+                          ...consequenceAnimation,
+                          zoneChanges: Object.entries(zoneHeatLevels).map(([zone]) => ({
+                            zone,
+                            delta: 0,
+                          })),
+                        }
+                      : null
+                  }
+                  reducedMotion={reducedMotion}
+                  compact={true}
                 />
               </div>
 
-              {/* Visual COP Zone Display - Mobile */}
+              {/* Trust & Residual Risk - Mobile */}
               <div className="p-4 border-b border-gray-800/50">
-                <COPZoneDisplay
-                  zoneHeatLevels={zoneHeatLevels}
-                  overallResidualRisk={overallResidualRisk}
-                  stakeholderTrust={stakeholderTrust}
-                  reducedMotion={reducedMotion}
-                  animating={!!consequenceAnimation?.active}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div
+                    className={clsx(
+                      'p-2.5 rounded-xl border transition-all duration-300',
+                      stakeholderTrust >= 70
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : stakeholderTrust >= 40
+                          ? 'bg-amber-500/10 border-amber-500/30'
+                          : 'bg-red-500/10 border-red-500/30',
+                      consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Users
+                        className={clsx(
+                          'w-3 h-3',
+                          stakeholderTrust >= 70
+                            ? 'text-emerald-400'
+                            : stakeholderTrust >= 40
+                              ? 'text-amber-400'
+                              : 'text-red-400'
+                        )}
+                      />
+                      <span className="text-2xs text-gray-400">Trust</span>
+                    </div>
+                    <div
+                      className={clsx(
+                        'text-lg font-bold font-mono',
+                        stakeholderTrust >= 70
+                          ? 'text-emerald-400'
+                          : stakeholderTrust >= 40
+                            ? 'text-amber-400'
+                            : 'text-red-400'
+                      )}
+                    >
+                      {stakeholderTrust}%
+                    </div>
+                  </div>
+                  <div
+                    className={clsx(
+                      'p-2.5 rounded-xl border transition-all duration-300',
+                      overallResidualRisk === 'LOW'
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                        : overallResidualRisk === 'MEDIUM'
+                          ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          : overallResidualRisk === 'HIGH'
+                            ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                            : 'bg-red-500/20 text-red-400 border-red-500/40',
+                      consequenceAnimation?.active && !reducedMotion && 'scale-105'
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Shield className="w-3 h-3" />
+                      <span className="text-2xs text-gray-400">Residual</span>
+                    </div>
+                    <div className="text-sm font-bold">{overallResidualRisk}</div>
+                  </div>
+                </div>
               </div>
 
               {/* Assets */}
@@ -5838,159 +5979,6 @@ function ConsequenceTheatreOverlay({
             </span>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Transform zone heat levels to 3D format for COPMarkers3D
- */
-function transformZonesTo3D(
-  zoneHeatLevels: Record<string, number>
-): Array<{ id: string; name: string; heat: number; position: [number, number] }> {
-  const entries = Object.entries(zoneHeatLevels);
-  const gridSize = Math.ceil(Math.sqrt(entries.length));
-  return entries.map(([name, heat], index) => ({
-    id: name,
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    heat,
-    position: [
-      ((index % gridSize) / gridSize) * 100,
-      (Math.floor(index / gridSize) / gridSize) * 100,
-    ] as [number, number],
-  }));
-}
-
-/**
- * COP Zone Display - Visual layered view of operational zones
- */
-function COPZoneDisplay({
-  zoneHeatLevels,
-  overallResidualRisk,
-  stakeholderTrust,
-  reducedMotion,
-  animating,
-}: {
-  zoneHeatLevels: Record<string, number>;
-  overallResidualRisk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  stakeholderTrust: number;
-  reducedMotion: boolean;
-  animating: boolean;
-}): JSX.Element {
-  const getHeatColor = (level: number): string => {
-    if (level < 25) return 'bg-emerald-500/30 border-emerald-500/50';
-    if (level < 50) return 'bg-amber-500/30 border-amber-500/50';
-    if (level < 75) return 'bg-orange-500/30 border-orange-500/50';
-    return 'bg-red-500/30 border-red-500/50';
-  };
-
-  const getHeatTextColor = (level: number): string => {
-    if (level < 25) return 'text-emerald-400';
-    if (level < 50) return 'text-amber-400';
-    if (level < 75) return 'text-orange-400';
-    return 'text-red-400';
-  };
-
-  const residualColors: Record<string, string> = {
-    LOW: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-    MEDIUM: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-    HIGH: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
-    CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/40',
-  };
-
-  const trustColor =
-    stakeholderTrust >= 70
-      ? 'text-emerald-400'
-      : stakeholderTrust >= 40
-        ? 'text-amber-400'
-        : 'text-red-400';
-
-  return (
-    <div className="space-y-3">
-      {/* Zone Heat Map */}
-      <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-700/40">
-        <div className="flex items-center gap-2 mb-3">
-          <Thermometer className="w-4 h-4 text-orange-400" />
-          <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-            Zone Heat
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.entries(zoneHeatLevels).map(([zone, level]) => (
-            <div
-              key={zone}
-              className={clsx(
-                'p-2 rounded-lg border relative overflow-hidden transition-all duration-500',
-                getHeatColor(level),
-                animating && !reducedMotion && 'scale-[1.02]'
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Hexagon className={clsx('w-3 h-3', getHeatTextColor(level))} />
-                  <span className="text-2xs font-medium text-gray-300 capitalize">{zone}</span>
-                </div>
-                <span className={clsx('text-xs font-bold font-mono', getHeatTextColor(level))}>
-                  {level}%
-                </span>
-              </div>
-              {/* Heat bar */}
-              <div className="mt-1.5 h-1 bg-gray-700/50 rounded-full overflow-hidden">
-                <div
-                  className={clsx(
-                    'h-full rounded-full transition-all duration-500',
-                    level < 25
-                      ? 'bg-emerald-400'
-                      : level < 50
-                        ? 'bg-amber-400'
-                        : level < 75
-                          ? 'bg-orange-400'
-                          : 'bg-red-400'
-                  )}
-                  style={{ width: `${level}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Trust & Residual Risk Chips */}
-      <div className="grid grid-cols-2 gap-2">
-        {/* Stakeholder Trust */}
-        <div
-          className={clsx(
-            'p-2.5 rounded-xl border transition-all duration-300',
-            stakeholderTrust >= 70
-              ? 'bg-emerald-500/10 border-emerald-500/30'
-              : stakeholderTrust >= 40
-                ? 'bg-amber-500/10 border-amber-500/30'
-                : 'bg-red-500/10 border-red-500/30',
-            animating && !reducedMotion && 'scale-105'
-          )}
-        >
-          <div className="flex items-center gap-1.5 mb-1">
-            <Users className={clsx('w-3 h-3', trustColor)} />
-            <span className="text-2xs text-gray-400">Trust</span>
-          </div>
-          <div className={clsx('text-lg font-bold font-mono', trustColor)}>{stakeholderTrust}%</div>
-        </div>
-
-        {/* Overall Residual Risk */}
-        <div
-          className={clsx(
-            'p-2.5 rounded-xl border transition-all duration-300',
-            residualColors[overallResidualRisk],
-            animating && !reducedMotion && 'scale-105'
-          )}
-        >
-          <div className="flex items-center gap-1.5 mb-1">
-            <Shield className="w-3 h-3" />
-            <span className="text-2xs text-gray-400">Residual</span>
-          </div>
-          <div className="text-sm font-bold">{overallResidualRisk}</div>
-        </div>
       </div>
     </div>
   );
