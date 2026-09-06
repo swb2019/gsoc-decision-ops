@@ -325,13 +325,18 @@ Situation → Cue Recognition → Pattern Match → Mental Simulation → Action
 
 ## §4 What This Training Is NOT
 
-| Not This                  | Because                                                                    |
-| ------------------------- | -------------------------------------------------------------------------- |
-| **SIEM/SOAR simulation**  | No log parsing, alert triage, or detection logic—this is decision training |
-| **IR forensics training** | GSOC doesn't lead technical investigation; we train operational posture    |
-| **Certification prep**    | Not mapped to CISSP/CISM domains; teaches judgment, not recall             |
-| **Policy generator**      | Export is for reflection, not production incident documentation            |
-| **Gamified learning**     | No points, badges, or leaderboards—decision quality is the reward          |
+| Not This                              | Because                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| **SIEM/SOAR simulation**              | No log parsing, alert triage, or detection logic—this is decision training       |
+| **IR forensics training**             | GSOC doesn't lead technical investigation; we train operational posture          |
+| **Interpersonal leadership practice** | No simulation of exec relationships, stakeholder politics, or workforce dynamics |
+| **People-management training**        | Team/staffing scenarios are not modeled; focus is operator decision quality      |
+| **Soft-skill communication coaching** | Does not coach negotiation, conflict resolution, or relationship-building        |
+| **Certification prep**                | Not mapped to CISSP/CISM domains; teaches judgment, not recall                   |
+| **Policy generator**                  | Export is for reflection, not production incident documentation                  |
+| **Gamified learning**                 | No points, badges, or leaderboards—decision quality is the reward                |
+
+**Scope clarification:** The simulation trains the _technical_ side of GSOC decision-making — intake triage, COP discipline, risk treatment selection, playbook execution, and defensible documentation. It does not simulate interpersonal dynamics with executive leadership, workforce management relationships, or the stakeholder negotiation that real security directors navigate alongside technical judgment. Leadership _competency framing_ exists as instructional content (ESRM advisory model, asset-owner briefing), but actual soft-skill practice is out of scope.
 
 ---
 

@@ -24,6 +24,21 @@ It is a **training simulation** — not a system of record, not a vendor suite, 
 
 ---
 
+## Training Scope
+
+| **What this trains**                                                 | **What it does not simulate**                         |
+| -------------------------------------------------------------------- | ----------------------------------------------------- |
+| Technical GSOC/decision-ops judgment under incomplete information    | Interpersonal relationships with executive leadership |
+| Multi-channel intake triage (ACS, VMS, SIEM, OSINT, tips, radio)     | Stakeholder politics or negotiation dynamics          |
+| Common Operating Picture discipline (Facts / Assumptions / Unknowns) | Workforce management or people-leadership scenarios   |
+| ESRM-aligned treatment selection (Accept, Mitigate, Transfer, Avoid) | Soft-skill communication coaching                     |
+| Timed inject handling and posture calls                              | Vendor evaluation or procurement decisions            |
+| Defensible decision logs and after-action review                     | Production incident management tooling                |
+
+The sim targets **transferable operator decision quality**: how to read converging signals, commit a posture, document residual risk, and brief an asset owner — the technical core of first-hour GSOC work. It does not attempt to replicate interpersonal dynamics with executives, workforce friction, or relationship-building that real leadership roles require alongside technical judgment.
+
+---
+
 ## What leaders practice
 
 - Separating **facts**, **assumptions**, and **unknowns** under time pressure
