@@ -120,11 +120,11 @@ export default function LocalVoicePanel({
           </div>
           <button
             onClick={handleToggle}
-            disabled={isDownloading}
+            disabled={isDownloading || state.isLoading}
             className={clsx(
               'relative w-12 h-7 rounded-full transition-all duration-200',
               isEnabled ? 'bg-violet-500' : 'bg-gray-700',
-              isDownloading && 'opacity-50 cursor-not-allowed'
+              (isDownloading || state.isLoading) && 'opacity-50 cursor-not-allowed'
             )}
           >
             <div

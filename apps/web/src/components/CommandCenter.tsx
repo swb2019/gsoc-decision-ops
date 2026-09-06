@@ -1337,7 +1337,7 @@ export default function CommandCenter({
   const { tapFeedback, confirmFeedback, errorFeedback, urgentFeedback } = useHaptics(reducedMotion);
 
   // Local voice (on-device STT/TTS)
-  const localVoice = useLocalVoice(isVOCurrentlyPlaying);
+  const localVoice = useLocalVoice(isVOCurrentlyPlaying, { trackProgress: false });
 
   // Load ambient music preference from localStorage
   useEffect(() => {

@@ -6,7 +6,26 @@
  * On-device radio: Whisper Base (STT) + Kokoro-82M (TTS).
  * Models lazy-load only when the operator enables headset (~230MB, one-time).
  * Yields to ElevenLabs scripted VO whenever that path is playing.
+ *
+ * First enable loads two ONNX stacks on the main thread (voiceWorker is unused).
+ * Quantized dtypes, inter-model yield, heap-pressure skip, and throttled progress
+ * exist so Chromium does not OOM / lock the tab the way a cold fp32 provision can.
  */
+
+import {
+  CDN_SCRIPT_TIMEOUT_MS,
+  INTER_MODEL_YIELD_MS,
+  PROGRESS_THROTTLE_MS,
+  getKokoroDtype,
+  getWhisperDtype,
+  isHeapUnderPressure,
+  isMemoryError,
+  pickInferenceDevice,
+  shouldReuseInMemoryModels,
+  shouldSkipKokoro,
+  type HeapMeasurement,
+  type InferenceDevice,
+} from './local-voice-load-policy';
 
 // Configuration
 const LOCAL_VOICE_STORAGE_KEY = 'hourglass-local-voice-config';
@@ -80,11 +99,24 @@ let modelProgress: ModelLoadProgress = {
   message: '',
 };
 
-// Worker and model references
+// Worker and model references (worker slot reserved; provision still runs on main)
 let voiceWorker: Worker | null = null;
 let whisperPipeline: unknown = null;
 let kokoroInstance: unknown = null;
 let webSpeechSynth: SpeechSynthesis | null = null;
+let enableInFlight = false;
+let initPromise: Promise<void> | null = null;
+let transformersLoadPromise: Promise<{
+  pipeline: unknown;
+  env: { useBrowserCache?: boolean; allowLocalModels?: boolean };
+}> | null = null;
+let kokoroLoadPromise: Promise<{
+  KokoroTTS: {
+    from_pretrained: (model: string, options?: object) => Promise<unknown>;
+  };
+}> | null = null;
+let lastProgressNotifyAt = 0;
+let pendingProgressTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Audio context and media recorder
 let audioContext: AudioContext | null = null;
@@ -145,6 +177,9 @@ async function checkWebGPU(): Promise<boolean> {
  */
 export function loadLocalVoiceConfig(): LocalVoiceConfig {
   if (typeof window === 'undefined') return DEFAULT_CONFIG;
+  // Don't clobber in-memory enabled=true while a provision is running (storage
+  // is only written after success so a remount would otherwise reset the toggle).
+  if (enableInFlight || state.isLoading) return config;
 
   try {
     const stored = localStorage.getItem(LOCAL_VOICE_STORAGE_KEY);
@@ -162,11 +197,7 @@ export function loadLocalVoiceConfig(): LocalVoiceConfig {
  * Save config to localStorage
  */
 export function saveLocalVoiceConfig(newConfig: Partial<LocalVoiceConfig>): void {
-  config = { ...config, ...newConfig };
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_VOICE_STORAGE_KEY, JSON.stringify(config));
-  }
-  notifyStateChange();
+  patchConfig(newConfig, true);
 }
 
 /**
@@ -246,9 +277,39 @@ function notifyTranscription(result: TranscriptionResult): void {
   transcriptionCallbacks.forEach((cb) => cb(result));
 }
 
-function updateProgress(updates: Partial<ModelLoadProgress>): void {
-  modelProgress = { ...modelProgress, ...updates };
+function flushProgress(): void {
+  lastProgressNotifyAt = Date.now();
+  if (pendingProgressTimer !== null) {
+    clearTimeout(pendingProgressTimer);
+    pendingProgressTimer = null;
+  }
   notifyProgress();
+}
+
+function scheduleProgressNotify(immediate: boolean): void {
+  if (immediate) {
+    flushProgress();
+    return;
+  }
+  const elapsed = Date.now() - lastProgressNotifyAt;
+  if (elapsed >= PROGRESS_THROTTLE_MS) {
+    flushProgress();
+    return;
+  }
+  if (pendingProgressTimer === null) {
+    pendingProgressTimer = setTimeout((): void => {
+      pendingProgressTimer = null;
+      flushProgress();
+    }, PROGRESS_THROTTLE_MS - elapsed);
+  }
+}
+
+function updateProgress(updates: Partial<ModelLoadProgress>): void {
+  const stageChanged = updates.stage !== undefined && updates.stage !== modelProgress.stage;
+  modelProgress = { ...modelProgress, ...updates };
+  scheduleProgressNotify(
+    stageChanged || modelProgress.stage === 'ready' || modelProgress.stage === 'error'
+  );
 }
 
 function updateState(updates: Partial<LocalVoiceState>): void {
@@ -256,52 +317,164 @@ function updateState(updates: Partial<LocalVoiceState>): void {
   notifyStateChange();
 }
 
+function persistConfig(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_VOICE_STORAGE_KEY, JSON.stringify(config));
+  }
+}
+
+function patchConfig(updates: Partial<LocalVoiceConfig>, persist: boolean): void {
+  config = { ...config, ...updates };
+  if (persist) persistConfig();
+  notifyStateChange();
+}
+
+function yieldToMain(ms: number = 0): Promise<void> {
+  return new Promise((resolve: () => void) => {
+    if (ms > 0) {
+      setTimeout(resolve, ms);
+      return;
+    }
+    const sched = (globalThis as unknown as { scheduler?: { yield?: () => Promise<void> } })
+      .scheduler;
+    if (sched?.yield) {
+      sched.yield().then(resolve, (): void => {
+        setTimeout(resolve, 0);
+      });
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+}
+
+function readHeap(): HeapMeasurement | undefined {
+  if (typeof performance === 'undefined') return undefined;
+  const mem = (performance as unknown as { memory?: HeapMeasurement }).memory;
+  if (!mem || mem.jsHeapSizeLimit <= 0) return undefined;
+  return mem;
+}
+
+function readDeviceMemoryGb(): number | undefined {
+  if (typeof navigator === 'undefined') return undefined;
+  const deviceMemory = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
+  return typeof deviceMemory === 'number' && deviceMemory > 0 ? deviceMemory : undefined;
+}
+
+function inferenceDevice(): InferenceDevice {
+  return pickInferenceDevice(state.webGpuAvailable, readDeviceMemoryGb());
+}
+
+function markModelsCached(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(MODEL_CACHE_KEY, 'cached');
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function restoreReadyFromLoadedModels(): void {
+  updateState({
+    isLoading: false,
+    error: null,
+    sttReady: whisperPipeline !== null,
+    ttsReady: kokoroInstance !== null || webSpeechSynth !== null,
+    fallbackTTS: kokoroInstance ? null : webSpeechSynth ? 'web-speech' : null,
+  });
+  updateProgress({
+    stage: 'ready',
+    progress: 100,
+    currentModel: null,
+    message: kokoroInstance ? 'Headset online' : 'Headset online (browser speech)',
+  });
+}
+
 /**
  * Initialize the local voice system (check availability, don't load models yet)
  */
 export async function initLocalVoice(): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (initPromise) return initPromise;
 
-  loadLocalVoiceConfig();
+  initPromise = (async (): Promise<void> => {
+    loadLocalVoiceConfig();
 
-  // Check WebGPU availability
-  const webGpuAvailable = await checkWebGPU();
-  updateState({ webGpuAvailable });
+    const webGpuAvailable = await checkWebGPU();
+    updateState({ webGpuAvailable });
 
-  // Check Web Speech API availability (fallback TTS)
-  if ('speechSynthesis' in window) {
-    webSpeechSynth = window.speechSynthesis;
+    if ('speechSynthesis' in window) {
+      webSpeechSynth = window.speechSynthesis;
+    }
+
+    updateState({ isAvailable: true });
+  })();
+
+  try {
+    await initPromise;
+  } catch (error) {
+    initPromise = null;
+    throw error;
   }
-
-  // System is available (models load on-demand when enabled)
-  updateState({ isAvailable: true });
 }
 
 /**
  * Enable local voice mode - triggers model download
  */
 export async function enableLocalVoice(): Promise<boolean> {
-  if (!state.isAvailable || state.isLoading) return false;
-
-  updateState({ isLoading: true, error: null });
-  saveLocalVoiceConfig({ enabled: true });
+  if (enableInFlight) return false;
+  enableInFlight = true;
 
   try {
-    // Load models
+    await initLocalVoice();
+
+    if (
+      shouldReuseInMemoryModels({
+        whisperLoaded: whisperPipeline !== null,
+        kokoroLoaded: kokoroInstance !== null,
+      })
+    ) {
+      saveLocalVoiceConfig({ enabled: true });
+      restoreReadyFromLoadedModels();
+      return true;
+    }
+
+    updateState({ isLoading: true, error: null });
+    patchConfig({ enabled: true }, false);
+    updateProgress({
+      stage: 'downloading',
+      progress: 0,
+      currentModel: 'whisper',
+      message: `Provisioning headset models… (~${WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB} MB, one-time)`,
+    });
+
     await loadModels();
 
+    const ttsReady = kokoroInstance !== null || webSpeechSynth !== null;
+    if (!whisperPipeline && !ttsReady) {
+      throw new Error('Failed to load voice models');
+    }
+
+    saveLocalVoiceConfig({ enabled: true });
+    markModelsCached();
     updateState({
       isLoading: false,
       sttReady: whisperPipeline !== null,
-      ttsReady: kokoroInstance !== null || webSpeechSynth !== null,
+      ttsReady,
     });
 
     return true;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to load voice models';
+    const errorMessage = isMemoryError(error)
+      ? 'Headset provision ran out of memory. Close other tabs and try again.'
+      : error instanceof Error
+        ? error.message
+        : 'Failed to load voice models';
+    patchConfig({ enabled: false }, true);
     updateState({ isLoading: false, error: errorMessage });
-    updateProgress({ stage: 'error', error: errorMessage });
+    updateProgress({ stage: 'error', error: errorMessage, message: errorMessage });
     return false;
+  } finally {
+    enableInFlight = false;
   }
 }
 
@@ -333,7 +506,8 @@ export async function toggleLocalVoice(): Promise<boolean> {
 }
 
 /**
- * Load Whisper and Kokoro models
+ * Load Whisper and Kokoro models sequentially.
+ * Concurrent load would overlap two ONNX heaps; we yield between them so GC can run.
  */
 async function loadModels(): Promise<void> {
   const totalSize = WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB;
@@ -345,10 +519,26 @@ async function loadModels(): Promise<void> {
     message: `Provisioning headset models… (~${totalSize} MB, one-time)`,
   });
 
-  // Load Whisper Base for STT — mark listen-ready independently so PTT can
-  // come up before Kokoro. Speak chrome must still wait for ttsReady.
-  await loadWhisperModel();
+  const whisper = await loadWhisperModel();
   updateState({ sttReady: whisperPipeline !== null });
+
+  await yieldToMain(INTER_MODEL_YIELD_MS);
+
+  const skipKokoro = shouldSkipKokoro({
+    whisperMemoryError: whisper.memoryError,
+    heapUnderPressure: isHeapUnderPressure(readHeap()),
+  });
+
+  if (skipKokoro) {
+    applyWebSpeechFallback();
+    updateProgress({
+      stage: 'ready',
+      progress: 100,
+      currentModel: null,
+      message: 'Headset online (browser speech)',
+    });
+    return;
+  }
 
   updateProgress({
     progress: 60,
@@ -356,14 +546,60 @@ async function loadModels(): Promise<void> {
     message: 'Provisioning headset models…',
   });
 
-  // Load Kokoro for TTS (with fallback)
   await loadKokoroModel();
 
   updateProgress({
     stage: 'ready',
     progress: 100,
     currentModel: null,
-    message: 'Headset online',
+    message: kokoroInstance ? 'Headset online' : 'Headset online (browser speech)',
+  });
+}
+
+function applyWebSpeechFallback(): void {
+  kokoroInstance = null;
+  if (webSpeechSynth) {
+    updateState({ fallbackTTS: 'web-speech' });
+  }
+}
+
+function loadCdnModule<T>(opts: {
+  eventName: string;
+  source: string;
+  read: () => T | undefined;
+  missingError: string;
+  loadError: string;
+}): Promise<T> {
+  const existing = opts.read();
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error?: Error, value?: T): void => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener(opts.eventName, onEvent);
+      window.clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(value as T);
+    };
+
+    const onEvent = (): void => {
+      const value = opts.read();
+      if (value) finish(undefined, value);
+      else finish(new Error(opts.missingError));
+    };
+
+    const timer = window.setTimeout(() => finish(new Error(opts.loadError)), CDN_SCRIPT_TIMEOUT_MS);
+
+    window.addEventListener(opts.eventName, onEvent);
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = opts.source;
+    script.onerror = (): void => {
+      finish(new Error(opts.loadError));
+    };
+    document.head.appendChild(script);
   });
 }
 
@@ -375,51 +611,35 @@ async function loadTransformersFromCDN(): Promise<{
   pipeline: unknown;
   env: { useBrowserCache?: boolean; allowLocalModels?: boolean };
 }> {
-  // Load script from CDN
-  return new Promise((resolve, reject) => {
-    if ((window as unknown as { transformers?: unknown }).transformers) {
-      resolve(
-        (window as unknown as { transformers: { pipeline: unknown; env: unknown } })
-          .transformers as {
-          pipeline: unknown;
-          env: { useBrowserCache?: boolean; allowLocalModels?: boolean };
-        }
-      );
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = `
+  if (!transformersLoadPromise) {
+    transformersLoadPromise = loadCdnModule({
+      eventName: 'transformers-loaded',
+      source: `
       import * as transformers from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
       window.transformers = transformers;
       window.dispatchEvent(new Event('transformers-loaded'));
-    `;
-
-    const handleLoad = (): void => {
-      window.removeEventListener('transformers-loaded', handleLoad);
-      const t = (window as unknown as { transformers?: { pipeline: unknown; env: unknown } })
-        .transformers;
-      if (t) {
-        resolve(
-          t as { pipeline: unknown; env: { useBrowserCache?: boolean; allowLocalModels?: boolean } }
-        );
-      } else {
-        reject(new Error('Transformers.js failed to load'));
-      }
-    };
-
-    window.addEventListener('transformers-loaded', handleLoad);
-    script.onerror = () => reject(new Error('Failed to load Transformers.js from CDN'));
-    document.head.appendChild(script);
-  });
+    `,
+      read: () =>
+        (window as unknown as { transformers?: { pipeline: unknown; env: unknown } })
+          .transformers as
+          | { pipeline: unknown; env: { useBrowserCache?: boolean; allowLocalModels?: boolean } }
+          | undefined,
+      missingError: 'Transformers.js failed to load',
+      loadError: 'Failed to load Transformers.js from CDN',
+    });
+    transformersLoadPromise = transformersLoadPromise.catch((error: unknown) => {
+      transformersLoadPromise = null;
+      throw error;
+    });
+  }
+  return transformersLoadPromise;
 }
 
 /**
  * Load Whisper Base model via Transformers.js
  * Uses CDN-based loading to avoid build-time issues
  */
-async function loadWhisperModel(): Promise<void> {
+async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
   try {
     updateProgress({
       stage: 'downloading',
@@ -429,22 +649,20 @@ async function loadWhisperModel(): Promise<void> {
     });
 
     const { pipeline, env } = await loadTransformersFromCDN();
+    await yieldToMain();
 
-    // Configure for browser use with caching
     if (env) {
       env.useBrowserCache = true;
       env.allowLocalModels = false;
     }
 
-    // Prefer WebGPU, fall back to WASM
-    const device = state.webGpuAvailable ? 'webgpu' : 'wasm';
+    const device = inferenceDevice();
 
     updateProgress({
       progress: 20,
       message: `Provisioning headset models… (${device.toUpperCase()})`,
     });
 
-    // Load Whisper Base with hybrid quantization for better performance
     const pipelineFn = pipeline as (
       task: string,
       model: string,
@@ -456,10 +674,7 @@ async function loadWhisperModel(): Promise<void> {
       'onnx-community/whisper-base',
       {
         device,
-        dtype: {
-          encoder_model: 'fp32',
-          decoder_model_merged: 'q4', // Quantized decoder for speed
-        },
+        dtype: getWhisperDtype(),
         progress_callback: (progress: { progress?: number; status?: string }) => {
           if (progress.progress !== undefined) {
             const pct = Math.min(55, 20 + progress.progress * 0.35);
@@ -470,10 +685,11 @@ async function loadWhisperModel(): Promise<void> {
     );
 
     updateProgress({ progress: 55, message: 'Provisioning headset models…' });
+    return { memoryError: false };
   } catch (error) {
     console.warn('Failed to load Whisper model:', error);
     whisperPipeline = null;
-    // Don't throw - STT is optional, user can still use TTS
+    return { memoryError: isMemoryError(error) };
   }
 }
 
@@ -485,44 +701,31 @@ async function loadKokoroFromCDN(): Promise<{
     from_pretrained: (model: string, options?: object) => Promise<unknown>;
   };
 }> {
-  return new Promise((resolve, reject) => {
-    if ((window as unknown as { KokoroTTS?: unknown }).KokoroTTS) {
-      resolve({
-        KokoroTTS: (
-          window as unknown as {
-            KokoroTTS: { from_pretrained: (model: string, options?: object) => Promise<unknown> };
-          }
-        ).KokoroTTS,
-      });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = `
+  if (!kokoroLoadPromise) {
+    kokoroLoadPromise = loadCdnModule({
+      eventName: 'kokoro-loaded',
+      source: `
       import { KokoroTTS } from 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.0/+esm';
       window.KokoroTTS = KokoroTTS;
       window.dispatchEvent(new Event('kokoro-loaded'));
-    `;
-
-    const handleLoad = (): void => {
-      window.removeEventListener('kokoro-loaded', handleLoad);
-      const k = (
-        window as unknown as {
-          KokoroTTS?: { from_pretrained: (model: string, options?: object) => Promise<unknown> };
-        }
-      ).KokoroTTS;
-      if (k) {
-        resolve({ KokoroTTS: k });
-      } else {
-        reject(new Error('Kokoro TTS failed to load'));
-      }
-    };
-
-    window.addEventListener('kokoro-loaded', handleLoad);
-    script.onerror = () => reject(new Error('Failed to load Kokoro from CDN'));
-    document.head.appendChild(script);
-  });
+    `,
+      read: () => {
+        const k = (
+          window as unknown as {
+            KokoroTTS?: { from_pretrained: (model: string, options?: object) => Promise<unknown> };
+          }
+        ).KokoroTTS;
+        return k ? { KokoroTTS: k } : undefined;
+      },
+      missingError: 'Kokoro TTS failed to load',
+      loadError: 'Failed to load Kokoro from CDN',
+    });
+    kokoroLoadPromise = kokoroLoadPromise.catch((error: unknown) => {
+      kokoroLoadPromise = null;
+      throw error;
+    });
+  }
+  return kokoroLoadPromise;
 }
 
 /**
@@ -538,30 +741,28 @@ async function loadKokoroModel(): Promise<void> {
     });
 
     const { KokoroTTS } = await loadKokoroFromCDN();
+    await yieldToMain();
 
     updateProgress({
       progress: 70,
       message: 'Provisioning headset models…',
     });
 
-    // Initialize Kokoro with WebGPU if available
+    const device = inferenceDevice();
     kokoroInstance = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
-      dtype: state.webGpuAvailable ? 'fp32' : 'q8',
-      device: state.webGpuAvailable ? 'webgpu' : 'wasm',
+      dtype: getKokoroDtype(),
+      device,
     });
 
     updateProgress({ progress: 95, message: 'Headset online' });
     updateState({ fallbackTTS: null });
   } catch (error) {
     console.warn('Failed to load Kokoro model, falling back to Web Speech:', error);
-    kokoroInstance = null;
-
-    // Set up Web Speech fallback
+    applyWebSpeechFallback();
     if (webSpeechSynth) {
-      updateState({ fallbackTTS: 'web-speech' });
       updateProgress({ progress: 95, message: 'Headset online (browser speech)' });
-    } else {
-      console.warn('Web Speech API not available');
+    } else if (isMemoryError(error)) {
+      throw error;
     }
   }
 }

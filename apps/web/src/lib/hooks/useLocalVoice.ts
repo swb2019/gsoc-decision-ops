@@ -74,7 +74,11 @@ interface UseLocalVoiceReturn {
   canListen: boolean;
 }
 
-export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLocalVoiceReturn {
+export function useLocalVoice(
+  elevenLabsPlayingChecker?: () => boolean,
+  options?: { trackProgress?: boolean }
+): UseLocalVoiceReturn {
+  const trackProgress = options?.trackProgress !== false;
   const [state, setState] = useState<LocalVoiceState>(getLocalVoiceState());
   const [config, setConfig] = useState<LocalVoiceConfig>(getLocalVoiceConfig());
   const [progress, setProgress] = useState<ModelLoadProgress>(getModelProgress());
@@ -100,18 +104,20 @@ export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLoca
 
   // Subscribe to state changes
   useEffect(() => {
-    const unsubProgress = onProgress((p) => setProgress(p));
-    const unsubState = onStateChange((s) => setState(s));
+    const unsubState = onStateChange((s: LocalVoiceState) => setState(s));
     const unsubTranscription = onTranscription((result: TranscriptionResult) => {
       setLastTranscription(result.text);
     });
+    const unsubProgress = trackProgress
+      ? onProgress((p: ModelLoadProgress) => setProgress(p))
+      : (): void => undefined;
 
     return () => {
       unsubProgress();
       unsubState();
       unsubTranscription();
     };
-  }, []);
+  }, [trackProgress]);
 
   // Update config state when it changes
   useEffect(() => {
@@ -204,7 +210,9 @@ export function useLocalVoice(elevenLabsPlayingChecker?: () => boolean): UseLoca
 
     // Model info
     estimatedDownloadMB: getEstimatedDownloadSize(),
-    isDownloading: progress.stage === 'downloading' || progress.stage === 'loading',
+    isDownloading: trackProgress
+      ? progress.stage === 'downloading' || progress.stage === 'loading'
+      : state.isLoading,
     downloadProgress: progress.progress,
 
     // Actions
