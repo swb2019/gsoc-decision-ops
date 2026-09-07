@@ -1,8 +1,10 @@
 # Hourglass Command
 
-Hourglass Command is a synthetic, account-free security leadership practice application directed by Shannon Brown and implemented with AI-assisted engineering. Glasshouse / 06:10 is the next-generation flagship: establish what was known, make a scoped plan, coordinate accountable action and inspect its consequences.
+Hourglass Command is a first-hour decision game: campaign home → scenarios → Command Center. Read converging signals, make CONTINUE / DEGRADE / PAUSE calls, and review the trail. Directed by Shannon Brown and implemented with AI-assisted engineering. Free, local, and account-free.
 
-This branch is an **engineering candidate, not a qualified public release**. Independent content/rubric calibration, formative user studies, manual accessibility/device reviews and the staged rollback exercise remain pending. No learning efficacy, employer endorsement, certification, real loss savings or professional readiness is claimed.
+Glasshouse / 06:10 remains an optional advanced watch-commander exercise at `/glasshouse/`. It is not the default play path.
+
+Engineering qualification for Glasshouse is still pending. Independent content/rubric calibration, formative user studies, manual accessibility/device reviews and the staged rollback exercise remain open. No learning efficacy, employer endorsement, certification, real loss savings or professional readiness is claimed.
 
 - [Existing public launch](https://swb2019.github.io/gsoc-decision-ops/)
 - [Design and invariants](docs/GLASSHOUSE-DESIGN.md)
@@ -20,7 +22,11 @@ This branch is an **engineering candidate, not a qualified public release**. Ind
 - [Operation and capacity policy](docs/OPERATIONS.md)
 - [Shannon Brown’s portfolio](https://swb2019.github.io/shannon-brown-career/)
 
-## The playable case
+## Campaign play
+
+The default `/` landing is the Hourglass Command campaign directory. Enter a chapter or free-play scenario to reach the Command Center COP loop, with headset/local comms, timed injects, posture calls, and an after-action review.
+
+## Optional Glasshouse case
 
 At a fictional research and distribution campus, badge readers disagree, an identity connector is failing, a time-sensitive shipment is due and an entrance image is unverified. You are the watch commander. Protect people, maintain essential operations, establish scope and hand over a controlled situation.
 
@@ -48,7 +54,7 @@ npx playwright test
 npx playwright test --config playwright.engines.config.mjs
 ```
 
-`/` and `/glasshouse/` launch the flagship; `/evidence/` describes its limits. `/legacy/` retains the previous scenario directory, and all eight `/scenarios/.../` URLs are preserved. Legacy records are read-only historical evidence, not silently translated into the new feedback model.
+`/` is Hourglass Command (campaign home). `/glasshouse/` is the optional Glasshouse exercise. `/evidence/` describes Glasshouse limits. `/legacy/` redirects to `/`. All eight `/scenarios/.../` URLs are preserved. Glasshouse records remain read-only historical evidence, not silently translated into a new feedback model.
 
 For a GitHub Pages build use `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops`. Automatic publication is held by `scripts/check-release-gate.mjs` until the exact artifact revision has documented human qualification. The owner can explicitly publish a review build using the deployment workflow's `publish_review_build` input; automated checks still run and human qualification remains pending. Building a branch alone does not change the live site.
 
@@ -62,7 +68,7 @@ Twelve development and eight engineering-authored held-out candidate traces now 
 
 ## Privacy and scope
 
-The flagship requires no account, analytics, microphone, cloud inference or backend. No player decisions are sent to a service. Use fictional, minimal notes; applications on the portfolio’s shared origin are not mutually isolated. Imports are bounded and replay-validated; client-side records remain unsigned and inspectable. A digest is not proof of authorship.
+Hourglass Command requires no account, analytics, microphone, cloud inference or backend. No player decisions are sent to a service. Use fictional, minimal notes; applications on the portfolio’s shared origin are not mutually isolated. Imports are bounded and replay-validated; client-side records remain unsigned and inspectable. A digest is not proof of authorship.
 
 G3 additional cases and facilitated exercises, the consented learning-signal study, and G4 networked roles, enterprise features and AI experiments remain explicitly gated. No paid service or recurring spend is introduced.
 

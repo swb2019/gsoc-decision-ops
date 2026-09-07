@@ -451,10 +451,7 @@ function Launch({
           <Upload size={15} />
           Restore a downloaded Glasshouse session
         </button>
-        <p className="gh-launch-disclaimer">
-          Synthetic learning exercise. Local by default. Intended learning benefits have not yet
-          been validated.
-        </p>
+        <p className="gh-launch-disclaimer">Synthetic training exercise. Local by default.</p>
       </section>
     </div>
   );
@@ -1954,7 +1951,7 @@ export default function Glasshouse() {
         </span>
         <p>Synthetic decisions. Observable consequences. No competence claim.</p>
         <nav aria-label="Supporting pages">
-          <Link href="/legacy">Legacy exercises</Link>
+          <Link href="/">Campaign</Link>
           <Link href="/evidence">Evidence & limitations</Link>
         </nav>
         <span>

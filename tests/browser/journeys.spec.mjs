@@ -2,8 +2,11 @@ import { test, expect } from '@playwright/test';
 import { readFile, mkdir } from 'node:fs/promises';
 
 test('campaign and free-play entry, persistence, and reset confirmation', async ({ page }) => {
-  await page.goto('/legacy/');
+  await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('The first hour');
+  await expect(page.getByRole('heading', { level: 1 })).not.toContainText('Glasshouse');
+  await expect(page.getByText('LEGACY PRACTICE')).toHaveCount(0);
+  await expect(page.getByText('Hourglass Command').first()).toBeVisible();
   await expect(page.locator('#free-play a[href*="/scenarios/"]')).toHaveCount(8);
   // A saved campaign fixture tests rendering/persistence, without claiming a completed live mission.
   await page.evaluate(() => {
@@ -26,6 +29,19 @@ test('campaign and free-play entry, persistence, and reset confirmation', async 
   ).toBeNull();
   await page.getByRole('link', { name: 'Enter the simulation' }).click();
   await expect(page.getByRole('button', { name: 'Begin Mission' })).toBeVisible();
+});
+
+test('Glasshouse remains an optional secondary exercise', async ({ page }) => {
+  await mkdir('qa-output', { recursive: true });
+  await page.goto('/');
+  await page.screenshot({ path: 'qa-output/hourglass-home.png', fullPage: true });
+  await page.getByRole('link', { name: 'Glasshouse exercise' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Glasshouse');
+  await page.screenshot({ path: 'qa-output/glasshouse-optional.png', fullPage: true });
+  await page.getByRole('link', { name: 'Campaign', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('The first hour');
+  await page.goto('/legacy/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('The first hour');
 });
 
 test('a decision appears in the review and produces a PDF download', async ({ page }) => {
