@@ -39,7 +39,7 @@ for (const route of ['', 'glasshouse/', 'evidence/']) {
       userAgent: navigator.userAgent,
     }));
     results.coldRuns.push({ route: '/' + route, run: index + 1, ...initial });
-    if (index === 0 && route === '') {
+    if (index === 0 && route === 'glasshouse/') {
       await page.screenshot({ path: 'qa-output/glasshouse-launch.png', fullPage: true });
       results.accessibility.push({
         screen: 'launch',

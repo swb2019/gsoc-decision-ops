@@ -1,6 +1,6 @@
 # Glasshouse implementation and release contract
 
-This branch implements the next-generation Hourglass public solo architecture and the Glasshouse flagship. It preserves the source history, the `/gsoc-decision-ops/` deployment base and every existing scenario route. The old landing is available at `/legacy/`; old records retain their original interpretation. Nothing in this branch establishes learning efficacy or qualifies a public release by itself.
+This branch implements the Glasshouse watch-commander kernel as an optional advanced exercise at `/glasshouse/`. The default public play path is Hourglass Command campaign home on `/`, with every existing `/scenarios/.../` route preserved. `/legacy/` redirects to `/`. Old Glasshouse records retain their original interpretation. Nothing in this branch establishes learning efficacy or qualifies a public release by itself.
 
 Product direction and accountability: Shannon Brown. Engineering executor: Shannon Brown’s AI-assisted development workflow. Automated independent review is recorded as engineering evidence, never substituted for the named human domain and exercise reviewers required by the PRD. Those reviewer assignments remain an open qualification dependency. [Twenty generated traces](../qa-output/calibration/README.md) and [blank review templates](../release/review-materials/README.md) make the remaining work concrete. All candidates were engineering-authored; no human calibration or true held-out independence is claimed.
 

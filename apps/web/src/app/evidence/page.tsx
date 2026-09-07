@@ -122,7 +122,7 @@ export default function EvidencePage(): JSX.Element {
         </section>
         <p style={{ marginTop: '2rem' }}>
           <a href="https://github.com/swb2019/gsoc-decision-ops">Source and release history</a> ·{' '}
-          <Link href="/legacy">Preserved legacy scenarios</Link> ·{' '}
+          <Link href="/">Campaign scenarios</Link> · <Link href="/glasshouse">Glasshouse</Link> ·{' '}
           <a href="https://swb2019.github.io/shannon-brown-career/">Shannon Brown</a>
         </p>
       </div>
