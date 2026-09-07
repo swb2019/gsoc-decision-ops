@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile, mkdir } from 'node:fs/promises';
 
 test('campaign and free-play entry, persistence, and reset confirmation', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/legacy/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('The first hour');
   await expect(page.locator('#free-play a[href*="/scenarios/"]')).toHaveCount(8);
   // A saved campaign fixture tests rendering/persistence, without claiming a completed live mission.
@@ -30,6 +30,7 @@ test('campaign and free-play entry, persistence, and reset confirmation', async 
 
 test('a decision appears in the review and produces a PDF download', async ({ page }) => {
   test.setTimeout(120000);
+  await page.clock.install();
   await page.goto('/scenarios/access-control-ransomware/');
   await page.getByRole('button', { name: 'Begin Mission' }).click();
   // First-visit guidance appears after the mission begins. Dismiss it through
@@ -37,6 +38,9 @@ test('a decision appears in the review and produces a PDF download', async ({ pa
   await page.getByRole('button', { name: "Don't show again options" }).click();
   await page.getByRole('button', { name: 'Disable all tips', exact: true }).click();
   await page.getByRole('button', { name: 'Disable JIT tips' }).click();
+  // The repaired scheduler respects the authored five-minute first receipt.
+  // Advance browser time instead of relying on the old early-event shortcut.
+  await page.clock.runFor(311_000);
   const asset = page.getByRole('button', { name: /Physical Access Control System/ });
   await asset.waitFor({ state: 'visible', timeout: 60000 });
   await page.getByRole('button', { name: 'Pause', exact: true }).click();

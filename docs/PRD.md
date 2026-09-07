@@ -1,3 +1,7 @@
+# Historical requirements record
+
+This file records the legacy proposal. It is not the current capability or evaluation claim. See TRAINING.md and GLASSHOUSE-DESIGN.md for the current implementation and limits.
+
 # Hourglass Command — PRD 1.5 (Realistic Data Reception)
 
 ---
@@ -16,14 +20,14 @@
 
 ### Change History
 
-| Version | Date     | Author        | Changes                                                                                   |
-| ------- | -------- | ------------- | ----------------------------------------------------------------------------------------- |
-| 1.0     | Aug 2026 | Shannon Brown | Initial PRD                                                                               |
-| 1.1     | Sep 2026 | Shannon Brown | Foolproof edition: 12 invariants, honesty threat model, closed defaults, RACI             |
-| 1.2     | Sep 2026 | Shannon Brown | Max-port amendment: simulation systems, fast-casual tempo, in-game help                   |
-| 1.3     | Sep 2026 | Shannon Brown | Max-depth: all simulation systems implemented, entity linking, playbook phases, Musk algo |
-| 1.4     | Sep 2026 | Shannon Brown | ESRM textbook-faithful: complete cycle playable, all 4 treatments, advisor→owner workflow |
-| 1.5     | Sep 2026 | Shannon Brown | Realistic data reception: 8 intake channels, confidence, noise, corrections, Field Guide  |
+| Version | Date     | Author        | Changes                                                                                                |
+| ------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------ |
+| 1.0     | Aug 2026 | Shannon Brown | Initial PRD                                                                                            |
+| 1.1     | Sep 2026 | Shannon Brown | Foolproof edition: 12 invariants, honesty threat model, closed defaults, RACI                          |
+| 1.2     | Sep 2026 | Shannon Brown | Max-port amendment: simulation systems, fast-casual tempo, in-game help                                |
+| 1.3     | Sep 2026 | Shannon Brown | Max-depth: all simulation systems implemented, entity linking, playbook phases, Musk algo              |
+| 1.4     | Sep 2026 | Shannon Brown | historically proposed ESRM coverage: complete cycle playable, all 4 treatments, advisor→owner workflow |
+| 1.5     | Sep 2026 | Shannon Brown | Realistic data reception: 8 intake channels, confidence, noise, corrections, Field Guide               |
 
 ### Distribution
 
@@ -495,7 +499,7 @@ This is an original simulation built on enterprise incident management patterns,
 
 ### Intent
 
-Elevate Hourglass Command to **leading ESRM textbook-faithful** status by implementing the complete ESRM cycle as playable mechanics, per ASIS guidelines and Allen & Loyear's _Enterprise Security Risk Management_ textbooks.
+Elevate Hourglass Command to **historically proposed ESRM coverage** status by implementing the complete ESRM cycle as playable mechanics, per ASIS guidelines and Allen & Loyear's _Enterprise Security Risk Management_ textbooks.
 
 ### ESRM Cycle Practiced In-Sim (Must Be Playable)
 

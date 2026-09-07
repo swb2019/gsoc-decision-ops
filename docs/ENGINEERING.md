@@ -1,5 +1,7 @@
 # Engineering Approach
 
+> Historical engineering note for the legacy prototype. Architecture, test counts and scope below do not describe the Glasshouse candidate. See [current design](GLASSHOUSE-DESIGN.md) and [requirement status](REQUIREMENTS-STATUS.md) for the implementation and pending qualification gates.
+
 > **Purpose:** Document the engineering methodology used to build this tool.
 
 ---

@@ -160,43 +160,33 @@ export class ArcScheduler {
   }
 
   /**
-   * Schedule initial injects with randomized timing
-   *
-   * Ensures the first inject appears within a reasonable time frame (max 30 seconds)
-   * while maintaining randomization for subsequent injects.
+   * Preserve the authored sequence. Timing jitter may delay an observation, but
+   * never change its authored facts or move it before its earliest receipt time.
    */
   private scheduleInitialInjects(injects: ScenarioInject[]): void {
-    const shuffled = this.rng.shuffle([...injects]);
+    const ordered = [...injects].sort(
+      (a, b) => a.sequenceNumber - b.sequenceNumber || a.revealAtMinute - b.revealAtMinute
+    );
 
-    const coreInjects = shuffled.filter(
+    const coreInjects = ordered.filter(
       (i) => !(i as unknown as { intake?: { isNoise?: boolean } }).intake?.isNoise
     );
-    const noiseInjects = shuffled.filter(
+    const noiseInjects = ordered.filter(
       (i) => (i as unknown as { intake?: { isNoise?: boolean } }).intake?.isNoise
     );
 
     let currentSecond = this.rng.int(5, 15);
-    let isFirstInject = true;
 
     for (const inject of coreInjects) {
       const priority = this.determinePriority(inject);
-      const jitter = this.rng.int(-10, 10);
+      const jitter = this.rng.int(0, 10);
 
       const originalMinute = inject.revealAtMinute;
       const baseSecond = originalMinute * 60;
-      let adjustedSecond = Math.max(currentSecond, baseSecond + jitter);
-
-      // Ensure first inject appears within 30 seconds for good UX
-      // This prevents players waiting several minutes for the first event
-      if (isFirstInject && adjustedSecond > 30) {
-        adjustedSecond = this.rng.int(15, 30);
-        isFirstInject = false;
-      } else {
-        isFirstInject = false;
-      }
+      const adjustedSecond = Math.max(currentSecond, baseSecond + jitter);
 
       this.state.scheduledInjects.push({
-        inject: { ...inject, revealAtMinute: adjustedSecond / 60 },
+        inject: structuredClone(inject),
         scheduledMinute: adjustedSecond / 60,
         actualRevealSecond: adjustedSecond,
         isConsequence: false,
@@ -236,11 +226,14 @@ export class ArcScheduler {
       const beforeTime = coreInjects[insertIdx].actualRevealSecond;
       const afterTime = coreInjects[insertIdx + 1].actualRevealSecond;
 
-      const noiseTime = this.rng.int(Math.floor(beforeTime + 10), Math.floor(afterTime - 10));
+      const earliest = Math.max(Math.ceil(beforeTime + 10), Math.ceil(noise.revealAtMinute * 60));
+      const latest = Math.floor(afterTime - 10);
+      if (earliest > latest) continue;
+      const noiseTime = this.rng.int(earliest, latest);
 
       if (noiseTime > beforeTime && noiseTime < afterTime) {
         this.state.scheduledInjects.push({
-          inject: { ...noise, revealAtMinute: noiseTime / 60 },
+          inject: structuredClone(noise),
           scheduledMinute: noiseTime / 60,
           actualRevealSecond: noiseTime,
           isConsequence: false,
@@ -269,34 +262,36 @@ export class ArcScheduler {
    * Update arc state with elapsed time
    */
   tick(elapsedSeconds: number): ScheduledInject[] {
-    const prevSeconds = this.state.elapsedSeconds;
-    this.state.elapsedSeconds = elapsedSeconds;
-
-    const newlyRevealed: ScheduledInject[] = [];
-
-    for (const scheduled of this.state.scheduledInjects) {
-      if (
-        scheduled.actualRevealSecond > prevSeconds &&
-        scheduled.actualRevealSecond <= elapsedSeconds &&
-        !this.state.revealedInjectIds.has(scheduled.inject.id)
-      ) {
-        this.state.revealedInjectIds.add(scheduled.inject.id);
-        newlyRevealed.push(scheduled);
-      }
+    if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < this.state.elapsedSeconds) {
+      throw new RangeError('Simulation time must be finite and cannot move backwards.');
     }
+    this.state.elapsedSeconds = elapsedSeconds;
 
     this.processConsequenceQueue(elapsedSeconds);
 
-    return newlyRevealed;
+    return this.getRevealableInjects(elapsedSeconds);
+  }
+
+  /** Mark events consumed only after the caller has appended them to its journal. */
+  acknowledgeInjects(injectIds: readonly string[]): void {
+    const dueIds = new Set(
+      this.getRevealableInjects(this.state.elapsedSeconds).map((item) => item.inject.id)
+    );
+    for (const id of injectIds) {
+      if (!dueIds.has(id) && !this.state.revealedInjectIds.has(id)) {
+        throw new Error(`Cannot acknowledge an inject that is not due: ${id}`);
+      }
+    }
+    for (const id of injectIds) this.state.revealedInjectIds.add(id);
   }
 
   /**
    * Process pending consequences
    */
   private processConsequenceQueue(currentTime: number): void {
-    const triggeredConsequences = this.state.consequenceQueue.filter(
-      (c) => c.triggerTime <= currentTime
-    );
+    const triggeredConsequences = this.state.consequenceQueue
+      .filter((c) => c.triggerTime <= currentTime)
+      .sort((a, b) => a.triggerTime - b.triggerTime);
 
     for (const triggered of triggeredConsequences) {
       this.applyConsequence(triggered.consequence, triggered.sourceInjectId);
@@ -349,7 +344,7 @@ export class ArcScheduler {
     for (const consequence of consequences) {
       const triggerTime =
         this.state.elapsedSeconds +
-        (consequence.followUpInjectDelay || this.pacingConfig.consequenceDelaySeconds);
+        (consequence.followUpInjectDelay ?? this.pacingConfig.consequenceDelaySeconds);
 
       this.state.consequenceQueue.push({
         consequence,
@@ -472,6 +467,7 @@ export class ArcScheduler {
   exportState(): string {
     return JSON.stringify({
       ...this.state,
+      rngState: this.rng.getState(),
       revealedInjectIds: Array.from(this.state.revealedInjectIds),
     });
   }
@@ -481,10 +477,20 @@ export class ArcScheduler {
    */
   static importState(serialized: string, difficulty: ArcDifficulty): ArcScheduler {
     const data = JSON.parse(serialized);
+    if (!data.rngState) {
+      throw new Error(
+        'This legacy scheduler record has no random-stream checkpoint. Keep it as read-only evidence and start a fresh exercise.'
+      );
+    }
+    if (data.difficulty !== difficulty || data.rngState.seed !== data.seed) {
+      throw new Error('Saved scheduler difficulty or random-stream seed does not match.');
+    }
     const scheduler = new ArcScheduler(data.seed, difficulty, []);
+    const { rngState, ...state } = data;
+    scheduler.rng = SeededRandom.fromState(rngState);
 
     scheduler.state = {
-      ...data,
+      ...state,
       revealedInjectIds: new Set(data.revealedInjectIds),
     };
 
@@ -507,10 +513,13 @@ export function createArcFromLog(
  * Generate a shareable seed code (for reproducible runs)
  */
 export function generateSeedCode(seed: number): string {
+  if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) {
+    throw new RangeError('A seed must be an unsigned 32-bit integer.');
+  }
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   let value = seed;
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 7; i++) {
     code += chars[value % chars.length];
     value = Math.floor(value / chars.length);
   }
@@ -522,14 +531,19 @@ export function generateSeedCode(seed: number): string {
  */
 export function parseSeedCode(code: string): number {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const normalized = code.trim().toUpperCase();
+  if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6,7}$/.test(normalized)) {
+    throw new Error('Enter a valid six- or seven-character seed code.');
+  }
   let value = 0;
   let multiplier = 1;
-  for (const char of code.toUpperCase()) {
+  for (const char of normalized) {
     const idx = chars.indexOf(char);
     if (idx >= 0) {
       value += idx * multiplier;
       multiplier *= chars.length;
     }
   }
-  return value || 1;
+  if (value > 0xffffffff) throw new RangeError('Seed code exceeds the unsigned 32-bit range.');
+  return value;
 }

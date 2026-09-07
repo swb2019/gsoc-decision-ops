@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "product": "Hourglass Command Glasshouse",
+  "baseline": "94486155e77a6dddd8293900a83e443679361e33",
+  "scenarioVersion": "glasshouse-1.0.0",
+  "rulesVersion": "kernel-1.0.0",
+  "rubricVersion": "observable-1.0.0",
+  "publicRelease": "hold",
+  "accountableOwner": "Shannon Brown",
+  "qualificationRevision": null,
+  "gates": {
+    "semanticEngineering": "passed: 425 unit/semantic tests and 26 browser journeys; see docs/ENGINEERING-VALIDATION.md; offline artifact 98200f6986b10efa88ee4960",
+    "independentContentAndRubricReview": "pending named physical-security, cyber and exercise reviewers",
+    "formativePlaytest": "pending ten intended users including accessibility accommodations",
+    "manualAccessibilityAndDevices": "pending NVDA, VoiceOver Safari, Android and iPhone journeys",
+    "artAudioComparator": "pending qualified schematic versus optional 3D comparison",
+    "publicRollbackRehearsal": "pending staging exercise with owner"
+  },
+  "deferred": [
+    "G3 additional cases and facilitated use",
+    "consented learning-signal study",
+    "G4 networked roles, enterprise authoring and AI"
+  ]
+}

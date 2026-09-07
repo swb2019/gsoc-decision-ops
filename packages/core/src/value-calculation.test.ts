@@ -118,6 +118,8 @@ describe('calculateTreatmentROI', () => {
     expect(result.avoidedLoss).toBe(0);
     expect(result.treatmentCost).toBe(0);
     expect(result.residualALE).toBe(100000);
+    expect(result.roi).toBeNull();
+    expect(result.roiReason).toContain('zero');
   });
 
   it('should calculate correct reduction for MITIGATE', () => {
@@ -218,19 +220,36 @@ describe('calculateDecisionValue', () => {
     }
   });
 
-  it('should apply first-hour premium for sub-hour decisions', () => {
+  it('does not change money when decision speed changes', () => {
     const subHour = calculateDecisionValue({ ...baseParams, decisionTimeSeconds: 45 });
     const overHour = calculateDecisionValue({ ...baseParams, decisionTimeSeconds: 4000 });
 
-    // Both have same base calculations, but sub-hour gets 1.5x multiplier
-    expect(subHour.finalResult.netValue).toBeGreaterThan(overHour.finalResult.netValue);
+    expect(subHour.finalResult).toEqual(overHour.finalResult);
   });
 
-  it('should apply governance multiplier for documented decisions', () => {
+  it('does not change money when documentation changes', () => {
     const documented = calculateDecisionValue({ ...baseParams, esrmDocumented: true });
     const undocumented = calculateDecisionValue({ ...baseParams, esrmDocumented: false });
 
-    expect(documented.finalResult.netValue).toBeGreaterThan(undocumented.finalResult.netValue);
+    expect(documented.finalResult).toEqual(undocumented.finalResult);
+  });
+
+  it('reconciles the PRD $90,000 avoided loss / $20,000 cost fixture', () => {
+    const trail = calculateDecisionValue({
+      ...baseParams,
+      assetCriticality: 'CRITICAL',
+      threatLikelihood: 'POSSIBLE',
+      impactSeverity: 'MAJOR',
+    });
+    expect(trail.finalResult).toMatchObject({
+      avoidedLoss: 90_000,
+      treatmentCost: 20_000,
+      netValue: 70_000,
+      roi: 350,
+    });
+    expect(trail.finalResult.netValue).toBe(
+      trail.finalResult.avoidedLoss - trail.finalResult.treatmentCost
+    );
   });
 
   it('should include assumptions in trail for reproducibility', () => {
@@ -308,7 +327,7 @@ describe('calculateSessionValue', () => {
     expect(result.totalInherentRisk).toBe(0);
     expect(result.totalResidualRisk).toBe(0);
     expect(result.totalAvoidedLoss).toBe(0);
-    expect(result.averageROI).toBe(0);
+    expect(result.averageROI).toBeNull();
     expect(result.trails.length).toBe(0);
   });
 });

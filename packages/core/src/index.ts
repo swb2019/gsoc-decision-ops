@@ -418,3 +418,45 @@ export type {
   ScheduledInject,
   ArcState,
 } from './arc-scheduler.js';
+
+// Glasshouse: versioned deterministic practice kernel and immutable records.
+export { compareGlasshouseNextCheckpoint } from './glasshouse/counterfactual.js';
+export {
+  GLASSHOUSE_CONTROLS,
+  GLASSHOUSE_HANDOVER,
+  GLASSHOUSE_VERSIONS,
+} from './glasshouse/content.js';
+export {
+  createGlasshouseSession,
+  transitionGlasshouse,
+  getGlasshouseObservations,
+  forkGlasshouse,
+  glasshouseRandom,
+  reconcileGlasshouseLedger,
+} from './glasshouse/kernel.js';
+export {
+  canonicalGlasshouseState,
+  serializeGlasshouseSession,
+  restoreGlasshouseSession,
+  getGlasshouseReport,
+  glasshouseDigest,
+} from './glasshouse/record.js';
+export type {
+  Session as GlasshouseSession,
+  Plan as GlasshousePlan,
+  Command as GlasshouseCommand,
+  Observation as GlasshouseObservation,
+  Control as GlasshouseControl,
+  Report as GlasshouseReport,
+  ActorId as GlasshouseActorId,
+  AssetId as GlasshouseAssetId,
+  Mode as GlasshouseMode,
+  Decision as GlasshouseDecision,
+  Treatment as GlasshouseTreatment,
+  Posture as GlasshousePosture,
+  Authority as GlasshouseAuthority,
+  Action as GlasshouseAction,
+  Finding as GlasshouseFinding,
+  Improvement as GlasshouseImprovement,
+  DomainEvent as GlasshouseEvent,
+} from './glasshouse/types.js';

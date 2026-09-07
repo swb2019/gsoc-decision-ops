@@ -19,14 +19,14 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#080e0d',
+  themeColor: '#191c19',
   colorScheme: 'dark',
 };
 
 export const metadata: Metadata = {
-  title: 'Hourglass Command | First-Hour Decision Training',
+  title: 'Hourglass Command | Glasshouse / 06:10',
   description:
-    'First-hour decision simulation for security operations. Practice facts vs assumptions and CONTINUE/DEGRADE/PAUSE posture calls under time pressure.',
+    'A synthetic security leadership exercise. Make a bounded plan, coordinate accountable action, and inspect what was known at each decision. Free, local, and account-free.',
   keywords: [
     'Hourglass Command',
     'security operations',

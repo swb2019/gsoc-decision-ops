@@ -167,20 +167,6 @@ const getPersonalBests = (): Record<string, PersonalBest> => {
   }
 };
 
-const savePersonalBest = (scenarioId: string, best: PersonalBest): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    const bests = getPersonalBests();
-    const existing = bests[scenarioId];
-    if (!existing || best.score > existing.score) {
-      bests[scenarioId] = best;
-      localStorage.setItem(PERSONAL_BEST_KEY, JSON.stringify(bests));
-    }
-  } catch {
-    // Ignore storage errors
-  }
-};
-
 const getSavedDifficulty = (): DifficultyLevel => {
   if (typeof window === 'undefined') return 'OPERATOR';
   try {
@@ -809,7 +795,6 @@ import {
   calculateStats,
   revealInject,
   getRevealedInjects,
-  postureToTreatment,
   INTAKE_CHANNELS,
   calculateESRMValueCreated,
   createKRIDashboard,
@@ -854,7 +839,6 @@ import type { DecisionLog, DecisionPosture, ScenarioInject } from '@gsoc-decisio
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { TeamPanel, StakeholderPanel } from './TeamStakeholderPanel';
-import { completeScenario } from '../lib/campaign';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
@@ -1109,6 +1093,9 @@ export default function CommandCenter({
   // Session recovery state
   const [showResumePrompt, setShowResumePrompt] = useState(false);
   const [savedSession, setSavedSession] = useState<SessionState | null>(null);
+  const [legacyReview, setLegacyReview] = useState<SessionState | null>(null);
+  const [sessionStorageError, setSessionStorageError] = useState<string | null>(null);
+  const lastWrittenSessionRef = useRef<string | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Core game state
@@ -1328,6 +1315,7 @@ export default function CommandCenter({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const decisionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const decisionTimerInjectRef = useRef<string | null>(null);
   const microTaskTimerRef = useRef<NodeJS.Timeout | null>(null);
   const processedInjectsRef = useRef<Set<string>>(new Set());
   const sessionSaveRef = useRef<NodeJS.Timeout | null>(null);
@@ -1463,16 +1451,11 @@ export default function CommandCenter({
       const saved = localStorage.getItem(SESSION_STORAGE_KEY);
       if (saved) {
         const session: SessionState = JSON.parse(saved);
-        // Only offer resume if session is for same scenario and not complete
-        if (session.scenarioId === scenarioId && !session.isComplete) {
-          const ageMinutes = (Date.now() - session.savedAt) / 1000 / 60;
-          // Only offer resume if session is less than 2 hours old
-          if (ageMinutes < 120) {
-            setSavedSession(session);
-            setShowResumePrompt(true);
-          } else {
-            localStorage.removeItem(SESSION_STORAGE_KEY);
-          }
+        // These snapshots omit world, queue and random-stream state. Preserve
+        // them at every age and offer inspection, never a reconstructed resume.
+        if (session.scenarioId === scenarioId) {
+          setSavedSession(session);
+          setShowResumePrompt(true);
         }
       }
     } catch {
@@ -1492,11 +1475,23 @@ export default function CommandCenter({
           gameState,
           scenarioId,
           savedAt: Date.now(),
-          isComplete: showDebrief,
+          isComplete: false,
         };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+        const previous = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (previous !== null && previous !== lastWrittenSessionRef.current) {
+          // Archive exact original bytes before replacing the active save. If
+          // this write fails, the catch keeps the original active record intact.
+          localStorage.setItem(`${SESSION_STORAGE_KEY}:archive:${crypto.randomUUID()}`, previous);
+          lastWrittenSessionRef.current = previous;
+        }
+        const serialized = JSON.stringify(session);
+        localStorage.setItem(SESSION_STORAGE_KEY, serialized);
+        lastWrittenSessionRef.current = serialized;
+        setSessionStorageError(null);
       } catch {
-        // Ignore localStorage errors
+        setSessionStorageError(
+          'Saving is unavailable. Your earlier record is preserved; this run currently exists only in memory. Keep this page open and export a partial review.'
+        );
       }
     };
 
@@ -1511,38 +1506,14 @@ export default function CommandCenter({
     };
   }, [isRunning, log, elapsedSeconds, gameState, scenarioId, showDebrief]);
 
-  // Clear session on completion
-  useEffect(() => {
-    if (showDebrief) {
-      try {
-        const session: SessionState = {
-          log,
-          elapsedSeconds,
-          gameState,
-          scenarioId,
-          savedAt: Date.now(),
-          isComplete: true,
-        };
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      } catch {
-        // Ignore
-      }
-    }
-  }, [showDebrief, log, elapsedSeconds, gameState, scenarioId]);
+  // Viewing a partial review never completes or rewrites the saved exercise.
 
-  // Resume session handler
+  // Inspect the original saved snapshot without inserting it into a live world.
   const handleResumeSession = useCallback(() => {
     if (savedSession) {
-      setLog(savedSession.log);
-      setElapsedSeconds(savedSession.elapsedSeconds);
-      setGameState(savedSession.gameState);
-      // Rebuild processed injects set
-      savedSession.log.decisions.forEach((d) => {
-        const inject = savedSession.log.injects.find((i) => i.title === d.title);
-        if (inject) {
-          processedInjectsRef.current.add(inject.id);
-        }
-      });
+      setLegacyReview(savedSession);
+      setIsRunning(false);
+      setShowDebrief(true);
       setShowResumePrompt(false);
       setSavedSession(null);
     }
@@ -1550,11 +1521,8 @@ export default function CommandCenter({
 
   // Start fresh handler
   const handleStartFresh = useCallback(() => {
-    try {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch {
-      // Ignore
-    }
+    // The first successful save archives the previous record before replacement.
+    lastWrittenSessionRef.current = null;
     setShowResumePrompt(false);
     setSavedSession(null);
   }, []);
@@ -1671,27 +1639,8 @@ export default function CommandCenter({
             // Play AAR ready VO
             playVO('aar_ready');
 
-            // Mark campaign arc as complete and unlock next arcs
-            completeScenario(scenarioId);
-
-            // Check and save personal best
-            const accuracy =
-              gameState.decisionsTotal > 0
-                ? Math.round((gameState.decisionsCorrect / gameState.decisionsTotal) * 100)
-                : 0;
-            const currentBest: PersonalBest = {
-              score: gameState.score,
-              grade: calculateGrade().grade,
-              accuracy,
-              maxStreak: gameState.maxStreak,
-              difficulty,
-              timestamp: Date.now(),
-            };
-            if (!personalBest || gameState.score > personalBest.score) {
-              setIsNewPersonalBest(true);
-              savePersonalBest(scenarioId, currentBest);
-              setPersonalBest(currentBest);
-            }
+            // The legacy timer has no authored terminal/assessment contract.
+            // Its expiration opens a partial review, without campaign completion.
           }
           return newSeconds;
         });
@@ -1706,18 +1655,22 @@ export default function CommandCenter({
 
   // Decision pressure timer - adaptive based on complexity and difficulty
   useEffect(() => {
+    if (!pendingDecision) decisionTimerInjectRef.current = null;
     if (pendingDecision && isRunning) {
-      const adjustedTimer = Math.floor(
-        DECISION_TIMER_CONFIG.BASE_TIMER * difficultyConfig.timerMultiplier
-      );
-      setDecisionTimer(adjustedTimer);
+      if (decisionTimerInjectRef.current !== pendingDecision.id) {
+        decisionTimerInjectRef.current = pendingDecision.id;
+        const adjustedTimer = Math.floor(
+          DECISION_TIMER_CONFIG.BASE_TIMER * difficultyConfig.timerMultiplier
+        );
+        setDecisionTimer(adjustedTimer);
 
-      // Brief decision cue, then speak the actual decision question
-      playVO('decision_prompt');
-      playSpokenText(getDecisionSpokenText(pendingDecision), {
-        priority: 8,
-        id: `decision:${pendingDecision.id}`,
-      });
+        // Speak a new decision once; pause/review preserves the current window.
+        playVO('decision_prompt');
+        playSpokenText(getDecisionSpokenText(pendingDecision), {
+          priority: 8,
+          id: `decision:${pendingDecision.id}`,
+        });
+      }
 
       decisionTimerRef.current = setInterval(() => {
         setDecisionTimer((t) => {
@@ -1758,12 +1711,13 @@ export default function CommandCenter({
     if (scheduler) {
       // Tick the scheduler and get newly revealed injects
       const newlyRevealed = scheduler.tick(elapsedSeconds);
+      let decisionQueued = pendingDecision !== null;
 
       for (const scheduled of newlyRevealed) {
         const inject = scheduled.inject;
         if (!processedInjectsRef.current.has(inject.id)) {
           processedInjectsRef.current.add(inject.id);
-          setLog(revealInject(log, inject.id));
+          setLog((currentLog) => revealInject(currentLog, inject.id));
           setLastInjectTime(elapsedSeconds);
 
           // Play inject arrival SFX
@@ -1781,7 +1735,8 @@ export default function CommandCenter({
             triggerCondition('FIRST_NOISE_INJECT' as never, 'INTEL_FEED');
           }
 
-          if (!pendingDecision) {
+          if (!decisionQueued) {
+            decisionQueued = true;
             setPendingDecision(inject);
             setSelectedAsset(null);
             setAssetOwnerBriefed(false);
@@ -1791,9 +1746,10 @@ export default function CommandCenter({
             setSelectedResidualRisk(null);
             setTreatmentBonusGiven(false);
           }
-          break;
         }
       }
+      // A slow frame may deliver many events. Journal all of them before acknowledgment.
+      scheduler.acknowledgeInjects(newlyRevealed.map((item) => item.inject.id));
 
       // Update zone heat from scheduler state (only if changed to prevent re-renders)
       const schedulerHeat = scheduler.getZoneHeat();
@@ -2539,6 +2495,10 @@ export default function CommandCenter({
         PAUSE: 'AVOID',
       };
       const expectedTreatment = expectedPosture ? expectedTreatmentMap[expectedPosture] : null;
+      const chosenTreatment = postureToTreatmentCalc(
+        posture,
+        selectedTreatmentCategory ?? undefined
+      );
 
       // Calculate time used for decision
       const decisionTimeUsed = Math.max(
@@ -2550,9 +2510,7 @@ export default function CommandCenter({
       const scoringInput: DecisionScoringInput = {
         chosenPosture: posture,
         expectedPosture: expectedPosture || null,
-        chosenTreatment:
-          (selectedTreatmentCategory as 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID') ||
-          expectedTreatmentMap[posture],
+        chosenTreatment,
         expectedTreatment,
         assetCriticality: selectedAsset.criticality as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW',
         ownerBriefed: assetOwnerBriefed,
@@ -2609,11 +2567,11 @@ export default function CommandCenter({
           posture,
           owner: 'GSOC Commander',
           ownerRole: 'Incident Commander',
-          rationale: `Asset: ${selectedAsset.name}. Treatment: ${postureToTreatment(posture)}. ${residualRiskNote}`,
+          rationale: `Asset: ${selectedAsset.name}. Treatment: ${chosenTreatment}. Control: ${selectedTreatmentOption ?? 'Not specified'}. ${residualRiskNote}`,
           esrmFraming: {
             assetOwner: selectedAsset.owner.name,
             assetOwnerRole: selectedAsset.owner.title,
-            treatment: postureToTreatment(posture),
+            treatment: chosenTreatment,
             residualRisk: residualRiskNote || 'Residual risk acknowledged',
           },
         })
@@ -2646,13 +2604,11 @@ export default function CommandCenter({
       }
 
       // Calculate ESRM value for this decision
-      const treatmentForCalc = postureToTreatmentCalc(
-        posture,
-        selectedTreatmentCategory as 'ACCEPT' | 'MITIGATE' | 'TRANSFER' | 'AVOID' | undefined
-      );
+      const treatmentForCalc = chosenTreatment;
       const criticality = selectedAsset.criticality as AssetCriticality;
-      const likelihood: RiskLikelihood =
-        posture === 'PAUSE' ? 'LIKELY' : posture === 'DEGRADE' ? 'POSSIBLE' : 'UNLIKELY';
+      // Use the authored pre-action asset assessment. The player's posture must
+      // not retroactively change the baseline likelihood used for comparison.
+      const likelihood: RiskLikelihood = selectedAsset.currentThreatLevel ?? 'POSSIBLE';
       const impact: RiskImpact =
         selectedAsset.criticality === 'CRITICAL'
           ? 'MAJOR'
@@ -2941,6 +2897,11 @@ export default function CommandCenter({
         urgentPulse && 'animate-urgent-pulse'
       )}
     >
+      {sessionStorageError && (
+        <div role="status" className="relative z-50 bg-amber-950 p-3 text-sm text-amber-100">
+          {sessionStorageError}
+        </div>
+      )}
       {/* Cinematic Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a12] via-[#080e0d] to-[#04040a]" />
@@ -3346,7 +3307,10 @@ export default function CommandCenter({
               </button>
 
               <button
-                onClick={() => setShowDebrief(true)}
+                onClick={() => {
+                  setIsRunning(false);
+                  setShowDebrief(true);
+                }}
                 className="p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 active:bg-gray-800/70 transition-all flex items-center justify-center"
                 aria-label="View debrief"
               >
@@ -3543,6 +3507,7 @@ export default function CommandCenter({
 
                     <button
                       onClick={() => {
+                        setIsRunning(false);
                         setShowDebrief(true);
                         setShowMobileMenu(false);
                       }}
@@ -4607,15 +4572,23 @@ export default function CommandCenter({
       {/* Debrief Modal */}
       {showDebrief && (
         <DebriefModal
-          log={log}
-          gameState={gameState}
-          grade={calculateGrade()}
-          elapsedSeconds={elapsedSeconds}
-          onClose={() => setShowDebrief(false)}
+          log={legacyReview?.log ?? log}
+          gameState={legacyReview?.gameState ?? gameState}
+          grade={
+            legacyReview
+              ? { grade: '—', title: 'Historical record', color: 'text-gray-400' }
+              : calculateGrade()
+          }
+          elapsedSeconds={legacyReview?.elapsedSeconds ?? elapsedSeconds}
+          legacyRecord={legacyReview !== null}
+          onClose={() => {
+            setShowDebrief(false);
+            setLegacyReview(null);
+          }}
           personalBest={personalBest}
           isNewPersonalBest={isNewPersonalBest}
           difficulty={difficulty}
-          calcTrails={calcTrails}
+          calcTrails={legacyReview ? [] : calcTrails}
           scenarioId={scenarioId}
           localVoice={{
             isEnabled: localVoice.isEnabled,
@@ -4626,6 +4599,10 @@ export default function CommandCenter({
           }}
           onRematch={() => {
             setShowDebrief(false);
+            setLegacyReview(null);
+            setIsRunning(false);
+            arcSchedulerRef.current = null;
+            lastWrittenSessionRef.current = null;
             setIsNewPersonalBest(false);
             setLog(initialLog);
             setElapsedSeconds(0);
@@ -4657,7 +4634,6 @@ export default function CommandCenter({
             setSkippedMicroTasks([]);
             setSystemPaused(false);
             setCalcTrails([]);
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
           }}
         />
       )}
@@ -4767,7 +4743,7 @@ export default function CommandCenter({
                 <RotateCcw className="w-6 h-6 text-amber-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Session Found</h2>
+                <h2 className="text-lg font-bold text-white">Legacy Record Found</h2>
                 <p className="text-xs text-gray-500">
                   {Math.floor(savedSession.elapsedSeconds / 60)}m elapsed •{' '}
                   {savedSession.gameState.decisionsTotal} decisions
@@ -4776,8 +4752,9 @@ export default function CommandCenter({
             </div>
 
             <p className="text-sm text-gray-400 mb-6">
-              You have an in-progress session for this scenario. Would you like to resume where you
-              left off?
+              This saved record lacks the world and queue state needed for a faithful resume.
+              Inspect it as read-only evidence, or start a fresh exercise. The original record is
+              preserved; its old score is not translated into a new assessment.
             </p>
 
             <div className="flex gap-3">
@@ -4785,7 +4762,7 @@ export default function CommandCenter({
                 onClick={handleResumeSession}
                 className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all animate-press"
               >
-                Resume Session
+                Review Saved Record
               </button>
               <button
                 onClick={handleStartFresh}
@@ -5372,6 +5349,7 @@ function DecisionConsole({
                       )}
                     />
                     <span
+                      aria-label="Decision time remaining"
                       className={clsx(
                         'font-mono text-xl font-bold tabular-nums',
                         isTimeCritical
@@ -6391,6 +6369,7 @@ function DebriefModal({
   scenarioId,
   onRematch,
   localVoice,
+  legacyRecord = false,
 }: {
   log: DecisionLog;
   gameState: GameState;
@@ -6403,6 +6382,7 @@ function DebriefModal({
   calcTrails: CalcTrail[];
   scenarioId: string;
   onRematch: () => void;
+  legacyRecord?: boolean;
   localVoice?: {
     isEnabled: boolean;
     isReady: boolean;
@@ -6431,13 +6411,14 @@ function DebriefModal({
   // Calculate session value totals from calc trails
   const sessionTotals = useMemo(() => {
     if (calcTrails.length === 0) return null;
+    const totalTreatmentCost = calcTrails.reduce((sum, t) => sum + t.finalResult.treatmentCost, 0);
+    const totalNetValue = calcTrails.reduce((sum, t) => sum + t.finalResult.netValue, 0);
     return {
       totalAvoidedLoss: calcTrails.reduce((sum, t) => sum + t.finalResult.avoidedLoss, 0),
-      totalTreatmentCost: calcTrails.reduce((sum, t) => sum + t.finalResult.treatmentCost, 0),
-      totalNetValue: calcTrails.reduce((sum, t) => sum + t.finalResult.netValue, 0),
-      averageROI: Math.round(
-        calcTrails.reduce((sum, t) => sum + t.finalResult.roi, 0) / calcTrails.length
-      ),
+      totalTreatmentCost,
+      totalNetValue,
+      averageROI:
+        totalTreatmentCost > 0 ? Math.round((totalNetValue / totalTreatmentCost) * 100) : null,
     };
   }, [calcTrails]);
 
@@ -6605,8 +6586,15 @@ function DebriefModal({
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-sm text-gray-500 uppercase tracking-widest mb-2">Mission Complete</h2>
+          <h2 className="text-sm text-gray-500 uppercase tracking-widest mb-2">Partial Review</h2>
           <h1 className="text-3xl font-bold text-white">{log.incident.title}</h1>
+          <p className="mt-3 text-sm text-gray-400">
+            Read-only legacy exercise record. Opening this review or reaching the time limit does
+            not complete the mission or establish professional competence.{' '}
+            {legacyRecord
+              ? 'World state, difficulty and calculation trails were not saved. Close to begin a fresh exercise.'
+              : 'Close to continue.'}
+          </p>
         </div>
 
         {/* New Personal Best Banner */}
@@ -6676,8 +6664,12 @@ function DebriefModal({
             )}
           >
             <span>{diffConfig.icon}</span>
-            <span className="text-sm font-semibold">{diffConfig.label} Difficulty</span>
-            <span className="text-xs opacity-70">({diffConfig.pointMultiplier}x pts)</span>
+            <span className="text-sm font-semibold">
+              {legacyRecord ? 'Difficulty not recorded' : `${diffConfig.label} Difficulty`}
+            </span>
+            {!legacyRecord && (
+              <span className="text-xs opacity-70">({diffConfig.pointMultiplier}x pts)</span>
+            )}
           </div>
         </div>
 
@@ -6980,8 +6972,10 @@ function DebriefModal({
                       <Shield className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold text-white">After-Action Report</h1>
-                      <p className="text-sm text-gray-500">Hourglass Command Training</p>
+                      <h1 className="text-2xl font-bold text-white">Partial After-Action Report</h1>
+                      <p className="text-sm text-gray-500">
+                        Legacy synthetic exercise · completion not established
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -7103,10 +7097,12 @@ function DebriefModal({
                         </div>
                         <div>
                           <span className="text-xs text-gray-500 uppercase tracking-wider">
-                            Average ROI
+                            Modeled ROI
                           </span>
                           <div className="text-xl font-bold text-violet-400">
-                            {sessionTotals.averageROI}%
+                            {sessionTotals.averageROI === null
+                              ? 'Not applicable: zero cost'
+                              : `${sessionTotals.averageROI}%`}
                           </div>
                         </div>
                       </div>
@@ -7134,7 +7130,7 @@ function DebriefModal({
                                   <span className="text-emerald-400 font-mono">
                                     {typeof step.result === 'number'
                                       ? step.result.toLocaleString()
-                                      : step.result}
+                                      : 'Not applicable'}
                                   </span>
                                 </div>
                               </div>
@@ -7199,7 +7195,9 @@ function DebriefModal({
                       </div>
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
-                        <span className="text-gray-300">Difficulty: {diffConfig.label}</span>
+                        <span className="text-gray-300">
+                          Difficulty: {legacyRecord ? 'Not recorded' : diffConfig.label}
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
@@ -7290,15 +7288,16 @@ function ValueMetricsPanel({
 
   const sessionTotals = useMemo(() => {
     if (calcTrails.length === 0) return null;
+    const totalTreatmentCost = calcTrails.reduce((sum, t) => sum + t.finalResult.treatmentCost, 0);
+    const totalNetValue = calcTrails.reduce((sum, t) => sum + t.finalResult.netValue, 0);
     return {
       totalInherentRisk: calcTrails.reduce((sum, t) => sum + t.finalResult.inherentRisk, 0),
       totalResidualRisk: calcTrails.reduce((sum, t) => sum + t.finalResult.residualRisk, 0),
       totalAvoidedLoss: calcTrails.reduce((sum, t) => sum + t.finalResult.avoidedLoss, 0),
-      totalTreatmentCost: calcTrails.reduce((sum, t) => sum + t.finalResult.treatmentCost, 0),
-      totalNetValue: calcTrails.reduce((sum, t) => sum + t.finalResult.netValue, 0),
-      averageROI: Math.round(
-        calcTrails.reduce((sum, t) => sum + t.finalResult.roi, 0) / calcTrails.length
-      ),
+      totalTreatmentCost,
+      totalNetValue,
+      averageROI:
+        totalTreatmentCost > 0 ? Math.round((totalNetValue / totalTreatmentCost) * 100) : null,
     };
   }, [calcTrails]);
 
@@ -7394,18 +7393,20 @@ function ValueMetricsPanel({
                       </p>
                     </div>
                     <div>
-                      <span className="text-gray-500">Avg ROI</span>
+                      <span className="text-gray-500">Modeled ROI</span>
                       <p
                         className={clsx(
                           'text-lg font-semibold font-mono',
-                          sessionTotals.averageROI >= 100
+                          (sessionTotals.averageROI ?? 0) >= 100
                             ? 'text-emerald-400'
-                            : sessionTotals.averageROI >= 0
+                            : (sessionTotals.averageROI ?? 0) >= 0
                               ? 'text-amber-400'
                               : 'text-red-400'
                         )}
                       >
-                        {sessionTotals.averageROI}%
+                        {sessionTotals.averageROI === null
+                          ? 'Not applicable: zero cost'
+                          : `${sessionTotals.averageROI}%`}
                       </p>
                     </div>
                   </div>
@@ -7548,7 +7549,10 @@ function ValueMetricsPanel({
                               >
                                 ${trail.finalResult.netValue.toLocaleString()}
                               </span>
-                              {' • '}ROI: {trail.finalResult.roi}%
+                              {' • '}ROI:{' '}
+                              {trail.finalResult.roi === null
+                                ? 'Not applicable: zero cost'
+                                : `${trail.finalResult.roi}%`}
                             </span>
                           </div>
                         </div>
@@ -7604,7 +7608,7 @@ function ValueMetricsPanel({
                                       ={' '}
                                       {typeof step.result === 'number' && step.unit.includes('$')
                                         ? `$${step.result.toLocaleString()}`
-                                        : step.result}
+                                        : (step.result ?? 'Not applicable')}
                                       {step.unit && !step.unit.includes('$') ? ` ${step.unit}` : ''}
                                     </span>
                                   </div>
@@ -7763,24 +7767,15 @@ function ValueMetricsPanel({
               <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/40">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-semibold text-gray-200">Multipliers</span>
+                  <span className="text-sm font-semibold text-gray-200">
+                    Synthetic money assumptions
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2 rounded bg-gray-900/50">
-                    <span className="text-gray-500 block">First-Hour Premium</span>
-                    <span className="text-amber-400 font-mono">
-                      ×{VALUE_ASSUMPTIONS.FIRST_HOUR_PREMIUM}
-                    </span>
-                    <span className="text-2xs text-gray-600 block">Decisions within 60min</span>
-                  </div>
-                  <div className="p-2 rounded bg-gray-900/50">
-                    <span className="text-gray-500 block">Governance Multiplier</span>
-                    <span className="text-emerald-400 font-mono">
-                      ×{VALUE_ASSUMPTIONS.GOVERNANCE_MULTIPLIER}
-                    </span>
-                    <span className="text-2xs text-gray-600 block">Documented ESRM decisions</span>
-                  </div>
-                </div>
+                <p className="text-xs text-gray-400">
+                  USD over one year. Net modeled benefit equals avoided loss less treatment cost.
+                  Speed, documentation and streaks never multiply money. Legacy decision totals may
+                  include shared exposure and are illustrative calculations, not realized savings.
+                </p>
               </div>
             </>
           )}

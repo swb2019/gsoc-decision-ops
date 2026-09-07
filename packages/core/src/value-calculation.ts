@@ -1,14 +1,10 @@
 /**
  * ESRM Value Calculation Engine
  *
- * Grounded, reproducible value calculations for GSOC/ESRM training.
- * All formulas follow textbook ESRM principles (ASIS International):
- * - Asset criticality × vulnerability × threat (T×V×I / C×V×T)
- * - Treatment cost vs. residual risk reduction
- * - Avoided loss = inherent risk - residual risk
- *
- * TRAINING-SYNTHETIC: All dollar values are illustrative benchmarks.
- * Method matches how real ESRM programs argue value to leadership.
+ * Legacy synthetic teaching calculations, not validated risk quantification.
+ * USD, one-year horizon: net modeled benefit = avoided loss - treatment cost.
+ * Game feedback never multiplies money. These authored values are not evidence
+ * of actual savings, empirical benchmarks, or professional competence.
  */
 
 import type { RiskLevel, AssetCriticality, RiskLikelihood, RiskImpact } from './esrm.js';
@@ -117,7 +113,7 @@ export interface CalcStep {
   operation: string;
   formula: string;
   inputs: Record<string, number | string | boolean>;
-  result: number;
+  result: number | null;
   unit: string;
   note?: string;
 }
@@ -143,7 +139,8 @@ export interface CalcTrail {
     avoidedLoss: number;
     treatmentCost: number;
     netValue: number;
-    roi: number;
+    roi: number | null;
+    roiReason: string | null;
   };
   assumptions: typeof VALUE_ASSUMPTIONS;
 }
@@ -296,7 +293,8 @@ export function calculateTreatmentROI(
   avoidedLoss: number;
   treatmentCost: number;
   netValue: number;
-  roi: number;
+  roi: number | null;
+  roiReason: string | null;
   trail: CalcStep[];
 } {
   const steps: CalcStep[] = [];
@@ -351,10 +349,11 @@ export function calculateTreatmentROI(
     inputs: { avoidedLoss, treatmentCost },
     result: netValue,
     unit: '$/year',
-    note: netValue >= 0 ? 'Positive ROI - treatment justified' : 'Negative ROI - accept risk?',
+    note: 'Synthetic one-year net benefit; authority, life safety and service constraints are assessed separately.',
   });
 
-  const roi = treatmentCost > 0 ? Math.round((netValue / treatmentCost) * 100) : 0;
+  const roi = treatmentCost > 0 ? Math.round((netValue / treatmentCost) * 100) : null;
+  const roiReason = roi === null ? 'Not applicable: treatment cost is zero.' : null;
   steps.push({
     stepNumber: 5,
     operation: 'Calculate Return on Investment',
@@ -362,10 +361,12 @@ export function calculateTreatmentROI(
     inputs: { netValue, treatmentCost },
     result: roi,
     unit: '%',
-    note: roi >= 100 ? 'Strong ROI (≥100%)' : roi >= 0 ? 'Marginal ROI' : 'Negative ROI',
+    note:
+      roiReason ??
+      'Modeled net benefit divided by non-zero treatment cost; not a decision-quality rating.',
   });
 
-  return { residualALE, avoidedLoss, treatmentCost, netValue, roi, trail: steps };
+  return { residualALE, avoidedLoss, treatmentCost, netValue, roi, roiReason, trail: steps };
 }
 
 /**
@@ -503,6 +504,7 @@ export function calculateDecisionValue(params: {
     treatmentCost,
     netValue,
     roi,
+    roiReason,
     trail: roiTrail,
   } = calculateTreatmentROI(inherentALE, params.treatment);
   allSteps.push(...roiTrail.map((s) => ({ ...s, stepNumber: s.stepNumber + stepOffset })));
@@ -518,25 +520,19 @@ export function calculateDecisionValue(params: {
   allSteps.push(...qualityTrail.map((s) => ({ ...s, stepNumber: s.stepNumber + stepOffset })));
   stepOffset += qualityTrail.length;
 
-  const firstHourBonus =
-    params.decisionTimeSeconds <= 3600 ? VALUE_ASSUMPTIONS.FIRST_HOUR_PREMIUM : 1;
-  const governanceBonus = params.esrmDocumented ? VALUE_ASSUMPTIONS.GOVERNANCE_MULTIPLIER : 1;
-  const adjustedNetValue = Math.round(netValue * firstHourBonus * governanceBonus);
-
   allSteps.push({
     stepNumber: stepOffset + 1,
-    operation: 'Apply First-Hour & Governance Multipliers',
-    formula: 'adjustedValue = netValue × firstHourPremium × governanceMultiplier',
+    operation: 'Reconcile One-Year Net Modeled Benefit',
+    formula: 'netValue = avoidedLoss - treatmentCost',
     inputs: {
-      netValue,
-      firstHourPremium: firstHourBonus,
-      governanceMultiplier: governanceBonus,
-      decisionTimeSeconds: params.decisionTimeSeconds,
-      esrmDocumented: params.esrmDocumented,
+      avoidedLoss,
+      treatmentCost,
+      currency: 'USD',
+      horizon: 'one year',
     },
-    result: adjustedNetValue,
+    result: netValue,
     unit: '$/year',
-    note: `Bonuses: first-hour ×${firstHourBonus}, governance ×${governanceBonus}`,
+    note: 'Speed, documentation and streak feedback do not change synthetic monetary value.',
   });
 
   return {
@@ -556,8 +552,9 @@ export function calculateDecisionValue(params: {
       residualRisk: residualALE,
       avoidedLoss,
       treatmentCost,
-      netValue: adjustedNetValue,
+      netValue,
       roi,
+      roiReason,
     },
     assumptions: VALUE_ASSUMPTIONS,
   };
@@ -581,7 +578,7 @@ export function formatCalcTrailSummary(trail: CalcTrail): string {
     `  Avoided Loss:  $${r.avoidedLoss.toLocaleString()}/yr`,
     `  Treatment Cost: $${r.treatmentCost.toLocaleString()}`,
     `  Net Value:     $${r.netValue.toLocaleString()}/yr`,
-    `  ROI:           ${r.roi}%`,
+    `  ROI:           ${r.roi === null ? (r.roiReason ?? 'Not applicable: treatment cost is zero.') : `${r.roi}%`}`,
     ``,
     `⏱️ Decision: ${trail.inputSummary.decisionTimeSeconds}s | ESRM: ${trail.inputSummary.esrmDocumented ? '✓' : '✗'}`,
     `📋 ${trail.steps.length} calculation steps in trail`,
@@ -606,7 +603,7 @@ export function calculateSessionValue(
   totalAvoidedLoss: number;
   totalTreatmentCost: number;
   totalNetValue: number;
-  averageROI: number;
+  averageROI: number | null;
   trails: CalcTrail[];
 } {
   const trails = decisions.map((d) =>
@@ -627,7 +624,6 @@ export function calculateSessionValue(
       totalAvoidedLoss: acc.totalAvoidedLoss + t.finalResult.avoidedLoss,
       totalTreatmentCost: acc.totalTreatmentCost + t.finalResult.treatmentCost,
       totalNetValue: acc.totalNetValue + t.finalResult.netValue,
-      roiSum: acc.roiSum + t.finalResult.roi,
     }),
     {
       totalInherentRisk: 0,
@@ -635,7 +631,6 @@ export function calculateSessionValue(
       totalAvoidedLoss: 0,
       totalTreatmentCost: 0,
       totalNetValue: 0,
-      roiSum: 0,
     }
   );
 
@@ -645,7 +640,10 @@ export function calculateSessionValue(
     totalAvoidedLoss: totals.totalAvoidedLoss,
     totalTreatmentCost: totals.totalTreatmentCost,
     totalNetValue: totals.totalNetValue,
-    averageROI: decisions.length > 0 ? Math.round(totals.roiSum / decisions.length) : 0,
+    averageROI:
+      totals.totalTreatmentCost > 0
+        ? Math.round((totals.totalNetValue / totals.totalTreatmentCost) * 100)
+        : null,
     trails,
   };
 }

@@ -7,6 +7,7 @@ export default defineConfig({
   outputDir: 'qa-output/results',
   use: {
     ...devices['Desktop Chrome'],
+    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     baseURL: 'http://127.0.0.1:4181',
     viewport: { width: 1440, height: 1000 },
     trace: 'retain-on-failure',

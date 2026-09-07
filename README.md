@@ -1,88 +1,57 @@
-<a href="https://swb2019.github.io/gsoc-decision-ops/"><img src="apps/web/public/brand/hourglass-banner.webp" alt="Hourglass Command — First-hour judgment" width="100%" /></a>
+# Hourglass Command
 
-<p align="center">
-  <a href="https://swb2019.github.io/gsoc-decision-ops/"><strong>Enter the simulation ↗</strong></a> &nbsp; · &nbsp;
-  <a href="docs/TRAINING.md">Training methodology</a> &nbsp; · &nbsp;
-  <a href="https://swb2019.github.io/shannon-brown-career/work/hourglass-command/">Case study</a> &nbsp; · &nbsp;
-  <a href="https://swb2019.github.io/shannon-brown-career/about/">About Shannon Brown</a>
-</p>
+Hourglass Command is a synthetic, account-free security leadership practice application directed by Shannon Brown and implemented with AI-assisted engineering. Glasshouse / 06:10 is the next-generation flagship: establish what was known, make a scoped plan, coordinate accountable action and inspect its consequences.
 
-[![CI](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/ci.yml)
-[![Deploy](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/swb2019/gsoc-decision-ops/actions/workflows/deploy.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-dbfca9?labelColor=182218)](LICENSE)
+This branch is an **engineering candidate, not a qualified public release**. Independent content/rubric calibration, formative user studies, manual accessibility/device reviews and the staged rollback exercise remain pending. No learning efficacy, employer endorsement, certification, real loss savings or professional readiness is claimed.
 
-## The first hour. Every decision counts.
+- [Existing public launch](https://swb2019.github.io/gsoc-decision-ops/)
+- [Design and invariants](docs/GLASSHOUSE-DESIGN.md)
+- [Engineering validation](docs/ENGINEERING-VALIDATION.md)
+- [All 55 requirement statuses](docs/REQUIREMENTS-STATUS.md)
+- [Human qualification packet](docs/QUALIFICATION-KIT.md)
+- [Capability and evidence boundaries](docs/TRAINING.md)
+- [Release qualification record](release/qualification.json)
+- [Operation and capacity policy](docs/OPERATIONS.md)
+- [Shannon Brown’s portfolio](https://swb2019.github.io/shannon-brown-career/)
 
-When physical, cyber, and intelligence signals converge, security leaders have to act with partial facts and contested assumptions. **Hourglass Command** turns that pressure into a repeatable training experience: assess the situation, commit an operating posture, document the reasoning, and examine the outcome.
+## The playable case
 
-An **independent portfolio project** directed by **Shannon Brown**, a GSOC manager with experience in security operations, commercial risk, and executive communication, and developed through AI-assisted design and engineering. All incidents and environments are synthetic. No employer deployment, endorsement, or measured improvement in real-world outcomes is claimed.
+At a fictional research and distribution campus, badge readers disagree, an identity connector is failing, a time-sensitive shipment is due and an entrance image is unverified. You are the watch commander. Protect people, maintain essential operations, establish scope and hand over a controlled situation.
 
-### From signal to defensible decision
+Preview contains one choice and consequence, then continues into the same mission. Guided Practice offers context help; Independent Practice retains accessibility and pausing while removing coaching. Time advances deliberately to the next significant event. Both modes preserve the same rules without a competence multiplier.
 
-| 01 / Read the situation                                                                             | 02 / Make the call                                                                                               | 03 / Learn from the result                                                                  |
-| :-------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ |
-| Triage converging signals. Separate facts, assumptions, and unknowns in a common operating picture. | Choose **CONTINUE**, **DEGRADE**, or **PAUSE**. Document the treatment, rationale, ownership, and residual risk. | Inspect the decision trail and export an after-action review for discussion and reflection. |
+The workspace combines a chronological evidence inbox, progressively composed plans, actor briefs and pending commitments with a complete situation schematic. Original optional 3D geometry is a removable enhancement. The debrief links decisions to known-then evidence, exposes eight observation dimensions, separates process from modeled outcomes, and supports a preserved same-seed branch. HTML, JSON, text PDF and full session backups remain local.
 
-### Choose your training path
+## Run and verify
 
-- **Six-chapter campaign:** build decision craft through progressive scenarios and chapter unlocks. Progress is saved in your browser.
-- **Free play:** open any available scenario directly for a focused practice session.
-- **Command interface:** timed injects, posture decisions, operating-picture discipline, and after-action documentation in one workspace.
+Use Node.js 24 and the checked-in npm lockfile.
 
-<p align="center">
-  <img src="docs/images/hourglass-readme-hero.png" alt="Hourglass Command training interface with a three-dimensional campus operating picture" width="100%" />
-</p>
-
-### Training scope
-
-| Practices                                                         | Boundaries                                                                            |
-| :---------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
-| Technical GSOC judgment under incomplete information              | Does not reproduce executive relationships or stakeholder politics                    |
-| Multi-channel triage: access, video, SIEM, OSINT, tips, and radio | Does not train workforce management or negotiation dynamics                           |
-| ESRM-aligned treatment selection and asset-owner risk ownership   | Does not evaluate vendors or replace operational authority                            |
-| Defensible decision logs and after-action review                  | A training simulation; unsuitable as a production incident system or system of record |
-
-Spoken Intel Feed, guidance, and optional 3D operating-picture markers support attention. The purpose is to practice decision quality and make the reasoning inspectable. See the [training methodology](docs/TRAINING.md) for the pedagogical foundations and scoring model.
-
-## Run locally
-
-Use a supported Node.js version (Node 24 is used in CI). Next.js 15 is the maintained framework line for this static export.
-
-```bash
-git clone https://github.com/swb2019/gsoc-decision-ops.git
-cd gsoc-decision-ops
+```sh
 npm ci
 npm run dev
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npx playwright test
 ```
 
-| Command                | Purpose                                                    |
-| :--------------------- | :--------------------------------------------------------- |
-| `npm run dev`          | Start the Next.js development server                       |
-| `npm test`             | Run the core test suite                                    |
-| `npm run typecheck`    | Check core and application TypeScript                      |
-| `npm run lint`         | Run ESLint                                                 |
-| `npm run format:check` | Check source and documentation formatting                  |
-| `npm run build`        | Build the workspaces and stage the static export in `out/` |
+`/` and `/glasshouse/` launch the flagship; `/evidence/` describes its limits. `/legacy/` retains the previous scenario directory, and all eight `/scenarios/.../` URLs are preserved. Legacy records are read-only historical evidence, not silently translated into the new feedback model.
 
-### Architecture
+For a GitHub Pages build use `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops`. Publication is held by `scripts/check-release-gate.mjs` until the exact artifact revision has documented human qualification. The existing live site is not changed merely by building this branch.
 
-| Directory        | Responsibility                                                           |
-| :--------------- | :----------------------------------------------------------------------- |
-| `apps/web/`      | Next.js interface, static routes, campaign progression, and presentation |
-| `packages/core/` | Scenarios, scoring, ESRM logic, and arc scheduling                       |
-| `docs/`          | Training methodology and product documentation                           |
-| `scripts/`       | Build and static-export preparation                                      |
+## Engineering evidence
 
-**Stack:** TypeScript · Next.js · React · Tailwind CSS · Three.js · Vitest
+The pure kernel validates authority, scope, references, resources, action lead times, cancellation, expiration and complete causal queues. Stable event-keyed random draws and full-state replay preserve the canonical future after recovery. Semantic tests include the independent USD 90,000 / USD 20,000 accounting fixture, full-range seed encoding, three alternative strategies, 1,000 seeded missions, 20-event bursts, known-then corrections, recommendations versus execution, and complete 100-decision records.
 
-The GitHub Pages workflow sets `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops` and deploys `apps/web/out/`. A root deployment can use the default empty base path. Manrope and JetBrains Mono are served locally; their font licenses are in `apps/web/public/brand/`.
+The browser journal uses atomic IndexedDB transactions and writer leases, with explicit takeover, stale-save rejection, corrupt-record quarantine and an honest unsaved fallback. Browser tests exercise interrupted writes, multiple tabs and PDF production. These checks do not replace manual assistive technology testing or independent rubric calibration.
 
-### Optional headset and reliability
+## Privacy and scope
 
-Headset mode is opt-in and discloses an estimated 232 MB initial model download. You can cancel model-file downloads from its settings panel. Microphone use is separate from loading the models. Quantized loading, sequential initialization, memory-pressure checks, and browser-speech fallback protect the first-enable path; they do not guarantee support on every device. Automated tests cover the load policy and download cancellation. See the [case study](https://swb2019.github.io/shannon-brown-career/work/hourglass-command/) for design tradeoffs and limitations.
+The flagship requires no account, analytics, microphone, cloud inference or backend. No player decisions are sent to a service. Use fictional, minimal notes; applications on the portfolio’s shared origin are not mutually isolated. Imports are bounded and replay-validated; client-side records remain unsigned and inspectable. A digest is not proof of authorship.
 
----
+G3 additional cases and facilitated exercises, the consented learning-signal study, and G4 networked roles, enterprise features and AI experiments remain explicitly gated. No paid service or recurring spend is introduced.
 
-[Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [MIT license](LICENSE)
+## Source and license
 
-[Shannon Brown](https://swb2019.github.io/shannon-brown-career/) · Operational judgment, made tangible.
+Baseline preserved: `94486155e77a6dddd8293900a83e443679361e33`. The source and original procedural Glasshouse geometry are MIT licensed; see [LICENSE](LICENSE) and [the asset register](docs/ASSET-REGISTER.md). Historical methodology is corrected in [the current evidence note](docs/TRAINING.md).

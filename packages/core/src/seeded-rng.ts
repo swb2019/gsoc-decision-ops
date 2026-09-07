@@ -15,16 +15,17 @@
  * @param seed - Numeric seed for reproducibility
  * @returns A function that returns the next random number [0, 1)
  */
-export function createSeededRNG(seed: number): () => number {
+export function createSeededRNG(seed: number): (() => number) & { getState: () => number } {
   let state = seed >>> 0;
 
-  return function mulberry32(): number {
+  const mulberry32 = (): number => {
     state = (state + 0x6d2b79f5) >>> 0;
     let z = state;
     z = Math.imul(z ^ (z >>> 15), z | 1) >>> 0;
     z = (z ^ (z + Math.imul(z ^ (z >>> 7), z | 61))) >>> 0;
     return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
   };
+  return Object.assign(mulberry32, { getState: () => state });
 }
 
 /**
@@ -59,7 +60,7 @@ export function generateTimestampSeed(): number {
  * Seeded RNG utility class with convenience methods
  */
 export class SeededRandom {
-  private rng: () => number;
+  private rng: ReturnType<typeof createSeededRNG>;
   public readonly seed: number;
 
   constructor(seed?: number | string) {
@@ -78,6 +79,22 @@ export class SeededRandom {
    */
   next(): number {
     return this.rng();
+  }
+
+  /** Exact continuation point; the original seed alone cannot resume a stream. */
+  getState(): { seed: number; state: number } {
+    return { seed: this.seed, state: this.rng.getState() };
+  }
+
+  static fromState(snapshot: { seed: number; state: number }): SeededRandom {
+    for (const value of [snapshot.seed, snapshot.state]) {
+      if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+        throw new RangeError('Random stream state must contain unsigned 32-bit integers.');
+      }
+    }
+    const restored = new SeededRandom(snapshot.seed);
+    restored.rng = createSeededRNG(snapshot.state);
+    return restored;
   }
 
   /**

@@ -93,7 +93,8 @@ describe('ArcScheduler', () => {
       const state = scheduler.getState();
 
       const firstInject = state.scheduledInjects[0];
-      scheduler.tick(firstInject.actualRevealSecond + 1);
+      const due = scheduler.tick(firstInject.actualRevealSecond + 1);
+      scheduler.acknowledgeInjects(due.map((item) => item.inject.id));
       const secondReveal = scheduler.tick(firstInject.actualRevealSecond + 2);
 
       const alreadyRevealed = secondReveal.find((r) => r.inject.id === firstInject.inject.id);
@@ -245,9 +246,9 @@ describe('createArcFromLog', () => {
 
 describe('Seed Code Functions', () => {
   describe('generateSeedCode', () => {
-    it('produces 6-character code', () => {
+    it('produces 7-character codes that can represent all 32 seed bits', () => {
       const code = generateSeedCode(12345);
-      expect(code).toHaveLength(6);
+      expect(code).toHaveLength(7);
     });
 
     it('produces deterministic codes', () => {
@@ -285,6 +286,122 @@ describe('Seed Code Functions', () => {
       expect(recoveredSeed).toBe(originalSeed);
     });
   });
+});
+
+describe('G0 causal scheduler regressions', () => {
+  it('applies a clock-jump consequence burst in causal time order before clamping', () => {
+    const original = new ArcScheduler(1, 'OPERATOR', []);
+    const snapshot = JSON.parse(original.exportState());
+    snapshot.currentTrust = 99;
+    snapshot.consequenceQueue = [
+      {
+        triggerTime: 20,
+        sourceInjectId: 'later',
+        consequence: {
+          triggerPosture: 'CONTINUE',
+          type: 'STAKEHOLDER',
+          description: 'Later recovery',
+          trustImpact: 5,
+        },
+      },
+      {
+        triggerTime: 10,
+        sourceInjectId: 'earlier',
+        consequence: {
+          triggerPosture: 'CONTINUE',
+          type: 'STAKEHOLDER',
+          description: 'Earlier loss',
+          trustImpact: -15,
+        },
+      },
+    ];
+    const restored = ArcScheduler.importState(JSON.stringify(snapshot), 'OPERATOR');
+    restored.tick(30);
+    expect(restored.getTrustLevel()).toBe(89);
+    restored.tick(30);
+    expect(restored.getTrustLevel()).toBe(89);
+  });
+
+  it('preserves the authored core sequence and immutable reveal facts across 1,000 seeds', () => {
+    const injects = createTestInjects();
+    for (let seed = 0; seed < 1_000; seed++) {
+      const scheduler = new ArcScheduler(seed, 'DIRECTOR', [...injects].reverse());
+      const schedule = scheduler.getState().scheduledInjects;
+      expect(schedule.map((item) => item.inject.id)).toEqual(injects.map((item) => item.id));
+      expect(schedule.map((item) => item.inject.revealAtMinute)).toEqual(
+        injects.map((item) => item.revealAtMinute)
+      );
+      for (const item of schedule) {
+        expect(item.actualRevealSecond).toBeGreaterThanOrEqual(item.inject.revealAtMinute * 60);
+      }
+    }
+  });
+
+  it('keeps twenty due events pending through a slow frame until journal acknowledgment', () => {
+    const injects = Array.from({ length: 20 }, (_, index) => ({
+      ...createTestInjects()[0],
+      id: `BURST-${index}`,
+      sequenceNumber: index + 1,
+      revealAtMinute: 0,
+    }));
+    const scheduler = new ArcScheduler(42, 'OPERATOR', injects);
+    const due = scheduler.tick(3_600);
+    expect(due.map((item) => item.inject.id)).toEqual(injects.map((item) => item.id));
+    scheduler.acknowledgeInjects([due[0].inject.id]);
+    const remaining = scheduler.tick(3_600);
+    expect(remaining.map((item) => item.inject.id)).toEqual(
+      injects.slice(1).map((item) => item.id)
+    );
+    scheduler.acknowledgeInjects(remaining.map((item) => item.inject.id));
+    expect(scheduler.tick(3_600)).toEqual([]);
+    expect(scheduler.getState().revealedInjectIds.size).toBe(20);
+  });
+
+  it('rejects invalid clock movements without changing the saved state', () => {
+    const scheduler = new ArcScheduler(1, 'OPERATOR', createTestInjects());
+    scheduler.tick(60);
+    const before = scheduler.exportState();
+    for (const time of [59, -1, NaN, Infinity]) {
+      expect(() => scheduler.tick(time)).toThrow();
+      expect(scheduler.exportState()).toBe(before);
+    }
+  });
+
+  it('continues identical random consequences after save and restore', () => {
+    const injects = createTestInjects().map((inject) => ({
+      ...inject,
+      expectedPostureImpact: 'PAUSE' as const,
+    }));
+    const original = new ArcScheduler(0xffffffff, 'DIRECTOR', injects);
+    original.tick(60);
+    original.recordDecision(injects[0].id, 'CONTINUE', injects[0]);
+    const restored = ArcScheduler.importState(original.exportState(), 'DIRECTOR');
+    for (let index = 0; index < 20; index++) {
+      expect(restored.recordDecision(`future-${index}`, 'CONTINUE', injects[1])).toEqual(
+        original.recordDecision(`future-${index}`, 'CONTINUE', injects[1])
+      );
+    }
+    expect(restored.exportState()).toBe(original.exportState());
+  });
+});
+
+describe('G0 seed serialization', () => {
+  it.each([0, 1, 0x3fffffff, 0x40000000, 0x7fffffff, 0x80000000, 0xfffffffe, 0xffffffff])(
+    'round-trips unsigned 32-bit boundary seed %i',
+    (seed) => expect(parseSeedCode(generateSeedCode(seed))).toBe(seed)
+  );
+
+  it('reads existing six-character codes without changing their meaning', () => {
+    expect(parseSeedCode('BAAAAA')).toBe(1);
+    expect(parseSeedCode('AAAAAA')).toBe(0);
+  });
+
+  it.each(['', 'ABC!EF', 'ABCDEF!!', 'ZZZZZZZ', 'AAAAAAA0'])(
+    'rejects malformed code %s',
+    (code) => {
+      expect(() => parseSeedCode(code)).toThrow();
+    }
+  );
 });
 
 describe('PACING_CONFIGS', () => {
