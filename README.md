@@ -8,6 +8,7 @@ This branch is an **engineering candidate, not a qualified public release**. Ind
 - [Design and invariants](docs/GLASSHOUSE-DESIGN.md)
 - [Engineering validation](docs/ENGINEERING-VALIDATION.md)
 - [Both physical Android results](docs/DEVICE-VALIDATION.md)
+- [Two-way audio: hearing and responding](docs/TWO-WAY-AUDIO.md)
 - [Actual application art/audio gallery](qa-output/art-review/index.html)
 - [All 55 requirement statuses](docs/REQUIREMENTS-STATUS.md)
 - [Human qualification packet](docs/QUALIFICATION-KIT.md)

@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Local comms / headset path for Hourglass Command
+ * Local comms / voice session path for Hourglass Command
  *
  * On-device radio: Whisper Base (STT) + Kokoro-82M (TTS).
- * Models lazy-load only when the operator enables headset (~230MB, one-time).
+ * Models lazy-load only when the operator enables two-way audio (~230MB, one-time).
  * Yields to ElevenLabs scripted VO whenever that path is playing.
  *
  * First enable loads two ONNX stacks on the main thread (voiceWorker is unused).
@@ -231,7 +231,7 @@ export function isLocalVoiceEnabled(): boolean {
 }
 
 /**
- * Headset earpiece is ready to speak dynamic lines (injects, decisions, micro-tasks).
+ * Local voice output is ready to speak dynamic lines (injects, decisions, micro-tasks).
  */
 export function isLocalTTSReady(): boolean {
   return config.enabled && config.ttsEnabled && state.ttsReady;
@@ -387,7 +387,7 @@ function restoreReadyFromLoadedModels(): void {
     stage: 'ready',
     progress: 100,
     currentModel: null,
-    message: kokoroInstance ? 'Headset online' : 'Headset online (browser speech)',
+    message: kokoroInstance ? 'Two-way audio ready' : 'Two-way audio ready (browser speech)',
   });
 }
 
@@ -446,7 +446,7 @@ export async function enableLocalVoice(): Promise<boolean> {
       stage: 'downloading',
       progress: 0,
       currentModel: 'whisper',
-      message: `Provisioning headset models… (~${WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB} MB, one-time)`,
+      message: `Preparing two-way audio… (~${WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB} MB, one-time)`,
     });
 
     downloadSession = createModelDownloadSession(window);
@@ -480,7 +480,7 @@ export async function enableLocalVoice(): Promise<boolean> {
       return false;
     }
     const errorMessage = isMemoryError(error)
-      ? 'Headset provision ran out of memory. Close other tabs and try again.'
+      ? 'Voice setup ran out of memory. Close other tabs and try again.'
       : error instanceof Error
         ? error.message
         : 'Failed to load voice models';
@@ -545,7 +545,7 @@ async function loadModels(): Promise<void> {
     stage: 'downloading',
     progress: 0,
     currentModel: 'whisper',
-    message: `Provisioning headset models… (~${totalSize} MB, one-time)`,
+    message: `Preparing two-way audio… (~${totalSize} MB, one-time)`,
   });
 
   const whisper = await loadWhisperModel();
@@ -566,7 +566,7 @@ async function loadModels(): Promise<void> {
       stage: 'ready',
       progress: 100,
       currentModel: null,
-      message: 'Headset online (browser speech)',
+      message: 'Two-way audio ready (browser speech)',
     });
     return;
   }
@@ -574,7 +574,7 @@ async function loadModels(): Promise<void> {
   updateProgress({
     progress: 60,
     currentModel: 'kokoro',
-    message: 'Provisioning headset models…',
+    message: 'Preparing two-way audio…',
   });
 
   await loadKokoroModel();
@@ -584,7 +584,7 @@ async function loadModels(): Promise<void> {
     stage: 'ready',
     progress: 100,
     currentModel: null,
-    message: kokoroInstance ? 'Headset online' : 'Headset online (browser speech)',
+    message: kokoroInstance ? 'Two-way audio ready' : 'Two-way audio ready (browser speech)',
   });
 }
 
@@ -676,7 +676,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
     updateProgress({
       stage: 'downloading',
       currentModel: 'whisper',
-      message: 'Provisioning headset models…',
+      message: 'Preparing two-way audio…',
       progress: 10,
     });
 
@@ -693,7 +693,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
 
     updateProgress({
       progress: 20,
-      message: `Provisioning headset models… (${device.toUpperCase()})`,
+      message: `Preparing two-way audio… (${device.toUpperCase()})`,
     });
 
     const pipelineFn = pipeline as (
@@ -718,7 +718,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
       }
     );
 
-    updateProgress({ progress: 55, message: 'Provisioning headset models…' });
+    updateProgress({ progress: 55, message: 'Preparing two-way audio…' });
     return { memoryError: false };
   } catch (error) {
     console.warn('Failed to load Whisper model:', error);
@@ -772,7 +772,7 @@ async function loadKokoroModel(): Promise<void> {
     updateProgress({
       progress: 60,
       currentModel: 'kokoro',
-      message: 'Provisioning headset models…',
+      message: 'Preparing two-way audio…',
     });
 
     const { KokoroTTS } = await loadKokoroFromCDN();
@@ -781,7 +781,7 @@ async function loadKokoroModel(): Promise<void> {
 
     updateProgress({
       progress: 70,
-      message: 'Provisioning headset models…',
+      message: 'Preparing two-way audio…',
     });
 
     const device = inferenceDevice();
@@ -790,14 +790,14 @@ async function loadKokoroModel(): Promise<void> {
       device,
     });
 
-    updateProgress({ progress: 95, message: 'Headset online' });
+    updateProgress({ progress: 95, message: 'Two-way audio ready' });
     updateState({ fallbackTTS: null });
   } catch (error) {
     console.warn('Failed to load Kokoro model, falling back to Web Speech:', error);
     downloadSession?.assertActive();
     applyWebSpeechFallback();
     if (webSpeechSynth) {
-      updateProgress({ progress: 95, message: 'Headset online (browser speech)' });
+      updateProgress({ progress: 95, message: 'Two-way audio ready (browser speech)' });
     } else if (isMemoryError(error)) {
       throw error;
     }

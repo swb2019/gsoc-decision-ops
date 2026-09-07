@@ -70,7 +70,7 @@ test('a decision appears in the review and produces a PDF download', async ({ pa
   await expect(page.getByRole('heading', { name: 'Decision Log' })).toBeVisible();
 });
 
-test('headset provisioning is opt-in and cancellation returns the switch to idle', async ({
+test('two-way audio setup is opt-in and cancellation returns the switch to idle', async ({
   page,
 }) => {
   let modules = 0,
@@ -96,8 +96,15 @@ test('headset provisioning is opt-in and cancellation returns the switch to idle
   await page.goto('/scenarios/access-control-ransomware/');
   expect(modules).toBe(0);
   expect(models).toBe(0);
-  await page.getByRole('button', { name: 'Enable local comms headset' }).click();
-  const toggle = page.getByRole('switch', { name: 'Enable headset' });
+  await page.getByRole('button', { name: 'Enable two-way audio' }).click();
+  await expect(page.getByRole('heading', { name: 'Two-way audio' })).toBeVisible();
+  await expect(
+    page.getByText('Hear spoken updates and respond using your device’s microphone')
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Your device’s microphone and speakers are sufficient/)
+  ).toBeVisible();
+  const toggle = page.getByRole('switch', { name: 'Enable two-way audio' });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await toggle.click();
   await expect.poll(() => models).toBe(1);
@@ -105,6 +112,6 @@ test('headset provisioning is opt-in and cancellation returns the switch to idle
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await expect(toggle).toBeEnabled();
   await release?.();
-  await page.getByRole('button', { name: 'Close headset settings' }).click();
+  await page.getByRole('button', { name: 'Close two-way audio settings' }).click();
   await expect(page.getByRole('button', { name: 'Begin Mission' })).toBeVisible();
 });

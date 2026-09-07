@@ -69,7 +69,7 @@ interface UseLocalVoiceReturn {
   lastTranscription: string | null;
   clearTranscription: () => void;
 
-  // Headset readiness (enabled + model ready + feature toggle)
+  // Local voice readiness (enabled + model ready + feature toggle)
   canSpeak: boolean;
   canListen: boolean;
 }
@@ -99,7 +99,7 @@ export function useLocalVoice(
     }
 
     // Do not unload models on unmount — CommandCenter and the settings panel both
-    // subscribe; tearing down here would drop a live headset when the panel closes.
+    // subscribe; tearing down here would drop a live voice session when the panel closes.
   }, [elevenLabsPlayingChecker]);
 
   // Subscribe to state changes

@@ -2,18 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { clsx } from 'clsx';
-import {
-  Mic,
-  MicOff,
-  Volume2,
-  VolumeX,
-  Loader2,
-  Headphones,
-  Settings,
-  X,
-  Sparkles,
-  Cpu,
-} from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Loader2, Settings, X, Sparkles, Cpu } from 'lucide-react';
 import { useLocalVoice } from '../lib/hooks/useLocalVoice';
 import { KOKORO_VOICES } from '../lib/local-voice';
 
@@ -64,10 +53,12 @@ export default function LocalVoicePanel({
 
   const getStatusText = () => {
     if (state.error) return state.error;
-    if (isDownloading) return progress.message || 'Provisioning headset models…';
-    if (isReady) return 'Headset online';
-    if (!isEnabled) return 'Headset stowed';
-    return 'Headset not loaded';
+    if (isDownloading) return progress.message || 'Preparing two-way audio…';
+    if (state.sttReady && state.ttsReady) return 'Ready to hear and respond';
+    if (state.sttReady) return 'Voice responses ready; playback unavailable';
+    if (state.ttsReady) return 'Spoken updates ready; voice responses unavailable';
+    if (!isEnabled) return 'Two-way audio off';
+    return 'Two-way audio not ready';
   };
 
   return (
@@ -83,7 +74,7 @@ export default function LocalVoicePanel({
                 : 'bg-gray-800/60 border border-gray-700/50'
             )}
           >
-            <Headphones
+            <Mic
               className={clsx(
                 'w-5 h-5',
                 isEnabled && isReady && !isDownloading ? 'text-violet-400' : 'text-gray-500'
@@ -92,18 +83,20 @@ export default function LocalVoicePanel({
           </div>
           <div>
             <h3 className="font-semibold text-gray-200 flex items-center gap-2">
-              Local Comms
+              Two-way audio
               <span className="text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 font-medium">
                 Beta
               </span>
             </h3>
-            <p className="text-xs text-gray-500">Operator headset — on-device mic and earpiece</p>
+            <p className="text-xs text-gray-500">
+              Hear spoken updates and respond using your device’s microphone
+            </p>
           </div>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            aria-label="Close headset settings"
+            aria-label="Close two-way audio settings"
             className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
           >
             <X className="w-4 h-4 text-gray-500" />
@@ -115,7 +108,7 @@ export default function LocalVoicePanel({
       <div className="mb-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800/50">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium text-gray-300">Enable headset</div>
+            <div className="text-sm font-medium text-gray-300">Enable two-way audio</div>
             <div className="text-xs text-gray-500 mt-0.5">
               {!isEnabled
                 ? `Provisions ~${estimatedDownloadMB} MB on first enable (one-time)`
@@ -125,7 +118,7 @@ export default function LocalVoicePanel({
           <button
             onClick={handleToggle}
             role="switch"
-            aria-label="Enable headset"
+            aria-label="Enable two-way audio"
             aria-checked={isEnabled}
             disabled={isDownloading || state.isLoading}
             className={clsx(
@@ -223,12 +216,17 @@ export default function LocalVoicePanel({
                 <MicOff className="w-4 h-4 text-gray-500" />
               )}
               <div>
-                <div className="text-sm text-gray-300">Push-to-talk</div>
-                <div className="text-2xs text-gray-500">Brief rationale into the decision log</div>
+                <div className="text-sm text-gray-300">Speak a response</div>
+                <div className="text-2xs text-gray-500">
+                  Dictate a response, then review the text before committing your decision
+                </div>
               </div>
             </div>
             <button
               onClick={() => setSTTEnabled(!config.sttEnabled)}
+              role="switch"
+              aria-label="Speak a response"
+              aria-checked={config.sttEnabled}
               className={clsx(
                 'w-10 h-6 rounded-full transition-colors',
                 config.sttEnabled ? 'bg-emerald-500' : 'bg-gray-700'
@@ -252,14 +250,17 @@ export default function LocalVoicePanel({
                 <VolumeX className="w-4 h-4 text-gray-500" />
               )}
               <div>
-                <div className="text-sm text-gray-300">Headset earpiece</div>
+                <div className="text-sm text-gray-300">Hear spoken updates</div>
                 <div className="text-2xs text-gray-500">
-                  Hear injects and decision prompts in-headset
+                  Listen through your device’s speakers or chosen audio output
                 </div>
               </div>
             </div>
             <button
               onClick={() => setTTSEnabled(!config.ttsEnabled)}
+              role="switch"
+              aria-label="Hear spoken updates"
+              aria-checked={config.ttsEnabled}
               className={clsx(
                 'w-10 h-6 rounded-full transition-colors',
                 config.ttsEnabled ? 'bg-emerald-500' : 'bg-gray-700'
@@ -340,12 +341,13 @@ export default function LocalVoicePanel({
           <Sparkles className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-xs text-violet-200">
-              <strong>Net discipline:</strong> Processing stays on this device. Scripted dispatch VO
-              still has the net — local comms yield when that path is live.
+              <strong>Hear and respond:</strong> Listen to scenario updates, then speak your
+              response. Your device’s microphone and speakers are sufficient. Responses become
+              editable text; your decision is recorded when you commit it.
             </p>
             <p className="text-2xs text-violet-300/70 mt-1">
               Models cache after first provision. English only. Opt-in; nothing downloads until you
-              enable headset.
+              enable two-way audio.
             </p>
           </div>
         </div>
@@ -383,19 +385,19 @@ export function LocalVoiceToggle({
             : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50',
         className
       )}
-      aria-label={isEnabled ? 'Local comms headset settings' : 'Enable local comms headset'}
+      aria-label={isEnabled ? 'Two-way audio settings' : 'Enable two-way audio'}
       title={
         isLoading
-          ? 'Provisioning headset models…'
+          ? 'Preparing two-way audio…'
           : isEnabled && isReady
-            ? 'Headset online — local comms'
-            : 'Enable headset (local comms)'
+            ? 'Two-way audio ready'
+            : 'Enable two-way audio'
       }
     >
       {isLoading ? (
         <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
       ) : (
-        <Headphones className="w-4 h-4 sm:w-5 sm:h-5" />
+        <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
       )}
     </button>
   );
@@ -439,17 +441,17 @@ export function PushToTalkButton({
           : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30',
         className
       )}
-      title={isListening ? 'Release to log' : 'Push to talk'}
+      title={isListening ? 'Release to review your response' : 'Hold to speak a response'}
     >
       {isListening ? (
         <>
           <Mic className="w-5 h-5 animate-pulse" />
-          <span className="text-sm font-medium">On net…</span>
+          <span className="text-sm font-medium">Listening…</span>
         </>
       ) : (
         <>
           <Mic className="w-5 h-5" />
-          <span className="text-sm font-medium">Push to talk</span>
+          <span className="text-sm font-medium">Hold to speak a response</span>
         </>
       )}
     </button>
@@ -484,7 +486,7 @@ export function ReadAloudButton({
           : 'text-gray-400 hover:text-violet-400 hover:bg-violet-500/10',
         className
       )}
-      title={isSpeaking ? 'On net…' : 'Hear inject'}
+      title={isSpeaking ? 'Speaking…' : 'Hear this update'}
     >
       {isSpeaking ? <Volume2 className="w-4 h-4 animate-pulse" /> : <Volume2 className="w-4 h-4" />}
       {label && <span className="text-xs">{label}</span>}

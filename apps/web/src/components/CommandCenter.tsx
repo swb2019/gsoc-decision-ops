@@ -78,7 +78,6 @@ import {
   Percent,
   ArrowUp,
   ArrowDown,
-  Headphones,
 } from 'lucide-react';
 
 // Session storage key for persistence
@@ -3576,8 +3575,8 @@ export default function CommandCenter({
                       )}
                       role="menuitem"
                     >
-                      <Headphones className="w-4 h-4" />
-                      Local Voice
+                      <Mic className="w-4 h-4" />
+                      Two-way audio
                       {localVoice.isEnabled && (
                         <span className="ml-auto text-2xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
                           On
@@ -5804,7 +5803,7 @@ function DecisionConsole({
                     <div className="mt-4 pt-4 border-t border-gray-700/30">
                       <div className="flex items-center gap-2 mb-2">
                         <Mic className="w-3.5 h-3.5 text-violet-400" />
-                        <span className="text-xs text-gray-400">Add voice note (optional)</span>
+                        <span className="text-xs text-gray-400">Speak a response (optional)</span>
                       </div>
                       <button
                         onMouseDown={() => localVoice.startRecording()}
@@ -5829,8 +5828,8 @@ function DecisionConsole({
                           className={clsx('w-4 h-4', localVoice.isListening && 'animate-pulse')}
                         />
                         {localVoice.isListening
-                          ? 'Release to transcribe...'
-                          : 'Hold to dictate rationale'}
+                          ? 'Release to review your response'
+                          : 'Hold to speak a response'}
                       </button>
                     </div>
                   )}
@@ -8272,7 +8271,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
     { id: 'kri' as const, label: 'KRIs', icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'value' as const, label: 'Value Metrics', icon: <TrendingUp className="w-4 h-4" /> },
     { id: 'pipeline' as const, label: 'Pipeline', icon: <Activity className="w-4 h-4" /> },
-    { id: 'voice' as const, label: 'Local Voice', icon: <Headphones className="w-4 h-4" /> },
+    { id: 'voice' as const, label: 'Two-way audio', icon: <Mic className="w-4 h-4" /> },
   ];
 
   const glossaryTerms = [
@@ -9777,7 +9776,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
           {activeSection === 'voice' && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white mb-3">On-Device Voice Mode</h3>
+              <h3 className="text-lg font-semibold text-white mb-3">Two-way audio</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
                 Optional voice interactivity powered by AI models that run entirely in your browser.
                 No audio is sent to external servers.
@@ -9785,11 +9784,11 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
 
               <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
                 <div className="flex items-start gap-3">
-                  <Headphones className="w-5 h-5 text-violet-400 mt-0.5 flex-shrink-0" />
+                  <Mic className="w-5 h-5 text-violet-400 mt-0.5 flex-shrink-0" />
                   <div>
                     <h4 className="text-violet-400 font-semibold mb-2">How It Works</h4>
                     <p className="text-sm text-gray-300 mb-3">
-                      When you enable Local Voice mode, the app downloads AI models (~230 MB total,
+                      When you enable two-way audio, the app downloads AI models (~230 MB total,
                       one-time) that run on your device:
                     </p>
                     <ul className="text-sm text-gray-400 space-y-2">
@@ -9822,11 +9821,14 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                 <h4 className="text-gray-300 font-semibold text-sm mb-3">Getting Started</h4>
                 <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
                   <li>
-                    Click the <Headphones className="w-3.5 h-3.5 inline text-violet-400" />{' '}
-                    headphones icon in the header bar
+                    Click the <Mic className="w-3.5 h-3.5 inline text-violet-400" /> microphone icon
+                    in the header bar
                   </li>
-                  <li>Enable &quot;Local Voice&quot; to begin the one-time model download</li>
-                  <li>Once ready, use push-to-talk to dictate and read-aloud buttons to listen</li>
+                  <li>Enable &quot;Two-way audio&quot; to begin the one-time model download</li>
+                  <li>
+                    Once ready, listen to spoken updates and hold the microphone button to respond.
+                    Review the text before committing your decision.
+                  </li>
                 </ol>
               </div>
 

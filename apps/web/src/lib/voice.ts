@@ -389,17 +389,17 @@ function getSpeechSynthesis(): SpeechSynthesis | null {
   return window.speechSynthesis;
 }
 
-function speakViaHeadset(text: string, priority?: number): boolean {
+function speakViaLocalVoice(text: string, priority?: number): boolean {
   if (!isLocalTTSReady()) return false;
   void speakLocalTTS(text, priority ?? 5);
   return true;
 }
 
 /**
- * Headset path for dynamic lines. Waits for scripted ElevenLabs (playing or
+ * Local voice path for dynamic lines. Waits for scripted ElevenLabs (playing or
  * queued) so decision_prompt + playSpokenText do not double-talk.
  */
-function scheduleHeadsetYieldingToScriptedVO(text: string, priority: number): void {
+function scheduleLocalVoiceYieldingToScriptedVO(text: string, priority: number): void {
   const startedAt = Date.now();
   const maxWaitMs = 20000;
 
@@ -435,7 +435,7 @@ function onEventAudioError(): void {
     if (eventAudioElement) {
       eventAudioElement.pause();
     }
-    if (speakViaHeadset(spoken, 7)) {
+    if (speakViaLocalVoice(spoken, 7)) {
       isVOPlaying = false;
       currentlyPlaying = null;
       restoreBGMVolume();
@@ -720,9 +720,9 @@ export function playSpokenText(text: string, opts?: SpokenTextOptions): void {
 
   if (systemPaused && !opts?.force) return;
 
-  // Headset path: speak dynamic lines ElevenLabs does not cover. Yields to scripted VO.
+  // Local voice path: speak dynamic lines ElevenLabs does not cover. Yields to scripted VO.
   if (isLocalTTSReady()) {
-    scheduleHeadsetYieldingToScriptedVO(spoken, opts?.priority ?? 5);
+    scheduleLocalVoiceYieldingToScriptedVO(spoken, opts?.priority ?? 5);
     return;
   }
 
@@ -783,10 +783,10 @@ export function playEventVO(
   const priority = triagePriority ? EVENT_VO_PRIORITY[triagePriority] : EVENT_VO_PRIORITY.ROUTINE;
   const spokenFallback = options?.spokenFallback?.trim() || undefined;
 
-  // Headset-only: no ElevenLabs cue path — speak the dynamic inject line in-headset
+  // Local voice-only: no ElevenLabs cue path — speak the dynamic inject line in-voice session
   if (!voConfig.voiceEnabled) {
     if (spokenFallback) {
-      speakViaHeadset(spokenFallback, priority);
+      speakViaLocalVoice(spokenFallback, priority);
     }
     return;
   }
@@ -845,10 +845,10 @@ export function playEventVOOnSelect(
     : EVENT_VO_PRIORITY.ROUTINE + 1;
   const spokenFallback = options?.spokenFallback?.trim() || undefined;
 
-  // Headset-only tap-to-hear: speak the inject in-headset when scripted VO is off
+  // Local voice-only tap-to-hear: speak the inject in-voice session when scripted VO is off
   if (!voConfig.voiceEnabled) {
     if (spokenFallback) {
-      speakViaHeadset(spokenFallback, priority);
+      speakViaLocalVoice(spokenFallback, priority);
     }
     return;
   }
@@ -901,7 +901,7 @@ export function clearVOQueue(): void {
 }
 
 /**
- * Check if scripted ElevenLabs VO is playing or queued (not browser/headset TTS).
+ * Check if scripted ElevenLabs VO is playing or queued (not browser/voice session TTS).
  * Used so local comms yield instead of double-talking with decision_prompt etc.
  */
 export function isScriptedVOBusy(): boolean {
