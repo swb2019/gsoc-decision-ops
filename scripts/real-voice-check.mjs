@@ -109,19 +109,20 @@ try {
   );
   const start = page.getByRole('button', { name: /^Guided practice/ });
   if (await start.count()) await start.click();
-  const panel = page.getByRole('region', { name: 'Ongoing two-way voice' });
+  await page.getByRole('button', { name: 'More options' }).click();
+  await page.getByRole('menuitem', { name: 'Two-way audio', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Two-way audio settings' });
+  const panel = dialog.getByRole('region', { name: 'Ongoing two-way voice' });
   const setupStarted = Date.now();
-  await panel.getByRole('button', { name: 'Voice setup', exact: true }).click();
-  await panel.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();
+  await dialog.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();
   console.log('Loading actual local voice models');
   await expect(panel.getByRole('button', { name: 'Start conversation', exact: true })).toBeEnabled({
     timeout: 600000,
   });
   result.setupMs = Date.now() - setupStarted;
-  result.outputMode = (await panel.getByText('Browser TTS', { exact: true }).count())
+  result.outputMode = (await dialog.getByText('Browser TTS', { exact: true }).count())
     ? 'native device speech'
     : 'Kokoro';
-  await panel.getByRole('button', { name: 'Close two-way audio settings' }).click();
   await panel.getByRole('button', { name: 'Start conversation', exact: true }).click();
   console.log('Models ready; conversation activated');
   const stopBounds = await page

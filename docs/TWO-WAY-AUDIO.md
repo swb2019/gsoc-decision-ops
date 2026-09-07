@@ -4,7 +4,7 @@ Glasshouse and the legacy scenarios support an ongoing voice conversation throug
 
 ## Start once, then speak
 
-1. Open **Voice setup**, enable hearing and speech input, and allow the disclosed local models to finish loading.
+1. Open **More options**, choose **Two-way audio**, enable hearing and speech input, and allow the disclosed local models to finish loading.
 2. Tap **Start conversation** and allow microphone access if the browser asks.
 3. Speak a command or decision. About 1.25 seconds of silence after speech finishes ends the turn and sends it automatically. The game acts on a resolved decision, speaks its receipt or a follow-up question, and resumes listening automatically.
 

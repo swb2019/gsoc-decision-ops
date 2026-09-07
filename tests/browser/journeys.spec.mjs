@@ -112,7 +112,12 @@ test('two-way audio setup is opt-in and cancellation returns the switch to idle'
   await page.goto('/scenarios/access-control-ransomware/');
   expect(modules).toBe(0);
   expect(models).toBe(0);
-  await page.getByRole('button', { name: 'Enable two-way audio' }).click();
+  await expect(page.getByRole('heading', { name: 'Two-way audio' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Start conversation', exact: true })).toHaveCount(
+    0
+  );
+  await page.getByRole('button', { name: 'More options' }).click();
+  await page.getByRole('menuitem', { name: 'Two-way audio', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Two-way audio' })).toBeVisible();
   await expect(
     page.getByText('Hear spoken updates and respond using your device’s microphone')
