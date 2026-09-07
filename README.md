@@ -56,7 +56,7 @@ npx playwright test --config playwright.engines.config.mjs
 
 `/` is Hourglass Command (campaign home). `/glasshouse/` is the optional Glasshouse exercise. `/evidence/` describes Glasshouse limits. `/legacy/` redirects to `/`. All eight `/scenarios/.../` URLs are preserved. Glasshouse records remain read-only historical evidence, not silently translated into a new feedback model.
 
-For a GitHub Pages build use `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops`. Automatic publication is held by `scripts/check-release-gate.mjs` until the exact artifact revision has documented human qualification. The owner can explicitly publish a review build using the deployment workflow's `publish_review_build` input; automated checks still run and human qualification remains pending. Building a branch alone does not change the live site.
+For a GitHub Pages build use `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops`. Pushes to `main` publish automatically after engineering checks. `release/qualification.json` stays the human qualification record and remains on hold until actual reviews; it does not gate Pages. Optional `scripts/check-release-gate.mjs` can still be run by hand. Building a branch alone does not change the live site.
 
 ## Engineering evidence
 

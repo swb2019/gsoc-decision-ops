@@ -1,12 +1,12 @@
 # Static release operation
 
-Shannon Brown owns promotion, capacity review and rollback. The current qualification record holds automatic public deployment. An explicitly requested review deployment is available through the manual workflow input described below. Development and review introduce no paid inference, server, analytics or recurring service.
+Shannon Brown owns promotion, capacity review and rollback. GitHub Pages deploys automatically on push to `main` after engineering verification. `release/qualification.json` remains the human go/hold record and does not block that deploy. Development and review introduce no paid inference, server, analytics or recurring service.
 
-## Owner-requested review deployment
+## GitHub Pages publication
 
-On 7 September 2026 the owner explicitly requested that the live website be redeployed with the new version after source commit `a8edba20f027db6666ada7b18f51123f4512099d` was pushed. This authorizes publication for review; it does not assert completion of the pending human qualification gates.
+Pushes to `main` run **Deploy to GitHub Pages**: semantic, type, lint, build and browser checks, then upload. Human qualification is not a deploy gate. Keep `release/qualification.json` unchanged until actual reviews are completed; do not invent a qualified record to describe a Pages publish.
 
-Run **Deploy to GitHub Pages** on `main` with `publish_review_build=true` for this review deployment. The workflow records the actor and exact revision and runs semantic, type, lint, build and browser checks before uploading the artifact. The default input is false, so ordinary deployments continue to require the qualification record. Keep `release/qualification.json` unchanged until actual reviews are completed.
+Manual workflow_dispatch remains available. The `publish_review_build` input only records an owner-requested review deployment in the job summary; it is not required to publish.
 
 The prior successful public deployment is run `34064527464`, source `94486155e77a6dddd8293900a83e443679361e33`. To restore it, rerun that successful workflow to rebuild and deploy its original revision; do not overwrite user journals or browser storage.
 
@@ -24,7 +24,7 @@ The script emits an owner-review warning at 70% of either known limit and calcul
 2. Complete semantic, browser, accessibility and content qualification against one built artifact at `/gsoc-decision-ops/`. Record the reviewed source revision and evidence in `release/qualification.json`; do not mark human gates passed to bypass the hold.
 3. Rehearse restoring the prior artifact in staging within 15 minutes. Check root, all eight scenario routes, assets, local legacy review, new journal restore and full reports. Preserve every original recovery file.
 4. Retire the faulty Glasshouse offline pack from Display & local data. This removes only namespaced pack caches/workers; it does not delete the journal. Verify neighboring portfolio data before and after rollback.
-5. Promote that same tested static artifact. A later source change requires renewed affected checks and qualification of the new revision. The deployment workflow rejects executable changes after the recorded review revision.
+5. Promote that same tested static artifact. A later source change requires renewed affected checks and qualification of the new revision. Optional `scripts/check-release-gate.mjs` still compares executable paths to a recorded qualification revision when run by hand; the Pages workflow does not invoke it.
 
 The [local engineering rehearsal](../qa-output/rollback/rehearsal.json) passed: candidate pack `93781ed04a3f81597bbfbd90` was switched to previous pack `98200f6986b10efa88ee4960`, with the previous launch, all eight scenario links, every pinned asset and original-save continuation verified in 1.321 seconds. Both checkpoint byte hashes were preserved after returning to the candidate; offline removal left neighboring data intact and no page errors were recorded. The raw result identifies this as an automated local staging rehearsal, not a public-host result.
 

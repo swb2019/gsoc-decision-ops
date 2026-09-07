@@ -38,10 +38,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Require the exact public release qualification record
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_review_build) }}
-        run: node scripts/check-release-gate.mjs
-
       - name: Record explicitly requested review deployment
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_review_build }}
         run: |

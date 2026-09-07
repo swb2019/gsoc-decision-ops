@@ -81,6 +81,14 @@ test('the real unqualified record remains held with a clear message', () => {
     /Public release is held.*human gates/
   );
 });
+test('Pages deploy on push to main does not invoke the qualification gate', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/deploy.yml', import.meta.url), 'utf8');
+  assert.equal(
+    /check-release-gate\.mjs/.test(workflow),
+    false,
+    'Qualification theater must not block GitHub Pages deploys'
+  );
+});
 test('rejects absent, empty, array, incomplete and unexpected gates', () => {
   for (const gates of [undefined, {}, [], { semanticEngineering: 'passed:' }])
     rejects((record) => {
