@@ -1,6 +1,6 @@
 # Engineering validation — 6 September 2026
 
-The [two-way audio wording correction](TWO-WAY-AUDIO.md) has a refreshed artifact and separately scoped verification. The comprehensive evidence below remains pinned to the earlier artifact identified here; it is not relabeled as a new physical-device run.
+The [two-way audio sending update](TWO-WAY-AUDIO.md) has a refreshed artifact and separately scoped verification in the delivery manifest. Spoken responses now send after a brief pause, with cancellation and stale-result protection. The comprehensive evidence below remains pinned to the earlier artifact identified here; it is not relabeled as a new physical-device run.
 
 The Glasshouse engineering candidate passes the automated checks below. These establish specific software behavior, not completed human qualification or learning efficacy. The delivery manifest identifies the exact source revision and archive checksums. The tested static pack is **93781ed04a3f81597bbfbd90**, scoped to `/gsoc-decision-ops/`.
 

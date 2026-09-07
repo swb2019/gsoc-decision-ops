@@ -218,7 +218,7 @@ export default function LocalVoicePanel({
               <div>
                 <div className="text-sm text-gray-300">Speak a response</div>
                 <div className="text-2xs text-gray-500">
-                  Dictate a response, then review the text before committing your decision
+                  Tap to speak; a brief pause sends your response with the selected decision
                 </div>
               </div>
             </div>
@@ -342,8 +342,9 @@ export default function LocalVoicePanel({
           <div>
             <p className="text-xs text-violet-200">
               <strong>Hear and respond:</strong> Listen to scenario updates, then speak your
-              response. Your device’s microphone and speakers are sufficient. Responses become
-              editable text; your decision is recorded when you commit it.
+              response. Your device’s microphone and speakers are sufficient. Select your decision,
+              then tap to speak. Your response sends automatically when you finish speaking; you can
+              cancel while it is listening or transcribing.
             </p>
             <p className="text-2xs text-violet-300/70 mt-1">
               Models cache after first provision. English only. Opt-in; nothing downloads until you
@@ -423,17 +424,8 @@ export function PushToTalkButton({
 
   return (
     <button
-      onMouseDown={onStart}
-      onMouseUp={onStop}
-      onMouseLeave={onStop}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        onStart();
-      }}
-      onTouchEnd={(e) => {
-        e.preventDefault();
-        onStop();
-      }}
+      onClick={isListening ? onStop : onStart}
+      aria-pressed={isListening}
       className={clsx(
         'p-3 rounded-xl transition-all flex items-center justify-center gap-2',
         isListening
@@ -441,7 +433,7 @@ export function PushToTalkButton({
           : 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border border-violet-500/30',
         className
       )}
-      title={isListening ? 'Release to review your response' : 'Hold to speak a response'}
+      title={isListening ? 'Finish and send now' : 'Speak a response'}
     >
       {isListening ? (
         <>
@@ -451,7 +443,7 @@ export function PushToTalkButton({
       ) : (
         <>
           <Mic className="w-5 h-5" />
-          <span className="text-sm font-medium">Hold to speak a response</span>
+          <span className="text-sm font-medium">Speak a response</span>
         </>
       )}
     </button>

@@ -11,9 +11,13 @@
   "gates": {
     "semanticEngineering": {
       "status": "automated-checks-passed",
-      "evidence": ["docs/ENGINEERING-VALIDATION.md", "docs/DEVICE-VALIDATION.md"],
+      "evidence": [
+        "docs/ENGINEERING-VALIDATION.md",
+        "docs/DEVICE-VALIDATION.md",
+        "docs/TWO-WAY-AUDIO.md"
+      ],
       "signoffs": [],
-      "note": "430 unit/semantic tests, 12 architecture/release checks, 33 Chrome journeys; 54 supplemental engine checks passed with two explicitly unsupported WebKit audio cases. Owner review remains pending."
+      "note": "Current automatic voice sending has separate unit and browser evidence documented in docs/TWO-WAY-AUDIO.md and the delivery manifest. Comprehensive earlier physical/art evidence remains pinned to its original artifact; owner review is pending."
     },
     "independentContentAndRubricReview": {
       "status": "pending",
@@ -34,7 +38,7 @@
         "release/review-materials/accessibility-device-review.md"
       ],
       "signoffs": [],
-      "note": "Both connected Android phones passed the engineering scope. Manual assistive technology, native iPhone/Safari, integrated graphics, soft keyboard and OS sharing remain pending."
+      "note": "Both connected Android phones passed the earlier engineering scope on pack 93781ed04a3f81597bbfbd90. New automatic voice sending still needs human speech/device qualification. Manual assistive technology, native iPhone/Safari, integrated graphics and OS sharing remain pending."
     },
     "artAudioComparator": {
       "status": "pending",

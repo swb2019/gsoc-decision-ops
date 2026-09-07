@@ -15,6 +15,7 @@ import {
   onTranscription,
   startListening,
   stopListening,
+  cancelListening,
   speak,
   stopSpeaking,
   readInjectSummary,
@@ -49,7 +50,9 @@ interface UseLocalVoiceReturn {
   toggle: () => Promise<boolean>;
 
   // STT
-  startRecording: () => Promise<boolean>;
+  startRecording: (contextId?: string) => Promise<boolean>;
+  cancelRecording: () => void;
+  lastResponse: TranscriptionResult | null;
   stopRecording: () => Promise<void>;
 
   // TTS
@@ -83,6 +86,7 @@ export function useLocalVoice(
   const [config, setConfig] = useState<LocalVoiceConfig>(getLocalVoiceConfig());
   const [progress, setProgress] = useState<ModelLoadProgress>(getModelProgress());
   const [lastTranscription, setLastTranscription] = useState<string | null>(null);
+  const [lastResponse, setLastResponse] = useState<TranscriptionResult | null>(null);
   const initialized = useRef(false);
 
   // Initialize on mount
@@ -107,6 +111,7 @@ export function useLocalVoice(
     const unsubState = onStateChange((s: LocalVoiceState) => setState(s));
     const unsubTranscription = onTranscription((result: TranscriptionResult) => {
       setLastTranscription(result.text);
+      setLastResponse(result);
     });
     const unsubProgress = trackProgress
       ? onProgress((p: ModelLoadProgress) => setProgress(p))
@@ -144,9 +149,15 @@ export function useLocalVoice(
     }
   }, [config.enabled, enable, disable]);
 
-  const startRecording = useCallback(async (): Promise<boolean> => {
+  const startRecording = useCallback(async (contextId?: string): Promise<boolean> => {
     setLastTranscription(null);
-    return startListening();
+    setLastResponse(null);
+    return startListening(contextId);
+  }, []);
+
+  const cancelRecording = useCallback((): void => {
+    cancelListening();
+    setLastResponse(null);
   }, []);
 
   const stopRecording = useCallback(async (): Promise<void> => {
@@ -179,6 +190,7 @@ export function useLocalVoice(
   }, []);
 
   const setSTTEnabled = useCallback((enabled: boolean) => {
+    if (!enabled) cancelListening();
     saveLocalVoiceConfig({ sttEnabled: enabled });
     setConfig(getLocalVoiceConfig());
   }, []);
@@ -195,6 +207,7 @@ export function useLocalVoice(
 
   const clearTranscription = useCallback(() => {
     setLastTranscription(null);
+    setLastResponse(null);
   }, []);
 
   return {
@@ -223,6 +236,8 @@ export function useLocalVoice(
     // STT
     startRecording,
     stopRecording,
+    cancelRecording,
+    lastResponse,
 
     // TTS
     speakText,

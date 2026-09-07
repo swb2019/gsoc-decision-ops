@@ -27,6 +27,7 @@ import {
   type InferenceDevice,
 } from './local-voice-load-policy';
 import { createModelDownloadSession } from './model-download-session';
+import { createVoiceEndpoint } from './voice-endpoint';
 
 // Configuration
 const LOCAL_VOICE_STORAGE_KEY = 'hourglass-local-voice-config';
@@ -54,6 +55,8 @@ export interface ModelLoadProgress {
 }
 
 export interface TranscriptionResult {
+  turnId: number;
+  contextId?: string;
   text: string;
   confidence?: number;
   duration?: number;
@@ -63,6 +66,8 @@ export interface LocalVoiceState {
   isAvailable: boolean;
   isLoading: boolean;
   isListening: boolean;
+  isStarting: boolean;
+  isTranscribing: boolean;
   isSpeaking: boolean;
   sttReady: boolean;
   ttsReady: boolean;
@@ -85,6 +90,8 @@ let state: LocalVoiceState = {
   isAvailable: false,
   isLoading: false,
   isListening: false,
+  isStarting: false,
+  isTranscribing: false,
   isSpeaking: false,
   sttReady: false,
   ttsReady: false,
@@ -123,7 +130,12 @@ let pendingProgressTimer: ReturnType<typeof setTimeout> | null = null;
 // Audio context and media recorder
 let audioContext: AudioContext | null = null;
 let mediaRecorder: MediaRecorder | null = null;
-let audioChunks: Blob[] = [];
+let recordingGeneration = 0;
+let recordingSendGeneration: number | null = null;
+let clearRecordingMonitor: (() => void) | null = null;
+let recordingHasSpeech: () => boolean = () => false;
+let voiceOutputEpoch = 0;
+let transcriptionTail: Promise<void> = Promise.resolve();
 let micStream: MediaStream | null = null;
 
 // Callbacks
@@ -400,6 +412,12 @@ export async function initLocalVoice(): Promise<void> {
 
   initPromise = (async (): Promise<void> => {
     loadLocalVoiceConfig();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && isLocalVoiceCapturing()) cancelListening();
+    });
+    window.addEventListener('pagehide', () => {
+      if (isLocalVoiceCapturing()) cancelListening();
+    });
 
     const webGpuAvailable = await checkWebGPU();
     updateState({ webGpuAvailable });
@@ -510,7 +528,7 @@ export function disableLocalVoice(): void {
     });
   }
   saveLocalVoiceConfig({ enabled: false });
-  stopListening();
+  cancelListening();
   stopSpeaking();
   updateState({
     isLoading: cancelling,
@@ -804,12 +822,35 @@ async function loadKokoroModel(): Promise<void> {
   }
 }
 
-/**
- * Request microphone permission
- */
-export async function requestMicrophonePermission(): Promise<boolean> {
+/** Stop capture without sending; also invalidates delayed permission and recognition results. */
+export function cancelListening(): void {
+  recordingGeneration += 1;
+  recordingSendGeneration = null;
+  recordingHasSpeech = () => false;
+  clearRecordingMonitor?.();
+  clearRecordingMonitor = null;
+  const recorder = mediaRecorder;
+  mediaRecorder = null;
+  if (recorder?.state === 'recording') recorder.stop();
+  micStream?.getTracks().forEach((track) => track.stop());
+  micStream = null;
+  updateState({ isStarting: false, isListening: false, isTranscribing: false });
+}
+
+export function isLocalVoiceCapturing(): boolean {
+  return state.isStarting || state.isListening || state.isTranscribing;
+}
+
+/** User-initiated microphone capture. A completed spoken turn is sent after a brief pause. */
+export async function startListening(contextId?: string): Promise<boolean> {
+  if (!config.enabled || !config.sttEnabled || !state.sttReady || isLocalVoiceCapturing())
+    return false;
+  const generation = ++recordingGeneration;
+  updateState({ isStarting: true, error: null });
+  stopSpeaking();
+  let stream: MediaStream | null = null;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
@@ -817,118 +858,176 @@ export async function requestMicrophonePermission(): Promise<boolean> {
         deviceId: config.micDeviceId || undefined,
       },
     });
-
+    if (generation !== recordingGeneration || !config.enabled) {
+      stream.getTracks().forEach((track) => track.stop());
+      return false;
+    }
     micStream = stream;
-
-    // Initialize audio context
-    if (!audioContext) {
+    if (!audioContext || audioContext.state === 'closed')
       audioContext = new AudioContext({ sampleRate: 16000 });
+    await audioContext.resume();
+    if (generation !== recordingGeneration) {
+      stream.getTracks().forEach((track) => track.stop());
+      return false;
     }
-
-    return true;
-  } catch (error) {
-    console.warn('Microphone permission denied:', error);
-    updateState({ error: 'Microphone access denied' });
-    return false;
-  }
-}
-
-/**
- * Start listening (push-to-talk)
- */
-export async function startListening(): Promise<boolean> {
-  if (!state.sttReady || state.isListening) return false;
-
-  // Request mic if not already granted
-  if (!micStream) {
-    const granted = await requestMicrophonePermission();
-    if (!granted) return false;
-  }
-
-  try {
-    audioChunks = [];
-
-    mediaRecorder = new MediaRecorder(micStream!, {
-      mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm',
-    });
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
+    if (audioContext.state !== 'running') throw new Error('Audio input could not start.');
+    const mimeType = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'].find((type) =>
+      MediaRecorder.isTypeSupported(type)
+    );
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks: Blob[] = [];
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    const samples = new Float32Array(analyser.fftSize);
+    const endpoint = createVoiceEndpoint(performance.now());
+    recordingHasSpeech = endpoint.hasSpeech;
+    const hidden = (): void => {
+      if (document.hidden) cancelListening();
+    };
+    const leaving = (): void => cancelListening();
+    const interval = setInterval(() => {
+      if (generation !== recordingGeneration) return;
+      analyser.getFloatTimeDomainData(samples);
+      const rms = Math.sqrt(
+        samples.reduce((sum, value) => sum + value * value, 0) / samples.length
+      );
+      const result = endpoint(performance.now(), rms);
+      if (result === 'send') void stopListening();
+      else if (result === 'no-speech' || result === 'too-long') {
+        cancelListening();
+        updateState({
+          error:
+            result === 'no-speech'
+              ? 'No clear speech was heard. Nothing was sent. Tap Speak a response to try again.'
+              : 'The response reached one minute without a pause. Nothing was sent. Try a shorter response.',
+        });
       }
+    }, 50);
+    document.addEventListener('visibilitychange', hidden);
+    window.addEventListener('pagehide', leaving);
+    clearRecordingMonitor = (): void => {
+      clearInterval(interval);
+      source.disconnect();
+      analyser.disconnect();
+      document.removeEventListener('visibilitychange', hidden);
+      window.removeEventListener('pagehide', leaving);
     };
-
-    mediaRecorder.onstop = async () => {
-      await processRecording();
+    recorder.ondataavailable = (event): void => {
+      if (event.data.size) chunks.push(event.data);
     };
-
-    mediaRecorder.start(100); // Collect data every 100ms
-    updateState({ isListening: true });
+    recorder.onerror = (): void => {
+      if (generation !== recordingGeneration) return;
+      cancelListening();
+      updateState({ error: 'Audio capture failed. Nothing was sent. You can type your response.' });
+    };
+    recorder.onstop = (): void => {
+      stream!.getTracks().forEach((track) => track.stop());
+      if (generation !== recordingGeneration) return;
+      if (recordingSendGeneration !== generation) {
+        cancelListening();
+        updateState({
+          error:
+            'The microphone stopped before the response finished. Nothing was sent. Try again or type your response.',
+        });
+        return;
+      }
+      clearRecordingMonitor?.();
+      clearRecordingMonitor = null;
+      mediaRecorder = null;
+      micStream = null;
+      updateState({ isStarting: false, isListening: false, isTranscribing: true });
+      void processRecording(chunks, recorder.mimeType, generation, contextId);
+    };
+    mediaRecorder = recorder;
+    recorder.start(100);
+    updateState({ isStarting: false, isListening: true });
     return true;
-  } catch (error) {
-    console.error('Failed to start recording:', error);
-    updateState({ error: 'Failed to start recording' });
-    return false;
-  }
-}
-
-/**
- * Stop listening and transcribe
- */
-export async function stopListening(): Promise<void> {
-  if (!mediaRecorder || !state.isListening) return;
-
-  mediaRecorder.stop();
-  updateState({ isListening: false });
-}
-
-/**
- * Process recorded audio and transcribe
- */
-async function processRecording(): Promise<void> {
-  if (audioChunks.length === 0 || !whisperPipeline) return;
-
-  try {
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-
-    // Convert to AudioBuffer for Whisper
-    const arrayBuffer = await audioBlob.arrayBuffer();
-
-    if (!audioContext) {
-      audioContext = new AudioContext({ sampleRate: 16000 });
-    }
-
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // Get mono audio data (Whisper expects mono)
-    const audioData = audioBuffer.getChannelData(0);
-
-    // Convert to Float32Array at 16kHz
-    const audio = resampleAudio(audioData, audioBuffer.sampleRate, 16000);
-
-    // Run Whisper inference
-    const startTime = performance.now();
-    const result = await (
-      whisperPipeline as (audio: Float32Array, options?: object) => Promise<{ text: string }>
-    )(audio, {
-      language: 'en',
-      task: 'transcribe',
-      return_timestamps: false,
-    });
-
-    const duration = performance.now() - startTime;
-
-    if (result && result.text && result.text.trim()) {
-      notifyTranscription({
-        text: result.text.trim(),
-        duration: duration / 1000,
+  } catch {
+    stream?.getTracks().forEach((track) => track.stop());
+    if (generation === recordingGeneration) {
+      cancelListening();
+      updateState({
+        error:
+          'Microphone access or audio capture was unavailable. Nothing was sent. You can type your response.',
       });
     }
-  } catch (error) {
-    console.error('Transcription error:', error);
-    updateState({ error: 'Transcription failed' });
+    return false;
+  }
+}
+
+/** Explicit finish uses the same one-shot send path as end-of-speech detection. */
+export async function stopListening(): Promise<void> {
+  const recorder = mediaRecorder;
+  if (!recorder || recorder.state !== 'recording') return;
+  if (!recordingHasSpeech()) {
+    cancelListening();
+    updateState({ error: 'No clear speech was heard. Nothing was sent. Try speaking again.' });
+    return;
+  }
+  clearRecordingMonitor?.();
+  clearRecordingMonitor = null;
+  updateState({ isListening: false, isTranscribing: true });
+  recordingSendGeneration = recordingGeneration;
+  recorder.stop();
+  micStream?.getTracks().forEach((track) => track.stop());
+  micStream = null;
+}
+
+async function processRecording(
+  chunks: Blob[],
+  mimeType: string,
+  generation: number,
+  contextId?: string
+): Promise<void> {
+  try {
+    if (!chunks.length || !whisperPipeline || !audioContext)
+      throw new Error('No recorded response.');
+    const blob = new Blob(chunks, { type: mimeType });
+    const buffer = await audioContext.decodeAudioData(await blob.arrayBuffer());
+    if (generation !== recordingGeneration) return;
+    const audio = resampleAudio(buffer.getChannelData(0), buffer.sampleRate, 16000);
+    const startedAt = performance.now();
+    const previous = transcriptionTail;
+    let release!: () => void;
+    transcriptionTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let result: { text: string };
+    try {
+      await previous;
+      if (generation !== recordingGeneration) return;
+      result = await (
+        whisperPipeline as (audio: Float32Array, options?: object) => Promise<{ text: string }>
+      )(audio, { language: 'en', task: 'transcribe', return_timestamps: false });
+    } finally {
+      release();
+    }
+    if (generation !== recordingGeneration || !config.enabled) return;
+    const text = result?.text?.trim();
+    if (!text) throw new Error('No speech recognized.');
+    if (text.length > 2000) {
+      updateState({
+        error:
+          'The spoken response exceeds 2,000 characters. Nothing was sent. Try a shorter response.',
+      });
+      return;
+    }
+    notifyTranscription({
+      turnId: generation,
+      contextId,
+      text,
+      duration: (performance.now() - startedAt) / 1000,
+    });
+  } catch {
+    if (generation === recordingGeneration)
+      updateState({
+        error:
+          'The response could not be understood. Nothing was sent. Try again or type your response.',
+      });
+  } finally {
+    if (generation === recordingGeneration) updateState({ isTranscribing: false });
   }
 }
 
@@ -961,7 +1060,7 @@ function resampleAudio(
  * Speak text using Kokoro or Web Speech fallback
  */
 export async function speak(text: string, priority: number = 5): Promise<void> {
-  if (!config.enabled || !config.ttsEnabled) return;
+  if (!config.enabled || !config.ttsEnabled || isLocalVoiceCapturing()) return;
   if (!state.ttsReady) return;
 
   // Add to queue
@@ -975,7 +1074,7 @@ export async function speak(text: string, priority: number = 5): Promise<void> {
  * Process TTS queue (yields to ElevenLabs VO)
  */
 async function processTTSQueue(): Promise<void> {
-  if (isProcessingTTS || ttsQueue.length === 0) return;
+  if (isProcessingTTS || ttsQueue.length === 0 || isLocalVoiceCapturing()) return;
 
   // Check if ElevenLabs is playing - yield to it
   if (isElevenLabsPlaying && isElevenLabsPlaying()) {
@@ -1038,6 +1137,7 @@ async function speakWithKokoro(text: string): Promise<boolean> {
     ) => Promise<{ toBlob: () => Promise<Blob> }>;
   };
 
+  const epoch = voiceOutputEpoch;
   const result = await kokoro.generate(text, {
     voice: config.ttsVoice,
   });
@@ -1048,6 +1148,7 @@ async function speakWithKokoro(text: string): Promise<boolean> {
   }
 
   const blob = await result.toBlob();
+  if (epoch !== voiceOutputEpoch || isLocalVoiceCapturing()) return true;
   const url = URL.createObjectURL(blob);
 
   await new Promise<void>((resolve, reject) => {
@@ -1145,6 +1246,7 @@ async function speakWithWebSpeech(text: string): Promise<boolean> {
  * Stop speaking
  */
 export function stopSpeaking(): void {
+  voiceOutputEpoch += 1;
   ttsQueue = [];
   isProcessingTTS = false;
 
@@ -1223,7 +1325,7 @@ export async function areModelsCached(): Promise<boolean> {
  * Cleanup resources
  */
 export function cleanupLocalVoice(): void {
-  stopListening();
+  cancelListening();
   stopSpeaking();
 
   if (micStream) {

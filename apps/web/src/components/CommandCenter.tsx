@@ -1353,19 +1353,49 @@ export default function CommandCenter({
     setVoiceEnabledState(config.voiceEnabled);
   }, []);
 
-  // Handle local voice transcription - fill residualRiskNote when user dictates
-  useEffect(() => {
-    if (localVoice.lastTranscription && pendingDecision) {
-      // Append transcription to existing note or set it
-      setResidualRiskNote((prev) => {
-        if (prev) {
-          return `${prev} ${localVoice.lastTranscription}`;
-        }
-        return localVoice.lastTranscription || '';
-      });
-      localVoice.clearTranscription();
-    }
-  }, [localVoice.lastTranscription, pendingDecision, localVoice]);
+  const [voiceResponseStatus, setVoiceResponseStatus] = useState('');
+  const voiceSubmissionRef = useRef<string | null>(null);
+  const voiceStartAttemptRef = useRef(0);
+  const consumedVoiceTurnRef = useRef<number | null>(null);
+  const voiceContext =
+    pendingDecision &&
+    selectedAsset &&
+    selectedTreatmentCategory &&
+    selectedTreatmentOption &&
+    selectedResidualRisk
+      ? JSON.stringify([
+          pendingDecision.id,
+          selectedAsset.id,
+          selectedTreatmentCategory,
+          selectedTreatmentOption,
+          selectedResidualRisk,
+        ])
+      : null;
+  useEffect(
+    () => () => {
+      voiceStartAttemptRef.current += 1;
+      voiceSubmissionRef.current = null;
+      localVoice.cancelRecording();
+    },
+    [voiceContext, localVoice.cancelRecording]
+  );
+  const startVoiceResponse = useCallback(async (): Promise<boolean> => {
+    if (!voiceContext) return false;
+    const attempt = ++voiceStartAttemptRef.current;
+    voiceSubmissionRef.current = voiceContext;
+    setVoiceResponseStatus('');
+    skipVO();
+    localVoice.stopSpeech();
+    const started = await localVoice.startRecording(voiceContext);
+    if (!started && attempt === voiceStartAttemptRef.current) voiceSubmissionRef.current = null;
+    return started;
+  }, [voiceContext, localVoice.startRecording, localVoice.stopSpeech]);
+  const cancelVoiceResponse = useCallback((): void => {
+    voiceStartAttemptRef.current += 1;
+    voiceSubmissionRef.current = null;
+    localVoice.cancelRecording();
+    setVoiceResponseStatus('Response cancelled. Nothing was sent.');
+  }, [localVoice.cancelRecording]);
 
   // Handle voice toggle
   const handleVoiceToggle = useCallback(() => {
@@ -2464,8 +2494,11 @@ export default function CommandCenter({
   const revealedInjects = useMemo(() => getRevealedInjects(log), [log]);
 
   const handlePostureCommit = useCallback(
-    (posture: DecisionPosture) => {
+    (posture: DecisionPosture, spokenResponse?: string) => {
       if (!pendingDecision || !selectedAsset) return;
+      voiceSubmissionRef.current = null;
+      localVoice.cancelRecording();
+      const decisionRationale = spokenResponse ?? residualRiskNote;
 
       // Check resource availability
       const resourceCheck = checkResourceAvailability(pendingDecision);
@@ -2515,7 +2548,7 @@ export default function CommandCenter({
         ownerBriefed: assetOwnerBriefed,
         residualRiskSelected: !!selectedResidualRisk,
         treatmentCategorySelected: !!selectedTreatmentCategory,
-        rationaleProvided: !!residualRiskNote,
+        rationaleProvided: !!decisionRationale,
         decisionTimeSeconds: decisionTimeUsed,
         timerLimitSeconds: difficultyConfig.timerMultiplier * DECISION_TIMER_CONFIG.BASE_TIMER,
         wasTimeout: false,
@@ -2566,12 +2599,12 @@ export default function CommandCenter({
           posture,
           owner: 'GSOC Commander',
           ownerRole: 'Incident Commander',
-          rationale: `Asset: ${selectedAsset.name}. Treatment: ${chosenTreatment}. Control: ${selectedTreatmentOption ?? 'Not specified'}. ${residualRiskNote}`,
+          rationale: `Asset: ${selectedAsset.name}. Treatment: ${chosenTreatment}. Control: ${selectedTreatmentOption ?? 'Not specified'}. ${decisionRationale}`,
           esrmFraming: {
             assetOwner: selectedAsset.owner.name,
             assetOwnerRole: selectedAsset.owner.title,
             treatment: chosenTreatment,
-            residualRisk: residualRiskNote || 'Residual risk acknowledged',
+            residualRisk: decisionRationale || 'Residual risk acknowledged',
           },
         })
       );
@@ -2759,6 +2792,8 @@ export default function CommandCenter({
       residualRiskNote,
       selectedResidualRisk,
       selectedTreatmentCategory,
+      selectedTreatmentOption,
+      localVoice.cancelRecording,
       decisionTimer,
       revealedInjects,
       checkResourceAvailability,
@@ -2770,6 +2805,38 @@ export default function CommandCenter({
       tapFeedback,
     ]
   );
+
+  useEffect(() => {
+    const response = localVoice.lastResponse;
+    if (!response || consumedVoiceTurnRef.current === response.turnId) return;
+    consumedVoiceTurnRef.current = response.turnId;
+    localVoice.clearTranscription();
+    if (
+      !voiceContext ||
+      response.contextId !== voiceContext ||
+      voiceSubmissionRef.current !== voiceContext ||
+      !selectedTreatmentCategory
+    ) {
+      setVoiceResponseStatus(
+        'The decision changed before the response finished. Nothing was sent. Speak again for the current decision.'
+      );
+      return;
+    }
+    const postureMap: Record<string, DecisionPosture> = {
+      ACCEPT: 'CONTINUE',
+      MITIGATE: 'DEGRADE',
+      TRANSFER: 'DEGRADE',
+      AVOID: 'PAUSE',
+    };
+    handlePostureCommit(postureMap[selectedTreatmentCategory], response.text);
+    setVoiceResponseStatus(`Response sent: ${response.text}`);
+  }, [
+    localVoice.lastResponse,
+    localVoice.clearTranscription,
+    voiceContext,
+    selectedTreatmentCategory,
+    handlePostureCommit,
+  ]);
 
   const calculateGrade = (): { grade: string; title: string; color: string } => {
     const { decisionsCorrect, decisionsTotal, score, assetOwnersBriefed } = gameState;
@@ -3711,6 +3778,19 @@ export default function CommandCenter({
         </div>
       </nav>
 
+      {voiceResponseStatus && (
+        <aside className="fixed bottom-20 left-4 right-4 z-[80] rounded-xl border border-emerald-600/50 bg-gray-950 px-4 py-3 text-sm text-emerald-100 shadow-xl sm:bottom-4 sm:right-auto sm:max-w-xl">
+          <p role="status" className="max-h-32 overflow-y-auto break-words">
+            {voiceResponseStatus}
+          </p>
+          <button
+            className="mt-1 min-h-11 text-xs text-emerald-200 underline"
+            onClick={() => setVoiceResponseStatus('')}
+          >
+            Dismiss response status
+          </button>
+        </aside>
+      )}
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex overflow-hidden mobile-content-area">
         {/* Desktop: Full 3-column layout */}
@@ -3802,11 +3882,16 @@ export default function CommandCenter({
                 onSelectResidualRisk={setSelectedResidualRisk}
                 localVoice={{
                   isEnabled: localVoice.isEnabled,
-                  isReady: localVoice.isReady,
+                  isReady: localVoice.canListen,
+                  canSpeak: localVoice.canSpeak,
                   isListening: localVoice.isListening,
                   isSpeaking: localVoice.isSpeaking,
                   config: localVoice.config,
-                  startRecording: localVoice.startRecording,
+                  startRecording: startVoiceResponse,
+                  cancelRecording: cancelVoiceResponse,
+                  isStarting: localVoice.state.isStarting,
+                  isTranscribing: localVoice.state.isTranscribing,
+                  error: localVoice.state.error,
                   stopRecording: localVoice.stopRecording,
                   readInject: localVoice.readInject,
                 }}
@@ -4274,11 +4359,16 @@ export default function CommandCenter({
                   onSelectResidualRisk={setSelectedResidualRisk}
                   localVoice={{
                     isEnabled: localVoice.isEnabled,
-                    isReady: localVoice.isReady,
+                    isReady: localVoice.canListen,
+                    canSpeak: localVoice.canSpeak,
                     isListening: localVoice.isListening,
                     isSpeaking: localVoice.isSpeaking,
                     config: localVoice.config,
-                    startRecording: localVoice.startRecording,
+                    startRecording: startVoiceResponse,
+                    cancelRecording: cancelVoiceResponse,
+                    isStarting: localVoice.state.isStarting,
+                    isTranscribing: localVoice.state.isTranscribing,
+                    error: localVoice.state.error,
                     stopRecording: localVoice.stopRecording,
                     readInject: localVoice.readInject,
                   }}
@@ -4591,7 +4681,7 @@ export default function CommandCenter({
           scenarioId={scenarioId}
           localVoice={{
             isEnabled: localVoice.isEnabled,
-            isReady: localVoice.isReady,
+            isReady: localVoice.canSpeak,
             isSpeaking: localVoice.isSpeaking,
             config: localVoice.config,
             readAAR: localVoice.readAAR,
@@ -5206,6 +5296,11 @@ function DecisionConsole({
     isSpeaking: boolean;
     config: { sttEnabled: boolean; ttsEnabled: boolean };
     startRecording: () => Promise<boolean>;
+    canSpeak: boolean;
+    cancelRecording: () => void;
+    isStarting: boolean;
+    isTranscribing: boolean;
+    error: string | null;
     stopRecording: () => Promise<void>;
     readInject: (title: string, description: string) => Promise<void>;
   };
@@ -5307,7 +5402,7 @@ function DecisionConsole({
                   </details>
                   <p className="hidden sm:block text-gray-300 leading-relaxed">{inject.content}</p>
                   {/* Local Voice: Read Aloud button */}
-                  {localVoice?.isEnabled && localVoice.isReady && localVoice.config.ttsEnabled && (
+                  {localVoice?.isEnabled && localVoice.canSpeak && localVoice.config.ttsEnabled && (
                     <button
                       type="button"
                       onClick={() => localVoice.readInject(inject.title, inject.content)}
@@ -5806,16 +5901,20 @@ function DecisionConsole({
                         <span className="text-xs text-gray-400">Speak a response (optional)</span>
                       </div>
                       <button
-                        onMouseDown={() => localVoice.startRecording()}
-                        onMouseUp={() => localVoice.stopRecording()}
-                        onMouseLeave={() => localVoice.isListening && localVoice.stopRecording()}
-                        onTouchStart={(e) => {
-                          e.preventDefault();
-                          localVoice.startRecording();
-                        }}
-                        onTouchEnd={(e) => {
-                          e.preventDefault();
-                          localVoice.stopRecording();
+                        onClick={() =>
+                          localVoice.isListening
+                            ? void localVoice.stopRecording()
+                            : void localVoice.startRecording()
+                        }
+                        disabled={
+                          localVoice.isStarting ||
+                          localVoice.isTranscribing ||
+                          !selectedTreatmentCategory ||
+                          !selectedTreatmentOption ||
+                          !selectedResidualRisk
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') localVoice.cancelRecording();
                         }}
                         className={clsx(
                           'w-full px-4 py-3 rounded-lg transition-all flex items-center justify-center gap-2',
@@ -5828,9 +5927,32 @@ function DecisionConsole({
                           className={clsx('w-4 h-4', localVoice.isListening && 'animate-pulse')}
                         />
                         {localVoice.isListening
-                          ? 'Release to review your response'
-                          : 'Hold to speak a response'}
+                          ? 'Finish and send now'
+                          : localVoice.isStarting
+                            ? 'Opening microphone…'
+                            : localVoice.isTranscribing
+                              ? 'Sending response…'
+                              : 'Speak a response'}
                       </button>
+                      <p className="mt-2 text-xs text-gray-300">
+                        Choose the treatment and residual risk above. Tap to speak; your response
+                        sends automatically after a brief pause. You can also finish now or cancel.
+                      </p>
+                      {(localVoice.isStarting ||
+                        localVoice.isListening ||
+                        localVoice.isTranscribing) && (
+                        <button
+                          className="mt-2 min-h-11 px-4 text-sm text-gray-200"
+                          onClick={localVoice.cancelRecording}
+                        >
+                          Cancel response
+                        </button>
+                      )}
+                      {localVoice.error && (
+                        <p role="status" className="mt-2 text-sm text-amber-200">
+                          {localVoice.error}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -9798,7 +9920,7 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                           <strong className="text-gray-300">Speech-to-Text (Whisper Base)</strong>
                           <span className="text-gray-500">
                             {' '}
-                            — Dictate notes by holding the microphone button
+                            — Tap to speak; your response sends when you finish speaking
                           </span>
                         </div>
                       </li>
@@ -9826,8 +9948,8 @@ function FieldGuideModal({ onClose }: { onClose: () => void }): JSX.Element {
                   </li>
                   <li>Enable &quot;Two-way audio&quot; to begin the one-time model download</li>
                   <li>
-                    Once ready, listen to spoken updates and hold the microphone button to respond.
-                    Review the text before committing your decision.
+                    Once ready, select your decision, tap Speak a response, and speak. A brief pause
+                    sends your response automatically.
                   </li>
                 </ol>
               </div>
