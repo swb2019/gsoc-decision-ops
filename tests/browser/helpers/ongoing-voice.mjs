@@ -74,11 +74,26 @@ export async function utter(page, text, reply) {
   const count = await page.evaluate((text) => {
     window.__conversation.texts.push(text);
     window.__conversation.gain.gain.value = 0.12;
+    window.__conversation.signal = {
+      gain: window.__conversation.gain,
+      started: window.__conversation.gain.context.currentTime,
+    };
     return window.__conversation.calls;
   }, text);
-  await page.waitForTimeout(650);
+  // Native audio can start rendering later than wall-clock timers on a busy
+  // runner. Emit a full spoken interval on the audio clock before going quiet.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const { gain, started } = window.__conversation.signal;
+          return gain.context.currentTime - started;
+        }),
+      { timeout: 20000 }
+    )
+    .toBeGreaterThanOrEqual(0.8);
   await page.evaluate(() => {
-    window.__conversation.gain.gain.value = 0;
+    window.__conversation.signal.gain.gain.value = 0;
   });
   await expect
     .poll(() => page.evaluate(() => window.__conversation.calls), { timeout: 20000 })
