@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish_review_build:
+        description: 'Publish for owner review while human qualification remains pending'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -33,7 +39,16 @@ jobs:
         run: npm ci
 
       - name: Require the exact public release qualification record
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_review_build) }}
         run: node scripts/check-release-gate.mjs
+
+      - name: Record explicitly requested review deployment
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_review_build }}
+        run: |
+          echo '## Owner-requested review deployment' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Human qualification remains pending; this deployment does not change the qualification record.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Revision: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Dispatched by: $GITHUB_ACTOR" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify semantic behavior and types before building
         run: npm test && npm run typecheck && npm run lint

@@ -50,7 +50,7 @@ npx playwright test --config playwright.engines.config.mjs
 
 `/` and `/glasshouse/` launch the flagship; `/evidence/` describes its limits. `/legacy/` retains the previous scenario directory, and all eight `/scenarios/.../` URLs are preserved. Legacy records are read-only historical evidence, not silently translated into the new feedback model.
 
-For a GitHub Pages build use `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops`. Publication is held by `scripts/check-release-gate.mjs` until the exact artifact revision has documented human qualification. The existing live site is not changed merely by building this branch.
+For a GitHub Pages build use `NEXT_PUBLIC_BASE_PATH=/gsoc-decision-ops`. Automatic publication is held by `scripts/check-release-gate.mjs` until the exact artifact revision has documented human qualification. The owner can explicitly publish a review build using the deployment workflow's `publish_review_build` input; automated checks still run and human qualification remains pending. Building a branch alone does not change the live site.
 
 ## Engineering evidence
 

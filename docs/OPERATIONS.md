@@ -1,6 +1,14 @@
 # Static release operation
 
-Shannon Brown owns promotion, capacity review and rollback. The current qualification record holds public deployment. Development and review introduce no paid inference, server, analytics or recurring service.
+Shannon Brown owns promotion, capacity review and rollback. The current qualification record holds automatic public deployment. An explicitly requested review deployment is available through the manual workflow input described below. Development and review introduce no paid inference, server, analytics or recurring service.
+
+## Owner-requested review deployment
+
+On 7 September 2026 the owner explicitly requested that the live website be redeployed with the new version after source commit `a8edba20f027db6666ada7b18f51123f4512099d` was pushed. This authorizes publication for review; it does not assert completion of the pending human qualification gates.
+
+Run **Deploy to GitHub Pages** on `main` with `publish_review_build=true` for this review deployment. The workflow records the actor and exact revision and runs semantic, type, lint, build and browser checks before uploading the artifact. The default input is false, so ordinary deployments continue to require the qualification record. Keep `release/qualification.json` unchanged until actual reviews are completed.
+
+The prior successful public deployment is run `34064527464`, source `94486155e77a6dddd8293900a83e443679361e33`. To restore it, rerun that successful workflow to rebuild and deploy its original revision; do not overwrite user journals or browser storage.
 
 ## Reproducible capacity arithmetic
 
