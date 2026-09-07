@@ -1,14 +1,35 @@
 # Two-way voice: hear, decide, and respond
 
-Glasshouse and the legacy scenarios support an ongoing voice conversation through the device microphone and speakers. No headset is required. Voice remains optional; ordinary touch and keyboard controls remain available. Phones prefer an installed local English voice for responsive playback, avoiding a second resident neural model. Devices without that local phone voice retain Kokoro or the existing browser speech fallback.
+Hourglass Command Center is the primary play path. Glasshouse remains a secondary authored practice. Both support an ongoing voice conversation through the device microphone and speakers. No headset is required. Voice remains optional; ordinary touch and keyboard controls remain available. Phones prefer an installed local English voice for responsive playback, avoiding a second resident neural model. Devices without that local phone voice retain Kokoro or the existing browser speech fallback.
+
+Voice is an alternate control plane for the same actions taps and hotkeys already perform. It does not invent world evidence or grant extra authority.
 
 ## Start once, then speak
 
 1. Open **More options**, choose **Two-way audio**, enable hearing and speech input, and allow the disclosed local models to finish loading.
 2. Tap **Start conversation** and allow microphone access if the browser asks.
-3. Speak a command or decision. About 1.25 seconds of silence after speech finishes ends the turn and sends it automatically. The game acts on a resolved decision, speaks its receipt or a follow-up question, and resumes listening automatically.
+3. Speak a command or decision. About 1.25 seconds of silence after speech finishes ends the turn and sends it automatically. The game applies the same state change as the equivalent tap, speaks a short receipt or a follow-up question, and resumes listening automatically.
 
-Say **stop listening** to end the conversation. The floating **Stop voice** button remains reachable above phone navigation, including while reviewing the mission. The latest recognized words and reply are available in **Latest voice exchange**.
+Say **stop listening** to end the conversation. The floating **Stop voice** button remains reachable above phone navigation, including while reviewing the mission. The latest recognized words and reply are available in **Latest voice exchange**. Say **help** at any time to hear what works in the current state. Unknown speech asks a clarifying question instead of doing nothing.
+
+## Hourglass Command Center
+
+Say **start mission** to begin. While a decision is waiting, **continue**, **degrade**, and **pause** commit the same postures as the Decision panel and the C / D / P hotkeys. You can also say the panel labels **accept**, **mitigate**, **transfer**, or **avoid**, or choose by ordinal such as **first one** or **option B**.
+
+When a decision is waiting, bare **pause** and **continue** prefer those postures. Say **pause mission** or **pause simulation** to pause the clock, and **resume** or **continue mission** to start it again.
+
+You can also:
+
+- **status** / **read intel** — hear the current update
+- **select first intel** / **next intel** / **open intel** — open the intel feed or an unhandled item
+- **show intel**, **show decision**, **show COP** — switch the same panels as the mobile tabs
+- **brief owner** (optionally with an asset name)
+- name an asset to select it
+- **review** / **close review** / **return to command**
+
+Optional enrichment still works: name a concrete control and residual risk, for example **manual verification for physical access control, medium temporary coverage gap**. Missing choices become spoken questions; answer by name or ordinal. That path records the same decision as the posture buttons.
+
+The optional single-turn **Speak a response** path remains available after manually selecting the structured choices. It also sends after speech finishes and retains its explicit finish and cancellation controls.
 
 ## Glasshouse
 
@@ -17,12 +38,6 @@ Say **start guided practice**, **start independent practice**, or **start previe
 Say **status**, **next update**, **advance one minute**, **pause**, **resume**, **review**, or **return to command**. **Handoff** asks for a summary, the receiving owner and the next review condition in successive spoken turns. Its reply reports the actual mission outcome, including an early or unresolved handoff. A review does not complete the mission. Existing saved missions are preserved when a start command is repeated.
 
 The recognizer produces text. A bounded command adapter resolves the authored actions; it does not invent world evidence, grant authority or execute arbitrary instructions. Multiple named actions ask for one action at a time. Unknown and explicitly tentative or negated actions do not commit a plan.
-
-## Legacy scenarios
-
-Say **start mission**, then state the asset, concrete control and residual risk for a pending update. Missing choices become spoken questions; answer by name or by the offered ordinal, such as **first one**. A complete decision records automatically, including the recognized rationale. For example: **manual verification for physical access control, medium temporary coverage gap**. You can also say **brief owner** with an asset name, **pause**, **resume**, **status**, **review**, or **close review**.
-
-The optional single-turn **Speak a response** path remains available after manually selecting the structured choices. It also sends after speech finishes and retains its explicit finish and cancellation controls.
 
 ## Turn ownership and recovery
 

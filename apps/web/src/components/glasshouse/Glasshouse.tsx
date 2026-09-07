@@ -64,7 +64,7 @@ import PracticeHistory from './PracticeHistory';
 import { AudioControls, AudioStatus } from './AudioControls';
 import { useGlasshouseAudio } from './useGlasshouseAudio';
 import OngoingVoicePanel from '../OngoingVoicePanel';
-import { speechWords, spokenMatches } from '@/lib/spoken-decision';
+import { speechWords, spokenMatches, isTentativeSpeech } from '@/lib/spoken-decision';
 import { skipVO } from '@/lib/voice';
 import {
   activateGlasshouseOfflinePack,
@@ -662,10 +662,7 @@ export default function Glasshouse() {
         `${engine.getCurrentState()?.terminalReason ?? 'Handoff recorded.'} The debrief is open.`
       );
     }
-    if (
-      /\b(dont|do not|not yet|maybe|perhaps|what if|should we)\b/.test(words) ||
-      words.startsWith('if ')
-    )
+    if (isTentativeSpeech(text))
       return { reply: 'I have not acted on that. State the action you want me to carry out.' };
     const aliases: Record<string, string[]> = {
       'verify-entrance': [

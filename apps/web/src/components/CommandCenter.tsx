@@ -879,13 +879,8 @@ import GuidancePopup, { useGuidance } from './GuidancePopup';
 import type { GuidanceSurface } from '../lib/guidance';
 import { ChannelIcon3DWrapper } from './Lazy3D';
 import OngoingVoicePanel from './OngoingVoicePanel';
-import {
-  SpokenDecisionDialogue,
-  legacyControlAliases,
-  speechWords,
-  spokenMatches,
-  type SpokenDecision,
-} from '@/lib/spoken-decision';
+import { legacyControlAliases, type SpokenDecision } from '@/lib/spoken-decision';
+import { CommandCenterVoice } from '@/lib/command-center-voice';
 import { useLocalVoice } from '../lib/hooks/useLocalVoice';
 import CampusCOP from './CampusCOP';
 import {
@@ -1365,7 +1360,7 @@ export default function CommandCenter({
   const voiceSubmissionRef = useRef<string | null>(null);
   const voiceStartAttemptRef = useRef(0);
   const consumedVoiceTurnRef = useRef<number | null>(null);
-  const spokenDialogue = useRef(new SpokenDecisionDialogue());
+  const spokenCommand = useRef(new CommandCenterVoice());
   const voiceContext =
     pendingDecision &&
     selectedAsset &&
@@ -1649,6 +1644,26 @@ export default function CommandCenter({
       }, 150);
     },
     [mobileTab, tabAnimating, tapFeedback, triggerFirstVisit]
+  );
+
+  const openInjectForDecision = useCallback(
+    (inject: ScenarioInject, options?: { showDecisionTab?: boolean }): boolean => {
+      if (log.decisions.some((decision) => decision.title === inject.title)) return false;
+      setPendingDecision(inject);
+      setSelectedAsset(null);
+      setAssetOwnerBriefed(false);
+      setResidualRiskNote('');
+      setSelectedTreatmentCategory(null);
+      setSelectedTreatmentOption(null);
+      setSelectedResidualRisk(null);
+      setTreatmentBonusGiven(false);
+      if (options?.showDecisionTab) setMobileTab('decision');
+      playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
+        spokenFallback: getInjectSpokenFallback(inject),
+      });
+      return true;
+    },
+    [log.decisions]
   );
 
   // Initialize leadership roster and stakeholder map
@@ -2509,8 +2524,8 @@ export default function CommandCenter({
         ? assets.find((asset) => asset.id === spokenPlan.assetId)
         : selectedAsset;
       const commitCategory = spokenPlan?.category ?? selectedTreatmentCategory;
-      const commitControl = spokenPlan?.control ?? selectedTreatmentOption;
-      const commitRisk = spokenPlan?.risk ?? selectedResidualRisk;
+      const commitControl = spokenPlan?.control ? spokenPlan.control : selectedTreatmentOption;
+      const commitRisk = spokenPlan?.risk ? spokenPlan.risk : selectedResidualRisk;
       const commitOwnerBriefed = commitAsset?.id === selectedAsset?.id && assetOwnerBriefed;
       if (!pendingDecision || !commitAsset) return;
       voiceSubmissionRef.current = null;
@@ -2856,107 +2871,109 @@ export default function CommandCenter({
 
   const conversationContext = `${scenarioId}:${pendingDecision?.id ?? 'waiting'}`;
   const respondToVoice = async (text: string, context: string): Promise<{ reply: string }> => {
-    const words = speechWords(text);
-    if (/^(?:review|show (?:the )?(?:review|debrief))$/.test(words)) {
-      setIsRunning(false);
-      setShowDebrief(true);
-      return { reply: 'Debrief open. Say close review to return to the mission.' };
-    }
-    if (/^(?:close (?:the )?(?:review|debrief)|return to command)$/.test(words)) {
-      setShowDebrief(false);
-      return { reply: 'Command view open.' };
-    }
-    if (/^(?:please )?(?:begin|start)(?: the)? (?:mission|simulation|game)$/.test(words)) {
-      if (!arcSchedulerRef.current) handleStartGame();
-      else {
-        setSystemPaused(false);
-        setIsRunning(true);
-      }
-      return {
-        reply:
-          'Mission running. I will read new updates. Tell me the asset, action and residual risk when you are ready.',
-      };
-    }
-    if (/^(?:please )?pause(?: the)?(?: mission|simulation|game)?$/.test(words)) {
-      setIsRunning(false);
-      return { reply: 'Simulation paused. Voice remains available.' };
-    }
-    if (/^(?:please )?(?:resume|continue)(?: the)?(?: mission|simulation|game)?$/.test(words)) {
-      setIsRunning(true);
-      return { reply: 'Simulation resumed.' };
-    }
-    if (/^(?:read|repeat|status|update|what happened|whats happening|help)/.test(words)) {
-      return {
-        reply: pendingDecision
-          ? `${pendingDecision.title}. ${pendingDecision.content}. State the asset, a concrete action, and the residual risk. I will ask for any missing choices and then record your decision.`
-          : 'No decision is waiting. Say start mission to begin, pause to pause, or stop listening to end voice.',
-      };
-    }
-    if (!pendingDecision)
-      return {
-        reply:
-          'There is no pending decision to act on. I am listening for your next command and will read the next update.',
-      };
-    if (context !== conversationContext) {
-      spokenDialogue.current.clear();
-      return {
-        reply: `The situation changed while you were speaking. ${pendingDecision.title}. Please restate your decision for this update.`,
-      };
-    }
-    if (/^brief (?:the )?owner/.test(words)) {
-      const matches = spokenMatches(
-        text,
-        assets.map((asset) => ({
+    const defaultAsset = selectedAsset ?? pickDefaultAsset(assets);
+    const result = spokenCommand.current.resolve(text, context, {
+      missionStarted: Boolean(arcSchedulerRef.current),
+      isRunning,
+      showDebrief,
+      conversationContext,
+      pendingDecision: pendingDecision
+        ? {
+            id: pendingDecision.id,
+            title: pendingDecision.title,
+            content: pendingDecision.content,
+          }
+        : null,
+      selectedAsset: defaultAsset ? { id: defaultAsset.id, name: defaultAsset.name } : null,
+      assets: assets.map((asset) => ({ id: asset.id, name: asset.name })),
+      intel: revealedInjects.map((inject) => ({
+        id: inject.id,
+        title: inject.title,
+        content: inject.content,
+        handled: log.decisions.some((decision) => decision.title === inject.title),
+      })),
+      panel: mobileTab,
+      choices: {
+        assets: assets.map((asset) => ({
           id: asset.id,
           label: asset.name,
           aliases: [asset.name.replace(/ system$| platform$/i, '')],
-        }))
-      );
-      const asset =
-        matches.length === 1
-          ? assets.find((a) => a.id === matches[0].id)
-          : /^brief (?:the )?owner$/.test(words)
-            ? selectedAsset
-            : null;
-      if (!asset) return { reply: 'Name the asset whose owner you want to brief.' };
-      setSelectedAsset(asset);
-      setAssetOwnerBriefed(true);
-      return { reply: `Owner briefed for ${asset.name}. Tell me your decision.` };
-    }
-    const answer = spokenDialogue.current.receive(text, conversationContext, {
-      assets: assets.map((asset) => ({
-        id: asset.id,
-        label: asset.name,
-        aliases: [asset.name.replace(/ system$| platform$/i, '')],
-      })),
-      controls: Object.entries(TREATMENT_OPTIONS).flatMap(([category, options]) =>
-        options.map((option) => ({
-          ...option,
-          category: category as SpokenDecision['category'],
-          aliases: legacyControlAliases[option.id],
-        }))
-      ),
-      risks: RESIDUAL_RISK_OPTIONS.map((risk) => ({
-        id: risk.id,
-        label: risk.label,
-        aliases: [risk.level, risk.label.replace(/^\w+\s*—\s*/, '')],
-      })),
+        })),
+        controls: Object.entries(TREATMENT_OPTIONS).flatMap(([category, options]) =>
+          options.map((option) => ({
+            ...option,
+            category: category as SpokenDecision['category'],
+            aliases: legacyControlAliases[option.id],
+          }))
+        ),
+        risks: RESIDUAL_RISK_OPTIONS.map((risk) => ({
+          id: risk.id,
+          label: risk.label,
+          aliases: [risk.level, risk.label.replace(/^\w+\s*—\s*/, '')],
+        })),
+      },
     });
-    if (answer.decision) {
-      const posture = {
-        ACCEPT: 'CONTINUE',
-        MITIGATE: 'DEGRADE',
-        TRANSFER: 'DEGRADE',
-        AVOID: 'PAUSE',
-      } as const;
-      handlePostureCommit(
-        posture[answer.decision.category],
-        answer.decision.rationale,
-        answer.decision
-      );
-      setVoiceResponseStatus(answer.reply);
+    switch (result.action.type) {
+      case 'start-mission':
+        if (!arcSchedulerRef.current) handleStartGame();
+        else if (!isRunning) handleRunningToggle();
+        break;
+      case 'pause-sim':
+        if (isRunning) handleRunningToggle();
+        break;
+      case 'resume-sim':
+        if (!arcSchedulerRef.current) handleStartGame();
+        else if (!isRunning) handleRunningToggle();
+        break;
+      case 'open-review':
+        setIsRunning(false);
+        setShowDebrief(true);
+        break;
+      case 'close-review':
+        setShowDebrief(false);
+        break;
+      case 'set-panel':
+        handleTabChange(result.action.panel);
+        break;
+      case 'select-intel': {
+        const injectId = result.action.injectId;
+        const inject =
+          revealedInjects.find((item) => item.id === injectId) ??
+          log.injects.find((item) => item.id === injectId);
+        if (inject) openInjectForDecision(inject, { showDecisionTab: true });
+        break;
+      }
+      case 'select-asset': {
+        const assetId = result.action.assetId;
+        const asset = assets.find((item) => item.id === assetId);
+        if (asset) {
+          setSelectedAsset(asset);
+          handleTabChange('decision');
+        }
+        break;
+      }
+      case 'brief-owner': {
+        const assetId = result.action.assetId;
+        const asset = assets.find((item) => item.id === assetId) ?? selectedAsset ?? defaultAsset;
+        if (asset) {
+          setSelectedAsset(asset);
+          setAssetOwnerBriefed(true);
+        }
+        break;
+      }
+      case 'commit-posture':
+        handlePostureCommit(
+          result.action.posture,
+          result.action.decision.rationale,
+          result.action.decision
+        );
+        handleTabChange('decision');
+        break;
+      case 'none':
+        break;
     }
-    return { reply: answer.reply };
+    if (result.action.type !== 'none') setVoiceResponseStatus(result.reply);
+    return { reply: result.reply };
   };
 
   const calculateGrade = (): { grade: string; title: string; color: string } => {
@@ -3944,21 +3961,7 @@ export default function CommandCenter({
                     index={idx}
                     isHandled={isHandled}
                     isActive={isActive}
-                    onSelect={() => {
-                      if (!isHandled) {
-                        setPendingDecision(inject);
-                        setSelectedAsset(null);
-                        setAssetOwnerBriefed(false);
-                        setResidualRiskNote('');
-                        setSelectedTreatmentCategory(null);
-                        setSelectedTreatmentOption(null);
-                        setSelectedResidualRisk(null);
-                        setTreatmentBonusGiven(false);
-                        playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
-                          spokenFallback: getInjectSpokenFallback(inject),
-                        });
-                      }
-                    }}
+                    onSelect={() => openInjectForDecision(inject)}
                     reducedMotion={reducedMotion}
                     linkedEntities={log.linkedEntities}
                     highlightedEntityId={highlightedEntityId}
@@ -4012,14 +4015,7 @@ export default function CommandCenter({
                 revealedInjects={revealedInjects}
                 decisions={log.decisions}
                 onStart={() => handleStartGame()}
-                onSelectInject={(inject) => {
-                  setPendingDecision(inject);
-                  setSelectedAsset(null);
-                  setAssetOwnerBriefed(false);
-                  playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
-                    spokenFallback: getInjectSpokenFallback(inject),
-                  });
-                }}
+                onSelectInject={(inject) => openInjectForDecision(inject)}
                 difficulty={difficulty}
                 onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
                 personalBest={personalBest}
@@ -4148,17 +4144,7 @@ export default function CommandCenter({
                   const inject = log.injects.find((i) => i.id === injectId);
                   const isHandled = log.decisions.some((d) => d.title === inject?.title);
                   if (inject && !isHandled) {
-                    setPendingDecision(inject);
-                    setSelectedAsset(null);
-                    setAssetOwnerBriefed(false);
-                    setResidualRiskNote('');
-                    setSelectedTreatmentCategory(null);
-                    setSelectedTreatmentOption(null);
-                    setSelectedResidualRisk(null);
-                    setTreatmentBonusGiven(false);
-                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
-                      spokenFallback: getInjectSpokenFallback(inject),
-                    });
+                    openInjectForDecision(inject);
                   }
                 }}
                 consequenceAnimation={
@@ -4413,22 +4399,7 @@ export default function CommandCenter({
                       index={idx}
                       isHandled={isHandled}
                       isActive={isActive}
-                      onSelect={() => {
-                        if (!isHandled) {
-                          setPendingDecision(inject);
-                          setSelectedAsset(null);
-                          setAssetOwnerBriefed(false);
-                          setResidualRiskNote('');
-                          setSelectedTreatmentCategory(null);
-                          setSelectedTreatmentOption(null);
-                          setSelectedResidualRisk(null);
-                          setTreatmentBonusGiven(false);
-                          setMobileTab('decision');
-                          playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
-                            spokenFallback: getInjectSpokenFallback(inject),
-                          });
-                        }
-                      }}
+                      onSelect={() => openInjectForDecision(inject, { showDecisionTab: true })}
                       reducedMotion={reducedMotion}
                       linkedEntities={log.linkedEntities}
                       highlightedEntityId={highlightedEntityId}
@@ -4489,14 +4460,7 @@ export default function CommandCenter({
                   revealedInjects={revealedInjects}
                   decisions={log.decisions}
                   onStart={() => handleStartGame()}
-                  onSelectInject={(inject) => {
-                    setPendingDecision(inject);
-                    setSelectedAsset(null);
-                    setAssetOwnerBriefed(false);
-                    playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
-                      spokenFallback: getInjectSpokenFallback(inject),
-                    });
-                  }}
+                  onSelectInject={(inject) => openInjectForDecision(inject)}
                   difficulty={difficulty}
                   onOpenDifficultyPicker={() => setShowDifficultyPicker(true)}
                   personalBest={personalBest}
@@ -4560,18 +4524,7 @@ export default function CommandCenter({
                     const inject = log.injects.find((i) => i.id === injectId);
                     const isHandled = log.decisions.some((d) => d.title === inject?.title);
                     if (inject && !isHandled) {
-                      setPendingDecision(inject);
-                      setSelectedAsset(null);
-                      setAssetOwnerBriefed(false);
-                      setResidualRiskNote('');
-                      setSelectedTreatmentCategory(null);
-                      setSelectedTreatmentOption(null);
-                      setSelectedResidualRisk(null);
-                      setTreatmentBonusGiven(false);
-                      setMobileTab('decision');
-                      playEventVOOnSelect(inject.title, inject.triagePriority, inject.id, {
-                        spokenFallback: getInjectSpokenFallback(inject),
-                      });
+                      openInjectForDecision(inject, { showDecisionTab: true });
                     }
                   }}
                   consequenceAnimation={
@@ -4877,7 +4830,7 @@ export default function CommandCenter({
                 id: `waiting:${isRunning}`,
                 text: isRunning
                   ? 'Listening. I will read new updates as they arrive.'
-                  : 'Voice is ready. Say start mission to begin, or tell me your decision.',
+                  : 'Voice is ready. Say start mission to begin, or say help.',
               }
         }
       />

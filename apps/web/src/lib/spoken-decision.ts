@@ -20,8 +20,49 @@ export const speechWords = (text: string): string =>
     .replace(/[’']/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
-const hasPhrase = (text: string, phrase: string): boolean =>
+export const hasPhrase = (text: string, phrase: string): boolean =>
   ` ${speechWords(text)} `.includes(` ${speechWords(phrase)} `);
+
+const ORDINAL_WORDS: Record<string, number> = {
+  first: 0,
+  one: 0,
+  second: 1,
+  two: 1,
+  third: 2,
+  three: 2,
+  fourth: 3,
+  four: 3,
+  fifth: 4,
+  five: 4,
+};
+
+/** Whole-utterance ordinal such as "first one", "option B", or "choice 2". */
+export function spokenOrdinalIndex(text: string): number | null {
+  const words = speechWords(text);
+  const option =
+    /^(?:the )?(?:option|choice|number) ([a-e]|[1-5]|first|second|third|fourth|fifth|one|two|three|four|five)$/.exec(
+      words
+    );
+  if (option) {
+    const token = option[1];
+    if (/^[1-5]$/.test(token)) return Number(token) - 1;
+    if (/^[a-e]$/.test(token)) return token.charCodeAt(0) - 97;
+    return ORDINAL_WORDS[token] ?? null;
+  }
+  const bare =
+    /^(?:the )?(first|second|third|fourth|fifth|one|two|three|four|five)(?: (?:one|option|choice))?$/.exec(
+      words
+    );
+  return bare ? (ORDINAL_WORDS[bare[1]] ?? null) : null;
+}
+
+export function isTentativeSpeech(text: string): boolean {
+  const words = speechWords(text);
+  return (
+    /\b(dont|do not|not yet|maybe|perhaps|what if|should we)\b/.test(words) ||
+    words.startsWith('if ')
+  );
+}
 
 /** Resolve authored choices only. Ambiguous matches become a spoken question, never a guessed action. */
 export function spokenMatches<T extends SpokenOption>(text: string, options: readonly T[]): T[] {
@@ -47,25 +88,29 @@ export class SpokenDecisionDialogue {
     this.draft = {};
     this.awaiting = null;
   }
-  receive(
-    text: string,
-    context: string,
-    choices: { assets: SpokenOption[]; controls: SpokenControl[]; risks: SpokenOption[] }
-  ): { reply: string; decision?: SpokenDecision } {
+  isAwaiting(): boolean {
+    return this.awaiting !== null;
+  }
+  ensureContext(context: string): void {
     if (context !== this.context) {
       this.clear();
       this.context = context;
     }
+  }
+  receive(
+    text: string,
+    context: string,
+    choices: { assets: SpokenOption[]; controls: SpokenControl[]; risks: SpokenOption[] }
+  ): { reply: string; decision?: SpokenDecision; understood: boolean } {
+    this.ensureContext(context);
     const words = speechWords(text);
     if (/^(cancel|never mind|nevermind|no|discard)( (that|decision|plan))?$/.test(words)) {
       this.clear();
-      return { reply: 'Draft cancelled. Tell me your next decision.' };
+      return { reply: 'Draft cancelled. Tell me your next decision.', understood: true };
     }
-    if (
-      /\b(dont|do not|not yet|maybe|perhaps|what if|should we)\b/.test(words) ||
-      words.startsWith('if ')
-    ) {
+    if (isTentativeSpeech(text)) {
       return {
+        understood: true,
         reply:
           'I have not acted on that. State the action you want, or say cancel to discard the draft.',
       };
@@ -73,28 +118,14 @@ export class SpokenDecisionDialogue {
     let matched = false;
     const namedControls = choices.controls.filter((option) => spokenMatches(text, [option]).length);
     if (namedControls.length > 1) {
-      return { reply: 'I heard multiple actions. Please give one action at a time.' };
+      return {
+        understood: true,
+        reply: 'I heard multiple actions. Please give one action at a time.',
+      };
     }
-    const ordinal =
-      /^(?:the )?(first|second|third|fourth|fifth|one|two|three|four|five)(?: (?:one|option))?$/.exec(
-        words
-      );
-    if (ordinal && this.awaiting) {
-      const index = (
-        {
-          first: 0,
-          one: 0,
-          second: 1,
-          two: 1,
-          third: 2,
-          three: 2,
-          fourth: 3,
-          four: 3,
-          fifth: 4,
-          five: 4,
-        } as Record<string, number>
-      )[ordinal[1]];
-      const option = this.awaiting.options[index];
+    const ordinal = spokenOrdinalIndex(text);
+    if (ordinal !== null && this.awaiting) {
+      const option = this.awaiting.options[ordinal];
       if (option) {
         this.draft[this.awaiting.field] = option.id;
         matched = true;
@@ -112,6 +143,7 @@ export class SpokenDecisionDialogue {
       } else if (matches.length > 1) {
         this.awaiting = { field, options: matches };
         return {
+          understood: true,
           reply: `Which ${field === 'assetId' ? 'asset' : field}? ${matches.map((o, i) => `${i + 1}, ${o.label}`).join('. ')}.`,
         };
       }
@@ -121,6 +153,7 @@ export class SpokenDecisionDialogue {
     );
     if (categories.length > 1)
       return {
+        understood: true,
         reply: 'I heard more than one treatment. Choose accept, mitigate, transfer, or avoid.',
       };
     if (categories.length === 1) {
@@ -132,12 +165,14 @@ export class SpokenDecisionDialogue {
     if (control && this.draft.category && control.category !== this.draft.category) {
       this.draft.control = undefined;
       return {
+        understood: true,
         reply: `That control belongs to ${control.category.toLowerCase()}. Tell me a control for ${this.draft.category.toLowerCase()}, or change the treatment.`,
       };
     }
     if (control) this.draft.category = control.category;
     if (!matched)
       return {
+        understood: Boolean(this.awaiting),
         reply: this.awaiting
           ? `Please choose ${this.awaiting.options.map((o) => o.label).join(', ')}. You can say first or second.`
           : 'Tell me the asset, concrete action, and residual risk. For example: manual verification for physical access control, medium temporary coverage gap.',
@@ -146,6 +181,7 @@ export class SpokenDecisionDialogue {
     if (rationale.length > 2000) {
       this.clear();
       return {
+        understood: true,
         reply:
           'The spoken draft exceeded 2,000 characters. Nothing was committed. Please restate the decision more briefly.',
       };
@@ -155,9 +191,10 @@ export class SpokenDecisionDialogue {
       field: 'assetId' | 'control' | 'risk',
       options: SpokenOption[],
       label: string
-    ): { reply: string } => {
+    ): { reply: string; understood: true } => {
       this.awaiting = { field, options };
       return {
+        understood: true,
         reply: `Which ${label}? ${options.map((o, i) => `${i + 1}, ${o.label}`).join('. ')}.`,
       };
     };
@@ -172,6 +209,7 @@ export class SpokenDecisionDialogue {
     const decision = this.draft as SpokenDecision;
     this.clear();
     return {
+      understood: true,
       decision,
       reply: `Decision recorded. ${choices.assets.find((a) => a.id === decision.assetId)!.label}: ${control!.label}. ${choices.risks.find((r) => r.id === decision.risk)!.label}.`,
     };
