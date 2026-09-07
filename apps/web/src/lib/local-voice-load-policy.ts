@@ -48,16 +48,19 @@ export function pickInferenceDevice(
   deviceMemoryGb?: number
 ): InferenceDevice {
   if (!webGpuAvailable) return 'wasm';
-  if (deviceMemoryGb !== undefined && deviceMemoryGb > 0 && deviceMemoryGb < 4) {
+  if (deviceMemoryGb !== undefined && deviceMemoryGb > 0 && deviceMemoryGb <= 4) {
     return 'wasm';
   }
   return 'webgpu';
 }
 
-/** Quantized Whisper dtypes — fp32 encoder is the first-enable memory spike. */
-export function getWhisperDtype(): { encoder_model: 'q8'; decoder_model_merged: 'q4' } {
+/** The q8 encoder produces empty text on the tested WebGPU path. Keep it on WASM only. */
+export function getWhisperDtype(device: InferenceDevice = 'wasm'): {
+  encoder_model: 'q8' | 'fp32';
+  decoder_model_merged: 'q4';
+} {
   return {
-    encoder_model: 'q8',
+    encoder_model: device === 'webgpu' ? 'fp32' : 'q8',
     decoder_model_merged: 'q4',
   };
 }
@@ -70,8 +73,18 @@ export function getKokoroDtype(): 'q8' {
 export function shouldSkipKokoro(opts: {
   whisperMemoryError: boolean;
   heapUnderPressure: boolean;
+  deviceMemoryGb?: number;
+  nativeSpeechAvailable?: boolean;
+  preferNativeSpeech?: boolean;
 }): boolean {
-  return opts.whisperMemoryError || opts.heapUnderPressure;
+  return (
+    opts.whisperMemoryError ||
+    opts.heapUnderPressure ||
+    Boolean(
+      opts.nativeSpeechAvailable &&
+      (opts.preferNativeSpeech || (opts.deviceMemoryGb && opts.deviceMemoryGb <= 4))
+    )
+  );
 }
 
 export function shouldReuseInMemoryModels(opts: {

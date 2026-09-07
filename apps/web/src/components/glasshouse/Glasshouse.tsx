@@ -51,6 +51,7 @@ import PlanComposer, {
   actorLabels,
   assetLabels,
   clockLabel,
+  emptyPlan,
   type ComposerDraft,
 } from './PlanComposer';
 import Review from './Review';
@@ -59,6 +60,9 @@ import OfflinePanel from './OfflinePanel';
 import PracticeHistory from './PracticeHistory';
 import { AudioControls, AudioStatus } from './AudioControls';
 import { useGlasshouseAudio } from './useGlasshouseAudio';
+import OngoingVoicePanel from '../OngoingVoicePanel';
+import { speechWords, spokenMatches } from '@/lib/spoken-decision';
+import { skipVO } from '@/lib/voice';
 import {
   activateGlasshouseOfflinePack,
   getGlasshouseOfflineStatus,
@@ -462,6 +466,9 @@ export default function Glasshouse() {
   const [starting, setStarting] = useState(false);
   const engine = useGlasshouse(view === 'command' && !settings);
   const { state, send } = engine;
+  const voiceHandoff = useRef<{ summary?: string; owner?: string; reviewTrigger?: string } | null>(
+    null
+  );
   const audio = useGlasshouseAudio(state, Boolean(state) && view === 'command');
   const focusContext = useRef(`${view}:${state?.sessionId ?? 'launch'}`);
   useEffect(() => {
@@ -529,6 +536,206 @@ export default function Glasshouse() {
   const readOnly = engine.readOnly;
   const historical = engine.historical;
   const inactive = !state || state.lifecycle !== 'active' || readOnly || historical;
+  const respondToVoice = async (text: string, context: string): Promise<{ reply: string }> => {
+    const words = speechWords(text);
+    if (
+      /^(?:start|begin)(?: a| the)? (?:mission|guided practice|independent practice|preview)$/.test(
+        words
+      )
+    ) {
+      if (state)
+        return {
+          reply:
+            'This mission already has a saved record. Say resume to continue it, or review to inspect it.',
+        };
+      await startSession(
+        words.includes('independent')
+          ? 'independent'
+          : words.includes('preview')
+            ? 'preview'
+            : 'guided',
+        610
+      );
+      return {
+        reply:
+          'Mission started. I will read updates. State a concrete action, such as verify the service entrance or investigate the identity connector.',
+      };
+    }
+    if (!state)
+      return { reply: 'Say start guided practice, start independent practice, or start preview.' };
+    if (context !== state.sessionId) {
+      voiceHandoff.current = null;
+      return {
+        reply:
+          'The mission changed while you were speaking. Please repeat your command for the current mission.',
+      };
+    }
+    if (/^(?:help|what can i say)$/.test(words))
+      return {
+        reply:
+          'You can say verify the entrance, investigate the connector, activate manual verification, isolate the connector, pause dispatch, monitor, or restore the connector. Say next update, advance one minute, pause, resume, status, review, cancel an action by name, or handoff. Say stop listening to end voice.',
+      };
+    if (/^(?:status|update|repeat|read (?:the )?updates|what happened)$/.test(words))
+      return {
+        reply: `It is ${clockLabel(state.tick)}. ${observations
+          .slice(-3)
+          .map((item) => `${item.source}: ${item.claim}`)
+          .join(' ')} ${state.actions
+          .filter((a) => a.status === 'started' || a.status === 'requested')
+          .map((a) => `${a.control.replaceAll('-', ' ')} is ${a.status}.`)
+          .join(' ')}`,
+      };
+    if (/^(?:review|show (?:the )?(?:review|debrief)|read (?:the )?debrief)$/.test(words)) {
+      openReview();
+      return {
+        reply: `Debrief open. ${state.decisions.length} decisions are recorded. The mission is ${state.lifecycle}. You can ask for status or say return to command.`,
+      };
+    }
+    if (/^(?:return to command|back to (?:the )?game)$/.test(words)) {
+      setView('command');
+      return { reply: 'Command view open.' };
+    }
+    if (inactive)
+      return {
+        reply: readOnly
+          ? 'This tab is read-only. The current record is preserved. Review remains available.'
+          : 'This mission has ended. Its decision record and review are preserved.',
+      };
+    const outcome = (accepted: boolean, success: string): { reply: string } => ({
+      reply: accepted
+        ? success
+        : `The game did not carry out that command. ${engine.getCommandError()}`,
+    });
+    if (/^(?:pause|pause the mission|pause the simulation)$/.test(words))
+      return outcome(
+        send({ type: 'pause', paused: true }),
+        'Simulation paused. Voice remains available.'
+      );
+    if (/^(?:resume|continue|resume the mission|resume the simulation)$/.test(words))
+      return outcome(send({ type: 'pause', paused: false }), 'Simulation resumed.');
+    if (
+      /^(?:next update|next significant update|advance one minute|advance 1 minute)$/.test(words)
+    ) {
+      const next = [...state.queue]
+        .sort((a, b) => a.at - b.at || a.priority - b.priority || a.order - b.order)
+        .find((event) => event.at >= state.tick)?.at;
+      const to = words.startsWith('advance')
+        ? Math.min(state.tick + 1, next ?? 60)
+        : (next ?? Math.min(60, state.tick + 1));
+      return outcome(
+        send({ type: 'advance', to }),
+        `Advanced to ${clockLabel(to)}. I will read any new report.`
+      );
+    }
+    if (/^(?:cancel|never mind|discard)(?: (?:the )?(?:handoff|draft))?$/.test(words)) {
+      voiceHandoff.current = null;
+      return { reply: 'Spoken draft cancelled. No action was sent.' };
+    }
+    if (/^(?:hand off|handoff|finish (?:the )?mission|complete (?:the )?mission)$/.test(words))
+      voiceHandoff.current = {};
+    else if (voiceHandoff.current) {
+      if (!voiceHandoff.current.summary) voiceHandoff.current.summary = text;
+      else if (!voiceHandoff.current.owner) voiceHandoff.current.owner = text;
+      else voiceHandoff.current.reviewTrigger = text;
+    }
+    if (voiceHandoff.current) {
+      const draft = voiceHandoff.current;
+      if (!draft.summary) return { reply: 'What summary should the next watch receive?' };
+      if (!draft.owner) return { reply: 'Who owns the next watch?' };
+      if (!draft.reviewTrigger) return { reply: 'What should trigger their next review?' };
+      voiceHandoff.current = null;
+      const accepted = send({
+        type: 'handoff',
+        summary: draft.summary,
+        owner: draft.owner,
+        reviewTrigger: draft.reviewTrigger,
+      });
+      if (accepted) setView('review');
+      return outcome(
+        accepted,
+        `${engine.getCurrentState()?.terminalReason ?? 'Handoff recorded.'} The debrief is open.`
+      );
+    }
+    if (
+      /\b(dont|do not|not yet|maybe|perhaps|what if|should we)\b/.test(words) ||
+      words.startsWith('if ')
+    )
+      return { reply: 'I have not acted on that. State the action you want me to carry out.' };
+    const aliases: Record<string, string[]> = {
+      'verify-entrance': [
+        'verify the entrance',
+        'check the entrance',
+        'verify the service entrance',
+      ],
+      'investigate-connector': [
+        'investigate the connector',
+        'investigate the identity connector',
+        'establish connector scope',
+      ],
+      'manual-access': ['activate manual verification', 'manual access', 'use manual verification'],
+      'isolate-connector': ['isolate the connector', 'isolate the identity connector'],
+      'pause-dispatch': ['pause dispatch', 'pause the dispatch operation'],
+      monitor: ['monitor', 'continue monitoring'],
+      'restore-connector': ['restore the connector', 'restore the identity connector'],
+    };
+    const controls = GLASSHOUSE_CONTROLS.map((control) => ({
+      ...control,
+      aliases: aliases[control.id],
+    }));
+    // Resolve each independently so multiple stated actions cannot silently become only one.
+    const matches = controls.filter((control) => spokenMatches(text, [control]).length);
+    if (matches.length !== 1)
+      return {
+        reply: matches.length
+          ? 'I heard multiple actions. Please give one action at a time so each result is clear.'
+          : 'I could not resolve that action. Say help to hear the available actions, or state a concrete action such as verify the service entrance.',
+      };
+    const control = matches[0];
+    if (/^cancel\b/.test(words)) {
+      const actions = state.actions.filter(
+        (a) => a.control === control.id && ['requested', 'approved', 'started'].includes(a.status)
+      );
+      if (actions.length !== 1)
+        return {
+          reply: actions.length
+            ? 'More than one matching action is active. Name a different action or use the action details to distinguish them.'
+            : 'There is no active matching action to cancel.',
+        };
+      return outcome(
+        send({ type: 'cancel', actionId: actions[0].id }),
+        `Cancelled ${control.label.toLowerCase()}.`
+      );
+    }
+    const plan = {
+      ...emptyPlan(),
+      control: control.id,
+      scope: control.scope,
+      authority: control.needsApproval ? ('approval' as const) : ('delegated' as const),
+      rationale: text,
+      posture:
+        control.id === 'pause-dispatch'
+          ? ('PAUSE' as const)
+          : ['manual-access', 'isolate-connector'].includes(control.id)
+            ? ('DEGRADE' as const)
+            : ('CONTINUE' as const),
+      treatments: [
+        control.id === 'monitor'
+          ? ('ACCEPT' as const)
+          : control.id === 'pause-dispatch'
+            ? ('AVOID' as const)
+            : ('MITIGATE' as const),
+      ],
+    };
+    const accepted = send({ type: 'plan', plan });
+    if (accepted) {
+      setSelectedAsset(control.scope);
+      setMobileArea('decision');
+    }
+    return outcome(
+      accepted,
+      `${control.needsApproval ? 'Requested business-owner approval for' : 'Committed'} ${control.label.toLowerCase()}. ${plan.posture.toLowerCase()} posture. I am ready for your next command.`
+    );
+  };
   function playHandover() {
     setHandoverOpen(true);
     audio.playVoice(GLASSHOUSE_HANDOVER);
@@ -679,6 +886,29 @@ export default function Glasshouse() {
           </button>
         </div>
       </header>
+      <OngoingVoicePanel
+        context={state?.sessionId ?? 'launch'}
+        onTurn={respondToVoice}
+        onStart={() => {
+          audio.pause();
+          skipVO();
+        }}
+        announcement={
+          state
+            ? {
+                id: `${state.sessionId}:${observations.map((o) => o.id).join(',')}`,
+                text:
+                  observations
+                    .slice(-2)
+                    .map((o) => `${o.source}. ${o.claim}`)
+                    .join(' ') || 'Listening. Tell me your next action.',
+              }
+            : {
+                id: 'launch',
+                text: 'Say start guided practice, start independent practice, or start preview.',
+              }
+        }
+      />
       <input
         ref={inputFile}
         type="file"

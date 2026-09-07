@@ -1,30 +1,54 @@
-# Two-way audio: hearing and responding
+# Two-way voice: hear, decide, and respond
 
-The existing scenario voice interaction uses the device's microphone for a spoken response and its speakers or selected audio output for spoken updates. It does not require a headset.
+Glasshouse and the legacy scenarios support an ongoing voice conversation through the device microphone and speakers. No headset is required. Voice remains optional; ordinary touch and keyboard controls remain available. Phones prefer an installed local English voice for responsive playback, avoiding a second resident neural model. Devices without that local phone voice retain Kokoro or the existing browser speech fallback.
 
-## Sending a spoken response
+## Start once, then speak
 
-1. Select the asset, treatment/control and residual-risk choice for the current decision.
-2. Tap **Speak a response** and speak normally.
-3. A pause of about 1.25 seconds after detected speech ends the turn. The response is transcribed locally and the selected decision is sent automatically, with the recognized words in its record. There is no review-before-send or second commit step.
+1. Open **Voice setup**, enable hearing and speech input, and allow the disclosed local models to finish loading.
+2. Tap **Start conversation** and allow microphone access if the browser asks.
+3. Speak a command or decision. About 1.25 seconds of silence after speech finishes ends the turn and sends it automatically. The game acts on a resolved decision, speaks its receipt or a follow-up question, and resumes listening automatically.
 
-**Finish and send now** can end a spoken turn explicitly. **Cancel response** remains available while opening the microphone, listening or transcribing. Typed decisions retain their ordinary commit button. The visible sent receipt and debrief retain the recognized response.
+Say **stop listening** to end the conversation. The floating **Stop voice** button remains reachable above phone navigation, including while reviewing the mission. The latest recognized words and reply are available in **Latest voice exchange**.
 
-## Boundaries and recovery
+## Glasshouse
 
-- No microphone request or recording occurs merely by entering the scenario or enabling model setup. Setup remains optional, with its existing disclosed model download and cancellation.
-- Capture uses echo cancellation and stops app speech while listening. Input activity detection is a local audio-level heuristic, not a claim of human speech recognition accuracy. Clear input must last at least 250 ms; brief clicks and silence do not trigger recognition. Twelve seconds without detected speech cancels; one minute without a completed turn cancels rather than sending a partial response.
-- A response belongs to the decision and structured choices selected when speaking began. Changing them, leaving the view, hiding the tab, disabling input or cancelling invalidates the pending turn. Delayed permission and transcription results cannot submit to a different decision.
-- Microphone tracks stop as soon as capture ends. Interrupted capture, denied permission, failed/empty transcription and over-limit text send nothing. A failed attempt leaves the typed path usable.
-- Each completed recognition turn can submit once. A microphone disconnection is not treated as finishing a response. Recognition jobs are serialized; cancelling invalidates their result even if a model computation is already running.
-- The model supplies response text, not an inferred action or authority. It cannot choose a treatment or execute an unselected command.
+Say **start guided practice**, **start independent practice**, or **start preview**. During a mission, supported authored actions include **verify the entrance**, **investigate the connector**, **activate manual verification**, **isolate the connector**, **pause dispatch**, **monitor**, and **restore the connector**. Spoken actions use the same authority, resource, lifecycle and evidence rules as the visual plan controls. Owner approval requests are described as requests, rather than completed actions.
 
-This implements the owner's explicit send-when-finished preference for the existing scenario voice flow. Glasshouse's separate handover playback remains a distinct feature; this change does not claim a new conversational engine there.
+Say **status**, **next update**, **advance one minute**, **pause**, **resume**, **review**, or **return to command**. **Handoff** asks for a summary, the receiving owner and the next review condition in successive spoken turns. Its reply reports the actual mission outcome, including an early or unresolved handoff. A review does not complete the mission. Existing saved missions are preserved when a start command is repeated.
 
-## Verification and provenance
+The recognizer produces text. A bounded command adapter resolves the authored actions; it does not invent world evidence, grant authority or execute arbitrary instructions. Multiple named actions ask for one action at a time. Unknown and explicitly tentative or negated actions do not commit a plan.
 
-The current artifact and exact source revision are recorded in the delivery manifest. Unit tests cover end-of-speech timing, short pauses, silence, clicks and long input. Browser journeys feed synthetic audio through the actual recorder/analyser/decoder with deterministic recognition fixtures, then verify the real decision record, one-shot submission, cancellation, context changes and permission/capture failures. These tests establish the sending mechanism, not recognition quality on human speech. Human speech/noise testing remains part of qualification.
+## Legacy scenarios
 
-Implementation references: [MediaRecorder stop/event ordering](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/stop), [audio waveform measurement](https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatTimeDomainData), and [microphone track release](https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/stop).
+Say **start mission**, then state the asset, concrete control and residual risk for a pending update. Missing choices become spoken questions; answer by name or by the offered ordinal, such as **first one**. A complete decision records automatically, including the recognized rationale. For example: **manual verification for physical access control, medium temporary coverage gap**. You can also say **brief owner** with an asset name, **pause**, **resume**, **status**, **review**, or **close review**.
 
-The earlier full Android and art/audio evidence remains pinned to `93781ed04a3f81597bbfbd90`. It is not relabeled as validation of this new microphone/send behavior. Public qualification remains on hold.
+The optional single-turn **Speak a response** path remains available after manually selecting the structured choices. It also sends after speech finishes and retains its explicit finish and cancellation controls.
+
+## Turn ownership and recovery
+
+- Entering a page or loading models does not activate the microphone. Starting the conversation is explicit.
+- Echo cancellation is requested. Capture pauses during app replies and resumes only after playback finishes. Incoming reports wait for an active spoken turn to finish.
+- Quiet capture windows rotate automatically after 12 seconds without speech, without requiring another tap. A minute without completing a spoken turn cancels that capture instead of sending a partial response.
+- Each recognition result can act once, on its original mission/incident. Stopped conversations and stale, duplicate or hidden-tab results cannot execute commands.
+- Hiding the tab pauses capture and playback. Returning resumes the active conversation. Leaving the page or stopping voice releases the microphone. A completed action receipt interrupted by hiding is repeated without executing the action again.
+- Empty recognition, lost microphone access and failed capture send nothing. Recoverable recognition failures produce a spoken retry prompt. Disabling either input or playback ends the ongoing mode.
+
+## Verification
+
+The delivery manifest pins the current source, static pack and evidence. Browser journeys exercise native recording, silence detection, decoding and playback with deterministic model fixtures; separate real-model checks use locally synthesized speech. Fixture passes do not establish recognition quality. Final human review still covers accents, room noise, speaker echo, interruption timing, intelligibility, native accessibility and sustained use on the devices.
+
+The backend probe in `qa-output/real-voice/backend-probe.json` compares the same synthetic phrase across actual Whisper settings. The GPU q8 encoder returned empty text, while a full-precision GPU encoder and the quantized WASM path recognized the phrase. The [maintainer's Whisper WebGPU example](https://huggingface.co/spaces/Xenova/whisper-webgpu) and [upstream execution-settings discussion](https://github.com/huggingface/transformers.js/issues/894) provide implementation context; local measurements are the evidence for this correction.
+
+The current voice pack is **3212711aa9d7316215e75406**. Actual model journeys on both phones recognized two decisions and spoken stop, automatically resumed between replies, released every microphone track, preserved a reachable stop control, and stayed within the viewport. The S21 used a GPU full-precision encoder; the A14 used the quantized WASM path. Both used installed device speech for output.
+
+| Observed synthetic check                        | SM-G998U1      | SM-A146U1       |
+| ----------------------------------------------- | -------------- | --------------- |
+| Setup in the observed cached/network conditions | 9.0 s          | 13.8 s          |
+| Opening reply finishes and listening begins     | 16.4 s         | 16.2 s          |
+| Short spoken phrase to recorded decision/stop   | 4.5–5.5 s      | 14.7–16.0 s     |
+| Final viewport                                  | 384px portrait | 785px landscape |
+| Touch stop target                               | At least 44px  | At least 44px   |
+
+These are three synthetic phrases per device, including recording time and silence detection, not a statistical latency or accuracy claim. Recognition on the A14 is noticeably slower. The earlier S21 Kokoro path took 85.4 seconds to begin listening after the opening reply; the local device voice reduced that observed delay to 16.4 seconds. The earlier A14 dual-model attempt lost its browser session during speech generation. The final phone path avoids loading that second model.
+
+Historical Android, art, calibration and rollback results retain their original artifact identifiers. Public qualification remains held for the final human review packet.

@@ -32,6 +32,12 @@ Record five cold lab runs per route/device class, medians/outliers and condition
 
 Inspect short and 100-decision reports at print size, including text selection, reading order, treatment/correction/approval completeness, pagination, continued context and the 10pt minimum. HTML remains the canonical accessible alternative until manual tagged-PDF/accessibility qualification passes. Legacy raster reports stay labeled historical.
 
+## Ongoing two-way voice review
+
+Enable hearing and speech input once, start a conversation, and continue through several decisions without selecting game controls. Review both Glasshouse and the legacy spoken follow-up flow. Use the built-in speakers and microphone on both phones; no headset is necessary. Include incomplete and ambiguous decisions, a short pause within a sentence, a finished turn, room noise, spoken stop, visible stop, tab hiding and return, and the actual handoff receipt. Verify that a misheard, stale or cancelled turn never becomes a different command.
+
+Review recognition accuracy, intelligibility and waiting time separately. The engineering evidence uses synthetic speech, native recording/playback and actual local models; it cannot establish human accent coverage, speaker echo behavior or subjective quality. The lower-memory phone uses built-in speech output and retains local recognition. Device timings and the exact tested artifact are included in the current delivery evidence. Do not mark this review complete from the automated result.
+
 ## Art and audio comparator
 
 The [art/audio template](../release/review-materials/art-audio-comparison.md) specifies quiet handover, constrained operation and causal debrief stills/motion on desktop/mobile, matched state/event references, rights review and neutral prompts. The scene projects observed dependencies and commitments. Implemented audio has separate voice/effects/ambience controls, local handover voice, original cues/room tone, priority ducking, immediate stop/pause and readable receipt summaries. All channels begin off and all facts remain in text. These are mechanisms, not human qualification results.

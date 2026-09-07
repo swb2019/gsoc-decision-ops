@@ -14,7 +14,7 @@
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspaces && node scripts/prepare-glasshouse-offline.mjs && node scripts/measure-release-budget.mjs && node scripts/prepare-static.mjs",
     "build:core": "npm run build --workspace=packages/core",
-    "test": "node --test tests/architecture/domain-boundary.test.mjs tests/architecture/release-gate.test.mjs && npm run test --workspace=packages/core && vitest run apps/web/src/lib/local-voice-load-policy.test.ts apps/web/src/lib/model-download-session.test.ts apps/web/src/lib/glasshouse-adapters.test.ts apps/web/src/lib/glasshouse-practice.test.ts apps/web/src/lib/voice-endpoint.test.ts",
+    "test": "node --test tests/architecture/domain-boundary.test.mjs tests/architecture/release-gate.test.mjs && npm run test --workspace=packages/core && vitest run apps/web/src/lib/local-voice-load-policy.test.ts apps/web/src/lib/model-download-session.test.ts apps/web/src/lib/glasshouse-adapters.test.ts apps/web/src/lib/glasshouse-practice.test.ts apps/web/src/lib/voice-endpoint.test.ts apps/web/src/lib/voice-conversation.test.ts apps/web/src/lib/spoken-decision.test.ts",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",

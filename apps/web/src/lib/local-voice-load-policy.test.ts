@@ -73,6 +73,7 @@ describe('pickInferenceDevice', () => {
   it('uses wasm on low-RAM machines so WebGL COP keeps the GPU', () => {
     expect(pickInferenceDevice(true, 2)).toBe('wasm');
     expect(pickInferenceDevice(true, 3.5)).toBe('wasm');
+    expect(pickInferenceDevice(true, 4)).toBe('wasm');
   });
 
   it('uses webgpu when available on typical desktops', () => {
@@ -89,11 +90,42 @@ describe('model dtypes and skip/reuse', () => {
     });
     expect(getKokoroDtype()).toBe('q8');
   });
+  it('uses the validated full-precision encoder on WebGPU', () => {
+    expect(getWhisperDtype('webgpu')).toEqual({
+      encoder_model: 'fp32',
+      decoder_model_merged: 'q4',
+    });
+    expect(getWhisperDtype('wasm').encoder_model).toBe('q8');
+  });
 
   it('skips Kokoro after a Whisper OOM or heap pressure', () => {
     expect(shouldSkipKokoro({ whisperMemoryError: true, heapUnderPressure: false })).toBe(true);
     expect(shouldSkipKokoro({ whisperMemoryError: false, heapUnderPressure: true })).toBe(true);
     expect(shouldSkipKokoro({ whisperMemoryError: false, heapUnderPressure: false })).toBe(false);
+  });
+  it('uses native speech on a four-gigabyte phone without retaining a second model', () => {
+    const baseline = {
+      whisperMemoryError: false,
+      heapUnderPressure: false,
+      nativeSpeechAvailable: true,
+    };
+    expect(shouldSkipKokoro({ ...baseline, deviceMemoryGb: 4 })).toBe(true);
+    expect(shouldSkipKokoro({ ...baseline, deviceMemoryGb: 8 })).toBe(false);
+    expect(shouldSkipKokoro({ ...baseline, deviceMemoryGb: 4, nativeSpeechAvailable: false })).toBe(
+      false
+    );
+  });
+  it('prefers an installed local phone voice for responsive replies even on larger phones', () => {
+    const options = {
+      whisperMemoryError: false,
+      heapUnderPressure: false,
+      deviceMemoryGb: 8,
+      nativeSpeechAvailable: true,
+      preferNativeSpeech: true,
+    };
+    expect(shouldSkipKokoro(options)).toBe(true);
+    expect(shouldSkipKokoro({ ...options, nativeSpeechAvailable: false })).toBe(false);
+    expect(shouldSkipKokoro({ ...options, preferNativeSpeech: false })).toBe(false);
   });
 
   it('reuses whichever model is still in memory after disable', () => {

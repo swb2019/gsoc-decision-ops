@@ -157,6 +157,19 @@ interface TTSQueueItem {
 let ttsQueue: TTSQueueItem[] = [];
 let isProcessingTTS = false;
 let currentTTSAudio: HTMLAudioElement | null = null;
+let settleCurrentSpeech: (() => void) | null = null;
+let conversationActive = false;
+
+export function setVoiceConversationActive(active: boolean): void {
+  conversationActive = active;
+  updateState({});
+}
+export function isVoiceConversationActive(): boolean {
+  return conversationActive;
+}
+export function hasLocalVoiceSpeech(): boolean {
+  return recordingHasSpeech();
+}
 
 // Reference to ElevenLabs VO state checker
 let isElevenLabsPlaying: (() => boolean) | null = null;
@@ -378,6 +391,18 @@ function inferenceDevice(): InferenceDevice {
   return pickInferenceDevice(state.webGpuAvailable, readDeviceMemoryGb());
 }
 
+/** Installed phone voices avoid synthesis delays and a second resident neural model. */
+function preferNativeMobileSpeech(): boolean {
+  if (typeof navigator === 'undefined' || !webSpeechSynth) return false;
+  const mobile =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return (
+    mobile &&
+    webSpeechSynth.getVoices().some((voice) => voice.localService && voice.lang.startsWith('en'))
+  );
+}
+
 function markModelsCached(): void {
   if (typeof window === 'undefined') return;
   try {
@@ -464,7 +489,7 @@ export async function enableLocalVoice(): Promise<boolean> {
       stage: 'downloading',
       progress: 0,
       currentModel: 'whisper',
-      message: `Preparing two-way audio… (~${WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB} MB, one-time)`,
+      message: `Preparing two-way audio… (~${getEstimatedDownloadSize()} MB, one-time)`,
     });
 
     downloadSession = createModelDownloadSession(window);
@@ -557,7 +582,7 @@ export async function toggleLocalVoice(): Promise<boolean> {
  */
 async function loadModels(): Promise<void> {
   downloadSession?.assertActive();
-  const totalSize = WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB;
+  const totalSize = getEstimatedDownloadSize();
 
   updateProgress({
     stage: 'downloading',
@@ -576,6 +601,9 @@ async function loadModels(): Promise<void> {
   const skipKokoro = shouldSkipKokoro({
     whisperMemoryError: whisper.memoryError,
     heapUnderPressure: isHeapUnderPressure(readHeap()),
+    deviceMemoryGb: readDeviceMemoryGb(),
+    nativeSpeechAvailable: webSpeechSynth !== null,
+    preferNativeSpeech: preferNativeMobileSpeech(),
   });
 
   if (skipKokoro) {
@@ -725,7 +753,7 @@ async function loadWhisperModel(): Promise<{ memoryError: boolean }> {
       'onnx-community/whisper-base',
       {
         device,
-        dtype: getWhisperDtype(),
+        dtype: getWhisperDtype(device),
         progress_callback: (progress: { progress?: number; status?: string }) => {
           if (downloadSession?.signal.aborted) return;
           if (progress.progress !== undefined) {
@@ -842,7 +870,8 @@ export function isLocalVoiceCapturing(): boolean {
 }
 
 /** User-initiated microphone capture. A completed spoken turn is sent after a brief pause. */
-export async function startListening(contextId?: string): Promise<boolean> {
+export async function startListening(contextId?: string, ongoing = false): Promise<boolean> {
+  if (conversationActive && !ongoing) return false;
   if (!config.enabled || !config.sttEnabled || !state.sttReady || isLocalVoiceCapturing())
     return false;
   const generation = ++recordingGeneration;
@@ -897,6 +926,8 @@ export async function startListening(contextId?: string): Promise<boolean> {
       if (result === 'send') void stopListening();
       else if (result === 'no-speech' || result === 'too-long') {
         cancelListening();
+        // Ongoing mode silently rotates idle captures, bounding recorded bytes without another tap.
+        if (ongoing && result === 'no-speech') return;
         updateState({
           error:
             result === 'no-speech'
@@ -1060,7 +1091,8 @@ function resampleAudio(
  * Speak text using Kokoro or Web Speech fallback
  */
 export async function speak(text: string, priority: number = 5): Promise<void> {
-  if (!config.enabled || !config.ttsEnabled || isLocalVoiceCapturing()) return;
+  if (!config.enabled || !config.ttsEnabled || isLocalVoiceCapturing() || conversationActive)
+    return;
   if (!state.ttsReady) return;
 
   // Add to queue
@@ -1084,6 +1116,7 @@ async function processTTSQueue(): Promise<void> {
   }
 
   isProcessingTTS = true;
+  const queueEpoch = voiceOutputEpoch;
 
   // Sort by priority (higher first), then by timestamp
   ttsQueue.sort((a, b) => {
@@ -1113,12 +1146,10 @@ async function processTTSQueue(): Promise<void> {
   } catch (error) {
     console.error('TTS error:', error);
   } finally {
-    updateState({ isSpeaking: false });
-    isProcessingTTS = false;
-
-    // Process next item
-    if (ttsQueue.length > 0) {
-      setTimeout(() => processTTSQueue(), 100);
+    if (queueEpoch === voiceOutputEpoch) {
+      updateState({ isSpeaking: false });
+      isProcessingTTS = false;
+      if (ttsQueue.length > 0) setTimeout(() => processTTSQueue(), 100);
     }
   }
 }
@@ -1160,6 +1191,7 @@ async function speakWithKokoro(text: string): Promise<boolean> {
     const finish = (error?: Error): void => {
       if (settled) return;
       settled = true;
+      if (settleCurrentSpeech === cancel) settleCurrentSpeech = null;
       clearYieldWatch();
       audio.pause();
       if (currentTTSAudio === audio) currentTTSAudio = null;
@@ -1167,6 +1199,8 @@ async function speakWithKokoro(text: string): Promise<boolean> {
       if (error) reject(error);
       else resolve();
     };
+    const cancel = (): void => finish();
+    settleCurrentSpeech = cancel;
 
     const clearYieldWatch = watchElevenLabsYield((): void => {
       audio.src = '';
@@ -1206,7 +1240,12 @@ async function speakWithWebSpeech(text: string): Promise<boolean> {
 
     // Try to find an English voice
     const voices = webSpeechSynth!.getVoices();
-    const englishVoice = voices.find((v) => v.lang.startsWith('en-'));
+    const englishVoice =
+      voices.find(
+        (v) => v.localService && v.lang.startsWith('en') && v.lang === navigator.language
+      ) ??
+      voices.find((v) => v.localService && v.lang.startsWith('en-')) ??
+      voices.find((v) => v.lang.startsWith('en-'));
     if (englishVoice) {
       utterance.voice = englishVoice;
     }
@@ -1215,10 +1254,13 @@ async function speakWithWebSpeech(text: string): Promise<boolean> {
     const finish = (error?: SpeechSynthesisErrorEvent): void => {
       if (settled) return;
       settled = true;
+      if (settleCurrentSpeech === cancel) settleCurrentSpeech = null;
       clearYieldWatch();
       if (error) reject(error);
       else resolve();
     };
+    const cancel = (): void => finish();
+    settleCurrentSpeech = cancel;
 
     const clearYieldWatch = watchElevenLabsYield((): void => {
       webSpeechSynth?.cancel();
@@ -1249,6 +1291,8 @@ export function stopSpeaking(): void {
   voiceOutputEpoch += 1;
   ttsQueue = [];
   isProcessingTTS = false;
+  settleCurrentSpeech?.();
+  settleCurrentSpeech = null;
 
   if (currentTTSAudio) {
     currentTTSAudio.pause();
@@ -1261,6 +1305,22 @@ export function stopSpeaking(): void {
   }
 
   updateState({ isSpeaking: false });
+}
+
+/** A conversational reply resolves only after playback finishes or is explicitly stopped. */
+export async function speakConversation(text: string): Promise<void> {
+  if (!config.enabled || !config.ttsEnabled || !state.ttsReady)
+    throw new Error('Spoken playback is unavailable.');
+  stopSpeaking();
+  const epoch = voiceOutputEpoch;
+  updateState({ isSpeaking: true });
+  try {
+    if (kokoroInstance) await speakWithKokoro(text);
+    else if (webSpeechSynth) await speakWithWebSpeech(text);
+    else throw new Error('Spoken playback is unavailable.');
+  } finally {
+    if (epoch === voiceOutputEpoch) updateState({ isSpeaking: false });
+  }
 }
 
 function watchElevenLabsYield(onYield: () => void): () => void {
@@ -1303,7 +1363,14 @@ export async function readAARBullets(bullets: string[]): Promise<void> {
  * Get estimated download size for models
  */
 export function getEstimatedDownloadSize(): number {
-  return WHISPER_MODEL_SIZE_MB + KOKORO_MODEL_SIZE_MB;
+  const nativeSpeech = shouldSkipKokoro({
+    whisperMemoryError: false,
+    heapUnderPressure: false,
+    deviceMemoryGb: readDeviceMemoryGb(),
+    nativeSpeechAvailable: webSpeechSynth !== null,
+    preferNativeSpeech: preferNativeMobileSpeech(),
+  });
+  return WHISPER_MODEL_SIZE_MB + (nativeSpeech ? 0 : KOKORO_MODEL_SIZE_MB);
 }
 
 /**

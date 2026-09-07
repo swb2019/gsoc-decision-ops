@@ -20,7 +20,12 @@
 
 import { slugifyTitle } from '@gsoc-decision-ops/core';
 import { getBasePath, getAudioUrl } from './base-path';
-import { isLocalVoiceCapturing, isLocalTTSReady, speak as speakLocalTTS } from './local-voice';
+import {
+  isVoiceConversationActive,
+  isLocalVoiceCapturing,
+  isLocalTTSReady,
+  speak as speakLocalTTS,
+} from './local-voice';
 
 // Re-export for convenience
 export { slugifyTitle, getBasePath };
@@ -543,7 +548,7 @@ function processQueue(): void {
 }
 
 function playVOImmediate(voType: VOType, queueItem?: VOQueueItem): void {
-  if (isLocalVoiceCapturing()) {
+  if (isLocalVoiceCapturing() || isVoiceConversationActive()) {
     handlePlayFailure(queueItem);
     return;
   }
@@ -586,7 +591,7 @@ function playEventVOImmediate(
   fallbackUrl?: string,
   queueItem?: VOQueueItem
 ): void {
-  if (isLocalVoiceCapturing()) {
+  if (isLocalVoiceCapturing() || isVoiceConversationActive()) {
     handlePlayFailure(queueItem);
     return;
   }
@@ -641,7 +646,7 @@ function playEventVOImmediate(
  * Speak text via speechSynthesis using the VO queue (no overlap, ducks BGM).
  */
 function playTTSImmediate(text: string, queueItem?: VOQueueItem): void {
-  if (isLocalVoiceCapturing()) {
+  if (isLocalVoiceCapturing() || isVoiceConversationActive()) {
     handlePlayFailure(queueItem);
     return;
   }
@@ -717,7 +722,7 @@ export function playVO(voType: VOType): void {
  * Ducks BGM, respects voiceEnabled/systemPaused, clears on skipVO, and does not overlap other VO.
  */
 export function playSpokenText(text: string, opts?: SpokenTextOptions): void {
-  if (isLocalVoiceCapturing()) return;
+  if (isLocalVoiceCapturing() || isVoiceConversationActive()) return;
   if (typeof window === 'undefined') return;
 
   const spoken = text.trim();

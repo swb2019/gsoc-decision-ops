@@ -120,6 +120,8 @@ test('a failed archive keeps the original save and reports memory-only operation
   await page.clock.resume();
   await page.getByRole('button', { name: 'Start Fresh', exact: true }).click();
   await page.getByRole('button', { name: 'Begin Mission', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('this run currently exists only in memory');
+  await expect(page.getByRole('status').filter({ hasText: 'Saving is unavailable' })).toContainText(
+    'this run currently exists only in memory'
+  );
   expect(await page.evaluate((key) => localStorage.getItem(key), storageKey)).toBe(originalSave);
 });

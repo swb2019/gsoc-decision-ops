@@ -878,6 +878,14 @@ import GuidancePopup, { useGuidance } from './GuidancePopup';
 import type { GuidanceSurface } from '../lib/guidance';
 import { ChannelIcon3DWrapper } from './Lazy3D';
 import LocalVoicePanel, { LocalVoiceToggle } from './LocalVoicePanel';
+import OngoingVoicePanel from './OngoingVoicePanel';
+import {
+  SpokenDecisionDialogue,
+  legacyControlAliases,
+  speechWords,
+  spokenMatches,
+  type SpokenDecision,
+} from '@/lib/spoken-decision';
 import { useLocalVoice } from '../lib/hooks/useLocalVoice';
 import CampusCOP from './CampusCOP';
 import {
@@ -1357,6 +1365,7 @@ export default function CommandCenter({
   const voiceSubmissionRef = useRef<string | null>(null);
   const voiceStartAttemptRef = useRef(0);
   const consumedVoiceTurnRef = useRef<number | null>(null);
+  const spokenDialogue = useRef(new SpokenDecisionDialogue());
   const voiceContext =
     pendingDecision &&
     selectedAsset &&
@@ -2493,9 +2502,17 @@ export default function CommandCenter({
   const stats = useMemo(() => calculateStats(log), [log]);
   const revealedInjects = useMemo(() => getRevealedInjects(log), [log]);
 
+  const assets = esrmConfig?.primaryAssets || [];
   const handlePostureCommit = useCallback(
-    (posture: DecisionPosture, spokenResponse?: string) => {
-      if (!pendingDecision || !selectedAsset) return;
+    (posture: DecisionPosture, spokenResponse?: string, spokenPlan?: SpokenDecision) => {
+      const commitAsset = spokenPlan
+        ? assets.find((asset) => asset.id === spokenPlan.assetId)
+        : selectedAsset;
+      const commitCategory = spokenPlan?.category ?? selectedTreatmentCategory;
+      const commitControl = spokenPlan?.control ?? selectedTreatmentOption;
+      const commitRisk = spokenPlan?.risk ?? selectedResidualRisk;
+      const commitOwnerBriefed = commitAsset?.id === selectedAsset?.id && assetOwnerBriefed;
+      if (!pendingDecision || !commitAsset) return;
       voiceSubmissionRef.current = null;
       localVoice.cancelRecording();
       const decisionRationale = spokenResponse ?? residualRiskNote;
@@ -2527,10 +2544,7 @@ export default function CommandCenter({
         PAUSE: 'AVOID',
       };
       const expectedTreatment = expectedPosture ? expectedTreatmentMap[expectedPosture] : null;
-      const chosenTreatment = postureToTreatmentCalc(
-        posture,
-        selectedTreatmentCategory ?? undefined
-      );
+      const chosenTreatment = postureToTreatmentCalc(posture, commitCategory ?? undefined);
 
       // Calculate time used for decision
       const decisionTimeUsed = Math.max(
@@ -2544,10 +2558,10 @@ export default function CommandCenter({
         expectedPosture: expectedPosture || null,
         chosenTreatment,
         expectedTreatment,
-        assetCriticality: selectedAsset.criticality as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW',
-        ownerBriefed: assetOwnerBriefed,
-        residualRiskSelected: !!selectedResidualRisk,
-        treatmentCategorySelected: !!selectedTreatmentCategory,
+        assetCriticality: commitAsset.criticality as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW',
+        ownerBriefed: commitOwnerBriefed,
+        residualRiskSelected: !!commitRisk,
+        treatmentCategorySelected: !!commitCategory,
         rationaleProvided: !!decisionRationale,
         decisionTimeSeconds: decisionTimeUsed,
         timerLimitSeconds: difficultyConfig.timerMultiplier * DECISION_TIMER_CONFIG.BASE_TIMER,
@@ -2599,10 +2613,10 @@ export default function CommandCenter({
           posture,
           owner: 'GSOC Commander',
           ownerRole: 'Incident Commander',
-          rationale: `Asset: ${selectedAsset.name}. Treatment: ${chosenTreatment}. Control: ${selectedTreatmentOption ?? 'Not specified'}. ${decisionRationale}`,
+          rationale: `Asset: ${commitAsset.name}. Treatment: ${chosenTreatment}. Control: ${commitControl ?? 'Not specified'}. ${decisionRationale}`,
           esrmFraming: {
-            assetOwner: selectedAsset.owner.name,
-            assetOwnerRole: selectedAsset.owner.title,
+            assetOwner: commitAsset.owner.name,
+            assetOwnerRole: commitAsset.owner.title,
             treatment: chosenTreatment,
             residualRisk: decisionRationale || 'Residual risk acknowledged',
           },
@@ -2637,14 +2651,14 @@ export default function CommandCenter({
 
       // Calculate ESRM value for this decision
       const treatmentForCalc = chosenTreatment;
-      const criticality = selectedAsset.criticality as AssetCriticality;
+      const criticality = commitAsset.criticality as AssetCriticality;
       // Use the authored pre-action asset assessment. The player's posture must
       // not retroactively change the baseline likelihood used for comparison.
-      const likelihood: RiskLikelihood = selectedAsset.currentThreatLevel ?? 'POSSIBLE';
+      const likelihood: RiskLikelihood = commitAsset.currentThreatLevel ?? 'POSSIBLE';
       const impact: RiskImpact =
-        selectedAsset.criticality === 'CRITICAL'
+        commitAsset.criticality === 'CRITICAL'
           ? 'MAJOR'
-          : selectedAsset.criticality === 'HIGH'
+          : commitAsset.criticality === 'HIGH'
             ? 'MODERATE'
             : 'MINOR';
 
@@ -2654,7 +2668,7 @@ export default function CommandCenter({
         impactSeverity: impact,
         treatment: treatmentForCalc,
         decisionTimeSeconds: decisionTimeUsed,
-        esrmDocumented: assetOwnerBriefed && !!residualRiskNote,
+        esrmDocumented: commitOwnerBriefed && !!residualRiskNote,
       });
 
       setCalcTrails((prev) => [...prev, calcTrail]);
@@ -2662,16 +2676,16 @@ export default function CommandCenter({
       // CONSEQUENCE THEATRE: Calculate and animate visible COP/KRI/trust changes
       const valueNetChange = calcTrail.finalResult.netValue;
       const trustDelta = isCorrect
-        ? (assetOwnerBriefed ? 8 : 3) + (selectedResidualRisk ? 3 : 0)
-        : -(assetOwnerBriefed ? 2 : 8);
+        ? (commitOwnerBriefed ? 8 : 3) + (commitRisk ? 3 : 0)
+        : -(commitOwnerBriefed ? 2 : 8);
       const residualDelta = posture === 'PAUSE' ? -20 : posture === 'DEGRADE' ? -10 : 5;
 
       // Determine zone affected by this decision
-      const zoneAffected = selectedAsset.businessFunction.toLowerCase().includes('executive')
+      const zoneAffected = commitAsset.businessFunction.toLowerCase().includes('executive')
         ? 'executive'
-        : selectedAsset.businessFunction.toLowerCase().includes('security')
+        : commitAsset.businessFunction.toLowerCase().includes('security')
           ? 'perimeter'
-          : selectedAsset.businessFunction.toLowerCase().includes('it')
+          : commitAsset.businessFunction.toLowerCase().includes('it')
             ? 'cyber'
             : 'operations';
 
@@ -2687,8 +2701,8 @@ export default function CommandCenter({
           { id: 'mtta', delta: isCorrect ? -5 : 10, newStatus: isCorrect ? 'GREEN' : 'AMBER' },
           {
             id: 'residual-rate',
-            delta: selectedResidualRisk ? 10 : -5,
-            newStatus: selectedResidualRisk ? 'GREEN' : 'AMBER',
+            delta: commitRisk ? 10 : -5,
+            newStatus: commitRisk ? 'GREEN' : 'AMBER',
           },
         ],
         trustChange: trustDelta,
@@ -2712,7 +2726,7 @@ export default function CommandCenter({
         setOverallResidualRisk((prev) =>
           prev === 'CRITICAL' ? 'HIGH' : prev === 'HIGH' ? 'MEDIUM' : prev
         );
-      } else if (!isCorrect && selectedAsset.criticality === 'CRITICAL') {
+      } else if (!isCorrect && commitAsset.criticality === 'CRITICAL') {
         setOverallResidualRisk((prev) =>
           prev === 'LOW' ? 'MEDIUM' : prev === 'MEDIUM' ? 'HIGH' : 'CRITICAL'
         );
@@ -2729,7 +2743,7 @@ export default function CommandCenter({
         decisionsCorrect: prev.decisionsCorrect + (isCorrect ? 1 : 0),
         decisionsTotal: prev.decisionsTotal + 1,
         injectsHandled: prev.injectsHandled + 1,
-        assetOwnersBriefed: prev.assetOwnersBriefed + (assetOwnerBriefed ? 1 : 0),
+        assetOwnersBriefed: prev.assetOwnersBriefed + (commitOwnerBriefed ? 1 : 0),
         assetsProtected: prev.assetsProtected + 1,
         timeBonus: prev.timeBonus + Math.round(scoringResult.breakdown.timeBonus),
         esrmBonus: prev.esrmBonus + scoringResult.breakdown.esrmBonuses.total,
@@ -2786,6 +2800,7 @@ export default function CommandCenter({
     [
       pendingDecision,
       selectedAsset,
+      assets,
       log,
       gameState,
       assetOwnerBriefed,
@@ -2808,6 +2823,7 @@ export default function CommandCenter({
 
   useEffect(() => {
     const response = localVoice.lastResponse;
+    if (response?.contextId?.startsWith('conversation:')) return;
     if (!response || consumedVoiceTurnRef.current === response.turnId) return;
     consumedVoiceTurnRef.current = response.turnId;
     localVoice.clearTranscription();
@@ -2838,6 +2854,111 @@ export default function CommandCenter({
     handlePostureCommit,
   ]);
 
+  const conversationContext = `${scenarioId}:${pendingDecision?.id ?? 'waiting'}`;
+  const respondToVoice = async (text: string, context: string): Promise<{ reply: string }> => {
+    const words = speechWords(text);
+    if (/^(?:review|show (?:the )?(?:review|debrief))$/.test(words)) {
+      setIsRunning(false);
+      setShowDebrief(true);
+      return { reply: 'Debrief open. Say close review to return to the mission.' };
+    }
+    if (/^(?:close (?:the )?(?:review|debrief)|return to command)$/.test(words)) {
+      setShowDebrief(false);
+      return { reply: 'Command view open.' };
+    }
+    if (/^(?:please )?(?:begin|start)(?: the)? (?:mission|simulation|game)$/.test(words)) {
+      if (!arcSchedulerRef.current) handleStartGame();
+      else {
+        setSystemPaused(false);
+        setIsRunning(true);
+      }
+      return {
+        reply:
+          'Mission running. I will read new updates. Tell me the asset, action and residual risk when you are ready.',
+      };
+    }
+    if (/^(?:please )?pause(?: the)?(?: mission|simulation|game)?$/.test(words)) {
+      setIsRunning(false);
+      return { reply: 'Simulation paused. Voice remains available.' };
+    }
+    if (/^(?:please )?(?:resume|continue)(?: the)?(?: mission|simulation|game)?$/.test(words)) {
+      setIsRunning(true);
+      return { reply: 'Simulation resumed.' };
+    }
+    if (/^(?:read|repeat|status|update|what happened|whats happening|help)/.test(words)) {
+      return {
+        reply: pendingDecision
+          ? `${pendingDecision.title}. ${pendingDecision.content}. State the asset, a concrete action, and the residual risk. I will ask for any missing choices and then record your decision.`
+          : 'No decision is waiting. Say start mission to begin, pause to pause, or stop listening to end voice.',
+      };
+    }
+    if (!pendingDecision)
+      return {
+        reply:
+          'There is no pending decision to act on. I am listening for your next command and will read the next update.',
+      };
+    if (context !== conversationContext) {
+      spokenDialogue.current.clear();
+      return {
+        reply: `The situation changed while you were speaking. ${pendingDecision.title}. Please restate your decision for this update.`,
+      };
+    }
+    if (/^brief (?:the )?owner/.test(words)) {
+      const matches = spokenMatches(
+        text,
+        assets.map((asset) => ({
+          id: asset.id,
+          label: asset.name,
+          aliases: [asset.name.replace(/ system$| platform$/i, '')],
+        }))
+      );
+      const asset =
+        matches.length === 1
+          ? assets.find((a) => a.id === matches[0].id)
+          : /^brief (?:the )?owner$/.test(words)
+            ? selectedAsset
+            : null;
+      if (!asset) return { reply: 'Name the asset whose owner you want to brief.' };
+      setSelectedAsset(asset);
+      setAssetOwnerBriefed(true);
+      return { reply: `Owner briefed for ${asset.name}. Tell me your decision.` };
+    }
+    const answer = spokenDialogue.current.receive(text, conversationContext, {
+      assets: assets.map((asset) => ({
+        id: asset.id,
+        label: asset.name,
+        aliases: [asset.name.replace(/ system$| platform$/i, '')],
+      })),
+      controls: Object.entries(TREATMENT_OPTIONS).flatMap(([category, options]) =>
+        options.map((option) => ({
+          ...option,
+          category: category as SpokenDecision['category'],
+          aliases: legacyControlAliases[option.id],
+        }))
+      ),
+      risks: RESIDUAL_RISK_OPTIONS.map((risk) => ({
+        id: risk.id,
+        label: risk.label,
+        aliases: [risk.level, risk.label.replace(/^\w+\s*—\s*/, '')],
+      })),
+    });
+    if (answer.decision) {
+      const posture = {
+        ACCEPT: 'CONTINUE',
+        MITIGATE: 'DEGRADE',
+        TRANSFER: 'DEGRADE',
+        AVOID: 'PAUSE',
+      } as const;
+      handlePostureCommit(
+        posture[answer.decision.category],
+        answer.decision.rationale,
+        answer.decision
+      );
+      setVoiceResponseStatus(answer.reply);
+    }
+    return { reply: answer.reply };
+  };
+
   const calculateGrade = (): { grade: string; title: string; color: string } => {
     const { decisionsCorrect, decisionsTotal, score, assetOwnersBriefed } = gameState;
     if (decisionsTotal === 0) return { grade: 'F', title: 'No Engagement', color: 'text-red-400' };
@@ -2854,8 +2975,6 @@ export default function CommandCenter({
     if (composite >= 0.4) return { grade: 'D', title: 'Needs Work', color: 'text-orange-400' };
     return { grade: 'F', title: 'Mission Failed', color: 'text-red-400' };
   };
-
-  const assets = esrmConfig?.primaryAssets || [];
 
   const pickDefaultAsset = useCallback((list: ProtectedAsset[]): ProtectedAsset | null => {
     if (!list.length) return null;
@@ -3720,6 +3839,27 @@ export default function CommandCenter({
       </header>
 
       {/* Mobile Bottom Navigation - Animated tabs */}
+      <OngoingVoicePanel
+        context={conversationContext}
+        onTurn={respondToVoice}
+        onStart={() => {
+          skipVO();
+          localVoice.stopSpeech();
+        }}
+        announcement={
+          pendingDecision
+            ? {
+                id: pendingDecision.id,
+                text: `${pendingDecision.title}. ${pendingDecision.content}`,
+              }
+            : {
+                id: `waiting:${isRunning}`,
+                text: isRunning
+                  ? 'Listening. I will read new updates as they arrive.'
+                  : 'Voice is ready. Say start mission to begin, or tell me your decision.',
+              }
+        }
+      />
       <nav className="mobile-nav lg:hidden" aria-label="Mobile navigation">
         <div className="flex items-center">
           <button
@@ -3882,7 +4022,7 @@ export default function CommandCenter({
                 onSelectResidualRisk={setSelectedResidualRisk}
                 localVoice={{
                   isEnabled: localVoice.isEnabled,
-                  isReady: localVoice.canListen,
+                  isReady: localVoice.canListen && !localVoice.isConversing,
                   canSpeak: localVoice.canSpeak,
                   isListening: localVoice.isListening,
                   isSpeaking: localVoice.isSpeaking,
@@ -4359,7 +4499,7 @@ export default function CommandCenter({
                   onSelectResidualRisk={setSelectedResidualRisk}
                   localVoice={{
                     isEnabled: localVoice.isEnabled,
-                    isReady: localVoice.canListen,
+                    isReady: localVoice.canListen && !localVoice.isConversing,
                     canSpeak: localVoice.canSpeak,
                     isListening: localVoice.isListening,
                     isSpeaking: localVoice.isSpeaking,

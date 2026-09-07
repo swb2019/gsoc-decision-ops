@@ -8,6 +8,7 @@ import {
   loadLocalVoiceConfig,
   saveLocalVoiceConfig,
   getLocalVoiceState,
+  isVoiceConversationActive,
   getLocalVoiceConfig,
   getModelProgress,
   onProgress,
@@ -37,6 +38,7 @@ interface UseLocalVoiceReturn {
   isEnabled: boolean;
   isReady: boolean;
   isListening: boolean;
+  isConversing: boolean;
   isSpeaking: boolean;
 
   // Model info
@@ -258,5 +260,6 @@ export function useLocalVoice(
 
     canSpeak: config.enabled && config.ttsEnabled && state.ttsReady,
     canListen: config.enabled && config.sttEnabled && state.sttReady,
+    isConversing: isVoiceConversationActive(),
   };
 }

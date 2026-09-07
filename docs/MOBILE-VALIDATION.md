@@ -4,9 +4,15 @@ The game supports phone and tablet play in portrait and landscape. Mobile scenar
 
 Touch controls have a minimum 44 CSS-pixel target, including menu actions and audio switches. Form controls use at least 16px text, preserving browser zoom and avoiding automatic input zoom. Audio settings scroll within the dynamic viewport; safe-area padding protects controls near screen edges. Landscape navigation becomes shorter to preserve working space. Glasshouse retains its complete schematic and optional, demand-rendered 3D view with capped pixel density.
 
-## Current physical devices
+## Ongoing voice on phones
 
-Both connected devices ran the current mobile artifact, **d65b92a2831889f378266f40**. The delivery manifest pins the exact source and archive checksums. Evidence is in `qa-output/android-mobile/` and the corresponding validation archive.
+The final voice pack **3212711aa9d7316215e75406** has fresh real-model conversation checks on both physical phones. Phones use installed local English speech output when available; the four-gigabyte device keeps the smaller quantized recognition path. Voice starts once, automatically sends a finished spoken decision, reads the result and listens again. Missing legacy choices become spoken follow-up questions. A floating stop control remains above phone navigation.
+
+Both devices executed successive decisions, recognized spoken stop and released all microphone tracks, with no horizontal overflow. The final S21 run was portrait and the A14 run was landscape. See [voice timings, evidence scope and human-review limits](TWO-WAY-AUDIO.md). The complete earlier offline, keyboard and graphics run below retains its original artifact identifier.
+
+## Mobile base qualification
+
+Both connected devices ran the mobile base artifact, **d65b92a2831889f378266f40**, preserved in release `e1d5ef5`. These results retain that artifact identifier; they are not relabeled as tests of a later voice update. Evidence is in `qa-output/android-mobile/` and the corresponding validation archive.
 
 | Check                                                                          | SM-G998U1                       | SM-A146U1                       |
 | ------------------------------------------------------------------------------ | ------------------------------- | ------------------------------- |

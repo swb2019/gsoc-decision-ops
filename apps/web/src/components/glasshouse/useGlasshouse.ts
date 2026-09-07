@@ -36,6 +36,7 @@ export function useGlasshouse(activeView = true) {
   const [error, setError] = useState('');
   const [activeSeconds, setActiveSeconds] = useState(0);
   const stateRef = useRef<Session | null>(null);
+  const commandError = useRef('');
   const journal = useRef<Journal | null>(null);
   const saveChain = useRef(Promise.resolve());
   const activeSecondsRef = useRef(0);
@@ -134,15 +135,19 @@ export function useGlasshouse(activeView = true) {
 
   const send = useCallback(
     (intent: Intent): boolean => {
+      commandError.current = '';
       const current = stateRef.current;
       if (!current) return false;
       if (!currentRubric(current)) {
+        commandError.current =
+          'This is a historical read-only record. Start a fresh mission to act.';
         setError(
           'This historical rules, rubric and asset contract is preserved for read-only review. Start a fresh mission to use the current version.'
         );
         return false;
       }
       if (journal.current?.readOnly) {
+        commandError.current = 'This tab is read-only. Take over the journal before acting.';
         setReadOnly(true);
         setError(
           'This tab is read-only. Inspect the saved run and explicitly take over before making changes.'
@@ -152,6 +157,7 @@ export function useGlasshouse(activeView = true) {
       const command = { ...intent, actor: 'commander', commandId: crypto.randomUUID() } as Command;
       const result = transitionGlasshouse(current, command);
       if (result.error) {
+        commandError.current = result.error;
         if (result.state !== current) replace(result.state);
         setError(result.error);
         return false;
@@ -300,6 +306,8 @@ export function useGlasshouse(activeView = true) {
     error,
     setError,
     send,
+    getCommandError: () => commandError.current,
+    getCurrentState: () => stateRef.current,
     start,
     replace,
     takeover,
