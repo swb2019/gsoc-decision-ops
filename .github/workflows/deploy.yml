@@ -62,7 +62,10 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: /gsoc-decision-ops
 
       - name: Prepare browser audio on the Linux runner
+        timeout-minutes: 10
         run: |
+          # The Azure HTTP mirror can throttle large browser dependency downloads.
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           npx playwright install --with-deps chromium firefox webkit
           sudo apt-get install -y pulseaudio
           pulseaudio --start --exit-idle-time=-1
