@@ -160,6 +160,35 @@ describe('ongoing voice turn ownership', () => {
     expect(h.port.respond).toHaveBeenCalledTimes(1);
     h.loop.stop();
   });
+  it('preserves speech beginning when a late announcement arrives', async () => {
+    const h = harness();
+    h.loop.start();
+    await vi.advanceTimersByTimeAsync(50);
+    const cancels = vi.mocked(h.port.cancel).mock.calls.length;
+    h.loop.announce('New report received.');
+    await vi.advanceTimersByTimeAsync(250);
+    h.setSpeech(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(h.port.cancel).toHaveBeenCalledTimes(cancels);
+    expect(h.port.speak).not.toHaveBeenCalled();
+    await h.loop.transcribed({ turnId: 1, contextId: h.contexts[0], text: 'Stop listening' });
+    expect(h.loop.state.active).toBe(false);
+  });
+  it('announces after a quiet detection window and cancels deferred work on stop', async () => {
+    const h = harness();
+    h.loop.start();
+    await vi.advanceTimersByTimeAsync(50);
+    h.loop.announce('New report received.');
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(h.port.speak).toHaveBeenCalledWith('New report received.');
+    await vi.advanceTimersByTimeAsync(250);
+    h.loop.announce('Another report.');
+    h.loop.stop();
+    const cancels = vi.mocked(h.port.cancel).mock.calls.length;
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(h.port.cancel).toHaveBeenCalledTimes(cancels);
+    expect(h.port.speak).not.toHaveBeenCalledWith('Another report.');
+  });
   it('stops and releases ownership when capture fails or models are disabled', async () => {
     const h = harness();
     h.loop.start();

@@ -35,6 +35,7 @@ export class VoiceConversation {
   private context = '';
   private turn = -1;
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private announcementTimer: ReturnType<typeof setTimeout> | undefined;
   private messages: string[] = [];
   private previousError: string | null = null;
   constructor(
@@ -68,6 +69,8 @@ export class VoiceConversation {
     this.epoch++;
     this.activation++;
     clearTimeout(this.timer);
+    clearTimeout(this.announcementTimer);
+    this.announcementTimer = undefined;
     this.messages = [];
     this.busy = false;
     this.update({ active: false, phase: error ? 'error' : 'off', error });
@@ -77,6 +80,8 @@ export class VoiceConversation {
   }
   visibilityChanged(): void {
     if (!this.state.active) return;
+    clearTimeout(this.announcementTimer);
+    this.announcementTimer = undefined;
     this.epoch++;
     this.busy = false;
     if (!this.port.visible()) {
@@ -120,8 +125,24 @@ export class VoiceConversation {
   announce(text: string): void {
     if (!this.state.active || !text.trim()) return;
     this.messages.push(text);
-    // Never interrupt a user's active spoken turn to announce an update.
-    if (this.port.state().isListening && !this.port.hasSpeech()) this.port.cancel();
+    // A report can arrive just as the microphone opens. Give speech detection
+    // its 250 ms observation window before interrupting a quiet capture.
+    if (this.port.state().isListening && !this.port.hasSpeech() && !this.announcementTimer) {
+      const epoch = this.epoch;
+      this.announcementTimer = setTimeout(() => {
+        this.announcementTimer = undefined;
+        if (
+          epoch === this.epoch &&
+          this.state.active &&
+          this.port.visible() &&
+          this.port.state().isListening &&
+          !this.port.hasSpeech()
+        ) {
+          this.port.cancel();
+          this.schedule();
+        }
+      }, 1000);
+    }
     this.schedule();
   }
   async transcribed(result: { turnId: number; contextId?: string; text: string }): Promise<void> {

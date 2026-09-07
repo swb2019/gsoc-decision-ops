@@ -74,13 +74,13 @@ jobs:
           pactl info
 
       - name: Verify Chromium journeys
-        run: npx playwright test
+        run: npx playwright test --max-failures=1
 
       - name: Verify WebKit journeys
-        run: npx playwright test --config playwright.engines.config.mjs --project webkit
+        run: npx playwright test --config playwright.engines.config.mjs --project webkit --max-failures=1
 
       - name: Verify Firefox journeys
-        run: npx playwright test --config playwright.engines.config.mjs --project firefox
+        run: npx playwright test --config playwright.engines.config.mjs --project firefox --max-failures=1
 
       - name: Preserve browser verification evidence
         if: always()
