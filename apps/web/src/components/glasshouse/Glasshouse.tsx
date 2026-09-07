@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -19,6 +20,8 @@ import {
   Inbox,
   Layers3,
   MapPin,
+  Mic,
+  MoreHorizontal,
   Pause,
   Play,
   Radio,
@@ -461,6 +464,12 @@ export default function Glasshouse() {
   const [view, setView] = useState<'command' | 'review'>('command');
   const [settings, setSettings] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const [moreMenuPosition, setMoreMenuPosition] = useState<{ top: number; right: number } | null>(
+    null
+  );
   const engine = useGlasshouse(view === 'command' && !settings);
   const { state, send } = engine;
   const voiceHandoff = useRef<{ summary?: string; owner?: string; reviewTrigger?: string } | null>(
@@ -881,8 +890,54 @@ export default function Glasshouse() {
           >
             <Settings2 size={19} />
           </button>
+          <button
+            ref={moreButtonRef}
+            className="gh-icon-button"
+            aria-label="More options"
+            aria-expanded={moreOpen}
+            onClick={() => {
+              if (!moreOpen && moreButtonRef.current) {
+                const rect = moreButtonRef.current.getBoundingClientRect();
+                setMoreMenuPosition({
+                  top: rect.bottom + 8,
+                  right: window.innerWidth - rect.right,
+                });
+              }
+              setMoreOpen((value) => !value);
+            }}
+          >
+            <MoreHorizontal size={19} />
+          </button>
         </div>
       </header>
+      {moreOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div className="gh-overflow-backdrop" onClick={() => setMoreOpen(false)} />
+            <div
+              className="gh-overflow-menu"
+              role="menu"
+              style={{
+                top: moreMenuPosition?.top ?? 60,
+                right: Math.max(8, moreMenuPosition?.right ?? 8),
+              }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setVoiceSettingsOpen(true);
+                  setMoreOpen(false);
+                }}
+              >
+                <Mic size={16} />
+                Two-way audio
+              </button>
+            </div>
+          </>,
+          document.body
+        )}
       <OngoingVoicePanel
         context={state?.sessionId ?? 'launch'}
         onTurn={respondToVoice}
@@ -890,6 +945,9 @@ export default function Glasshouse() {
           audio.pause();
           skipVO();
         }}
+        settingsOpen={voiceSettingsOpen}
+        onSettingsClose={() => setVoiceSettingsOpen(false)}
+        reducedMotion={!motion}
         announcement={
           state
             ? {

@@ -71,6 +71,7 @@ import {
   Trophy,
   Repeat,
   Settings,
+  MoreHorizontal,
   GraduationCap,
   Sparkles,
   Calculator,
@@ -877,7 +878,6 @@ import {
 import GuidancePopup, { useGuidance } from './GuidancePopup';
 import type { GuidanceSurface } from '../lib/guidance';
 import { ChannelIcon3DWrapper } from './Lazy3D';
-import LocalVoicePanel, { LocalVoiceToggle } from './LocalVoicePanel';
 import OngoingVoicePanel from './OngoingVoicePanel';
 import {
   SpokenDecisionDialogue,
@@ -3333,15 +3333,6 @@ export default function CommandCenter({
               <Mic2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Local Voice (on-device) toggle - hidden on very small mobile */}
-            <LocalVoiceToggle
-              onClick={() => setShowLocalVoicePanel(!showLocalVoicePanel)}
-              isEnabled={localVoice.isEnabled}
-              isReady={localVoice.isReady}
-              isLoading={localVoice.isDownloading}
-              className="hidden xs:flex flex-shrink-0"
-            />
-
             {/* Field Guide Tips toggle - hidden on mobile, accessible via menu */}
             <button
               onClick={() => {
@@ -3503,8 +3494,8 @@ export default function CommandCenter({
               </button>
             </div>
 
-            {/* Mobile overflow menu button */}
-            <div className="lg:hidden flex-shrink-0">
+            {/* Overflow menu — two-way audio and other quiet options live here, not in the play chrome */}
+            <div className="flex-shrink-0">
               <button
                 ref={mobileMenuButtonRef}
                 onClick={() => {
@@ -3526,7 +3517,7 @@ export default function CommandCenter({
                 aria-label="More options"
                 aria-expanded={showMobileMenu}
               >
-                <Layers className="w-5 h-5" />
+                <MoreHorizontal className="w-5 h-5" />
                 {(kriDashboard?.criticalCount ?? 0) > 0 ||
                 (pipelineHealth?.alerts?.length ?? 0) > 0 ? (
                   <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
@@ -3839,27 +3830,6 @@ export default function CommandCenter({
       </header>
 
       {/* Mobile Bottom Navigation - Animated tabs */}
-      <OngoingVoicePanel
-        context={conversationContext}
-        onTurn={respondToVoice}
-        onStart={() => {
-          skipVO();
-          localVoice.stopSpeech();
-        }}
-        announcement={
-          pendingDecision
-            ? {
-                id: pendingDecision.id,
-                text: `${pendingDecision.title}. ${pendingDecision.content}`,
-              }
-            : {
-                id: `waiting:${isRunning}`,
-                text: isRunning
-                  ? 'Listening. I will read new updates as they arrive.'
-                  : 'Voice is ready. Say start mission to begin, or tell me your decision.',
-              }
-        }
-      />
       <nav className="mobile-nav lg:hidden" aria-label="Mobile navigation">
         <div className="flex items-center">
           <button
@@ -4886,23 +4856,31 @@ export default function CommandCenter({
       {/* Field Guide Modal */}
       {showFieldGuide && <FieldGuideModal onClose={() => setShowFieldGuide(false)} />}
 
-      {/* Local Voice Settings Panel */}
-      {showLocalVoicePanel && (
-        <div
-          className="hc-voice-dialog fixed inset-0 bg-black/90 backdrop-blur-xl z-[90] flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Two-way audio settings"
-        >
-          <div className="w-full max-w-md animate-scale-in overflow-y-auto">
-            <LocalVoicePanel
-              reducedMotion={reducedMotion}
-              elevenLabsPlayingChecker={isVOCurrentlyPlaying}
-              onClose={() => setShowLocalVoicePanel(false)}
-            />
-          </div>
-        </div>
-      )}
+      <OngoingVoicePanel
+        context={conversationContext}
+        onTurn={respondToVoice}
+        onStart={() => {
+          skipVO();
+          localVoice.stopSpeech();
+        }}
+        settingsOpen={showLocalVoicePanel}
+        onSettingsClose={() => setShowLocalVoicePanel(false)}
+        reducedMotion={reducedMotion}
+        elevenLabsPlayingChecker={isVOCurrentlyPlaying}
+        announcement={
+          pendingDecision
+            ? {
+                id: pendingDecision.id,
+                text: `${pendingDecision.title}. ${pendingDecision.content}`,
+              }
+            : {
+                id: `waiting:${isRunning}`,
+                text: isRunning
+                  ? 'Listening. I will read new updates as they arrive.'
+                  : 'Voice is ready. Say start mission to begin, or tell me your decision.',
+              }
+        }
+      />
 
       {/* Tactical Actions Panel */}
       {showTacticalPanel && (

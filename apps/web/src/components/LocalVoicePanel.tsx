@@ -122,7 +122,7 @@ export default function LocalVoicePanel({
             aria-checked={isEnabled}
             disabled={isDownloading || state.isLoading}
             className={clsx(
-              'relative w-12 h-7 rounded-full transition-all duration-200',
+              'relative w-12 h-7 min-w-[44px] min-h-[44px] flex-shrink-0 rounded-full transition-all duration-200',
               isEnabled ? 'bg-violet-500' : 'bg-gray-700',
               (isDownloading || state.isLoading) && 'opacity-50 cursor-not-allowed'
             )}

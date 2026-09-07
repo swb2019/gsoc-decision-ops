@@ -73,15 +73,17 @@ export async function setup(page, path) {
     !(await page.evaluate(() => Boolean(window.AudioContext && window.MediaRecorder))),
     'This engine build lacks native recording; Chromium and Firefox cover the conversation recorder path.'
   );
-  const panel = page.getByRole('region', { name: 'Ongoing two-way voice' });
-  await panel.getByRole('button', { name: 'Voice setup', exact: true }).click();
-  await panel.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();
+  await page.getByRole('button', { name: 'More options' }).click();
+  await page.getByRole('menuitem', { name: 'Two-way audio', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Two-way audio settings' });
+  await dialog.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();
+  const panel = dialog.getByRole('region', { name: 'Ongoing two-way voice' });
   await expect(panel.getByRole('button', { name: 'Start conversation', exact: true })).toBeEnabled({
     timeout: 20000,
   });
-  await panel.getByRole('button', { name: 'Close two-way audio settings' }).click();
   await panel.getByRole('button', { name: 'Start conversation', exact: true }).click();
-  return panel;
+  await dialog.getByRole('button', { name: 'Close two-way audio settings' }).click();
+  return page.getByRole('region', { name: 'Ongoing two-way voice' });
 }
 
 export async function utter(page, text, reply) {

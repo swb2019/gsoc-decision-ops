@@ -62,12 +62,8 @@ async function prepare(page, options = {}) {
     'This engine lacks native audio capture; Chrome covers the recorder path.'
   );
   await page.getByRole('button', { name: 'Exit mission', exact: true }).waitFor();
-  const audioToggle = page.getByRole('button', { name: 'Enable two-way audio', exact: true });
-  if (await audioToggle.isVisible()) await audioToggle.click();
-  else {
-    await page.getByRole('button', { name: 'More options' }).click();
-    await page.getByRole('menuitem', { name: 'Two-way audio', exact: true }).click();
-  }
+  await page.getByRole('button', { name: 'More options' }).click();
+  await page.getByRole('menuitem', { name: 'Two-way audio', exact: true }).click();
   await page.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();
   await expect(page.getByText('Ready to hear and respond', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Close two-way audio settings' }).click();
