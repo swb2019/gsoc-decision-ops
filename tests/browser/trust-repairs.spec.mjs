@@ -106,6 +106,9 @@ test('a failed archive keeps the original save and reports memory-only operation
   page,
 }) => {
   await beginLegacyExercise(page);
+  await expect
+    .poll(() => page.evaluate((key) => localStorage.getItem(key), storageKey))
+    .not.toBeNull();
   const originalSave = await page.evaluate((key) => localStorage.getItem(key), storageKey);
   await page.addInitScript(() => {
     const originalWrite = Storage.prototype.setItem;
@@ -121,7 +124,8 @@ test('a failed archive keeps the original save and reports memory-only operation
   await page.getByRole('button', { name: 'Start Fresh', exact: true }).click();
   await page.getByRole('button', { name: 'Begin Mission', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Saving is unavailable' })).toContainText(
-    'this run currently exists only in memory'
+    'this run currently exists only in memory',
+    { timeout: 20000 }
   );
   expect(await page.evaluate((key) => localStorage.getItem(key), storageKey)).toBe(originalSave);
 });

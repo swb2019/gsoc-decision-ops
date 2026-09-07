@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 // Native recording, silence detection, decoding and audio playback; deterministic ASR/TTS
 // adapters isolate the conversation contract from recognition quality and model downloads.
 export async function setup(page, path) {
@@ -51,6 +51,10 @@ export async function setup(page, path) {
     await page.clock.resume();
   }
   await page.goto(path);
+  test.skip(
+    !(await page.evaluate(() => Boolean(window.AudioContext && window.MediaRecorder))),
+    'This engine build lacks native recording; Chromium and Firefox cover the conversation recorder path.'
+  );
   const panel = page.getByRole('region', { name: 'Ongoing two-way voice' });
   await panel.getByRole('button', { name: 'Voice setup', exact: true }).click();
   await panel.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();

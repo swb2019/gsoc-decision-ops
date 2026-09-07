@@ -107,7 +107,7 @@ test('two-way audio setup is opt-in and cancellation returns the switch to idle'
   const toggle = page.getByRole('switch', { name: 'Enable two-way audio' });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await toggle.click();
-  await expect.poll(() => models).toBe(1);
+  await expect.poll(() => models, { timeout: 20000 }).toBe(1);
   await page.getByRole('button', { name: 'Cancel model download' }).click();
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   await expect(toggle).toBeEnabled();

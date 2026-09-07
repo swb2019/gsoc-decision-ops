@@ -892,8 +892,10 @@ export async function startListening(contextId?: string, ongoing = false): Promi
       return false;
     }
     micStream = stream;
-    if (!audioContext || audioContext.state === 'closed')
-      audioContext = new AudioContext({ sampleRate: 16000 });
+    // Keep the capture graph at the device rate. Firefox cannot connect a
+    // microphone stream to a context with a different sample rate; recorded
+    // audio is resampled to Whisper's 16 kHz only after decoding below.
+    if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContext();
     await audioContext.resume();
     if (generation !== recordingGeneration) {
       stream.getTracks().forEach((track) => track.stop());

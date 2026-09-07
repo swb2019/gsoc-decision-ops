@@ -61,8 +61,31 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /gsoc-decision-ops
 
-      - name: Verify the built artifact
-        run: npx playwright install --with-deps chromium firefox webkit && npx playwright test && npx playwright test --config playwright.engines.config.mjs
+      - name: Prepare browser audio on the Linux runner
+        run: |
+          npx playwright install --with-deps chromium firefox webkit
+          sudo apt-get install -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=hourglass_test_audio
+          pactl set-default-sink hourglass_test_audio
+          pactl info
+
+      - name: Verify Chromium journeys
+        run: npx playwright test
+
+      - name: Verify WebKit journeys
+        run: npx playwright test --config playwright.engines.config.mjs --project webkit
+
+      - name: Verify Firefox journeys
+        run: npx playwright test --config playwright.engines.config.mjs --project firefox
+
+      - name: Preserve browser verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pages-verification-evidence
+          path: qa-output/
+          retention-days: 14
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
