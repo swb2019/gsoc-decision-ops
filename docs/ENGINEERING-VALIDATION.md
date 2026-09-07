@@ -41,4 +41,4 @@ Planning 10,000 sessions, each freshly loading the entry and entire offline pack
 
 The [qualification packet](QUALIFICATION-KIT.md) and [blank review records](../release/review-materials/README.md) prepare three independent content/rubric disciplines, ten intended users, NVDA/VoiceOver and remaining device/native export checks, the art/audio comparator, and owner review of intended-host rollback. Twenty engineering-authored calibration traces are ready; no independent ratings or participant results are claimed. [All 55 requirements](REQUIREMENTS-STATUS.md) distinguish implementation, pending qualification and G3/G4 work gated by the PRD.
 
-The [release record](../release/qualification.json) remains on hold. No public deployment or participant contact occurred.
+The [release record](../release/qualification.json) remains on hold. That hold does not block GitHub Pages publication. No participant contact occurred.

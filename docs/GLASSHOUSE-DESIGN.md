@@ -72,6 +72,6 @@ Any change to actor knowledge, authority, valid actions, outcome rules or rubric
 
 ## Release status and human gates
 
-`release/qualification.json` is the authoritative go/hold record. Automated checks are evidence of implementation behavior, not a human qualification pass. Public deployment is held until the record identifies the exact revision and independent reviewer, formative, accessibility/device and rollback evidence. No participant recruitment, employer use, contact, consent collection, compensation or new paid service is performed by this implementation.
+`release/qualification.json` is the authoritative go/hold record for human qualification claims. Automated checks are evidence of implementation behavior, not a human qualification pass. GitHub Pages publishes on push to `main` after engineering verification; that publication does not complete independent reviewer, formative, accessibility/device or rollback qualification. No participant recruitment, employer use, contact, consent collection, compensation or new paid service is performed by this implementation.
 
 G3 unfamiliar cases, spaced practice, facilitator kit and learning study are deferred until the flagship qualifies. G4 networking, enterprise authoring and AI need separate demonstrated demand, cost and privacy/security approval.
