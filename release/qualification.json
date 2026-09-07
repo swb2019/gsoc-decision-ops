@@ -14,10 +14,11 @@
       "evidence": [
         "docs/ENGINEERING-VALIDATION.md",
         "docs/DEVICE-VALIDATION.md",
-        "docs/TWO-WAY-AUDIO.md"
+        "docs/TWO-WAY-AUDIO.md",
+        "docs/MOBILE-VALIDATION.md"
       ],
       "signoffs": [],
-      "note": "Current automatic voice sending has separate unit and browser evidence documented in docs/TWO-WAY-AUDIO.md and the delivery manifest. Comprehensive earlier physical/art evidence remains pinned to its original artifact; owner review is pending."
+      "note": "Current mobile and voice behavior has separately scoped browser and physical Android evidence in docs/MOBILE-VALIDATION.md, docs/TWO-WAY-AUDIO.md and the delivery manifest. Comprehensive earlier art and qualification preparation retain their original provenance; owner review remains pending."
     },
     "independentContentAndRubricReview": {
       "status": "pending",

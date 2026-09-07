@@ -1,0 +1,110 @@
+/* Preserve zoom, ordinary page scrolling and the browser's native keyboard behavior. */
+.hc-voice-dialog {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+.hc-voice-dialog > div {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 1023px), (pointer: coarse) {
+  .hc-console {
+    min-height: 100dvh;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .hc-console button,
+  .hc-mobile-menu button,
+  .hc-console [role='menuitem'],
+  .hc-console summary,
+  .hc-console a {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  .hc-console button,
+  .hc-mobile-menu button,
+  .hc-console [role='menuitem'] {
+    min-width: 44px;
+  }
+  .hc-console button[role='switch'] > span {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .hc-console input:not([type='checkbox']):not([type='radio']),
+  .hc-console textarea,
+  .hc-console select,
+  .gh-app .gh-field input:not([type='checkbox']):not([type='radio']),
+  .gh-app .gh-field textarea,
+  .gh-app .gh-field select {
+    font-size: max(16px, 1rem);
+    min-height: 44px;
+    max-width: 100%;
+    scroll-margin-block: 100px;
+  }
+  .hc-console .mobile-nav {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .hc-console .mobile-nav-label {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+  .hc-console .hc-response-receipt {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+  }
+  .gh-app {
+    min-height: 100dvh;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .gh-app .gh-mobile-tabs {
+    top: env(safe-area-inset-top, 0);
+  }
+  /* WebKit can paint a native select's long value outside its box at enlarged text sizes.
+     Keep the native selection menu, with a bounded value and an explicit disclosure arrow. */
+  .gh-app .gh-field select {
+    appearance: none;
+    -webkit-appearance: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m3 6 5 5 5-5' fill='none' stroke='%235d5b56' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .gh-app summary,
+  .gh-app .gh-audio-channel input[type='range'] {
+    min-height: 44px;
+  }
+  .gh-app .gh-checkbox,
+  .gh-app .gh-treatment label {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+/* Keep the menu reachable rather than squeezing extra audio icons into the phone header. */
+@media (max-width: 639px) {
+  .hc-console > header button[aria-label*='ambient music'],
+  .hc-console > header button[aria-label*='voice-over'],
+  .hc-console > header button[aria-label*='two-way audio'] {
+    display: none;
+  }
+}
+
+@media (max-height: 500px) and (max-width: 1023px) {
+  .hc-console .mobile-nav-item {
+    flex-direction: row;
+    min-height: 48px;
+    gap: 8px;
+  }
+  .hc-console .mobile-content-area {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+}

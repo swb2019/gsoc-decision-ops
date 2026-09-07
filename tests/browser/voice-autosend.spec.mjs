@@ -61,14 +61,21 @@ async function prepare(page, options = {}) {
     !(await page.evaluate(() => Boolean(window.AudioContext && window.MediaRecorder))),
     'This engine lacks native audio capture; Chrome covers the recorder path.'
   );
-  await page.getByRole('button', { name: 'Enable two-way audio', exact: true }).click();
+  await page.getByRole('button', { name: 'Exit mission', exact: true }).waitFor();
+  const audioToggle = page.getByRole('button', { name: 'Enable two-way audio', exact: true });
+  if (await audioToggle.isVisible()) await audioToggle.click();
+  else {
+    await page.getByRole('button', { name: 'More options' }).click();
+    await page.getByRole('menuitem', { name: 'Two-way audio', exact: true }).click();
+  }
   await page.getByRole('switch', { name: 'Enable two-way audio', exact: true }).click();
   await expect(page.getByText('Ready to hear and respond', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Close two-way audio settings' }).click();
   await page.getByRole('button', { name: 'Begin Mission' }).click();
   await page.getByRole('button', { name: "Don't show again options" }).click();
   await page.getByRole('button', { name: 'Disable all tips', exact: true }).click();
-  await page.getByRole('button', { name: 'Disable JIT tips' }).click();
+  const tipsToggle = page.getByRole('button', { name: 'Disable JIT tips', exact: true });
+  if (await tipsToggle.isVisible()) await tipsToggle.click();
   await page.clock.runFor(311000);
   await expect(page.getByRole('button', { name: /Physical Access Control System/ })).toBeVisible();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -122,7 +129,12 @@ test('end of speech sends the selected decision once without a review or commit 
   await page.screenshot({ path: `qa-output/voice-autosend-sent-${browserName}.png` });
   expect(await page.evaluate(() => window.__voiceTest.calls)).toBe(1);
   expect(await page.evaluate(() => window.__voiceTest.samples)).toBeGreaterThan(1000);
-  await page.getByRole('button', { name: 'View debrief', exact: true }).click();
+  const debrief = page.getByRole('button', { name: 'View debrief', exact: true });
+  if (await debrief.isVisible()) await debrief.click();
+  else {
+    await page.getByRole('button', { name: 'More options' }).click();
+    await page.getByRole('menuitem', { name: 'Debrief', exact: true }).click();
+  }
   await page.getByRole('button', { name: 'Export AAR' }).click();
   await expect(
     page.getByText(/I will verify the entrance and retain manual checks/).last()
@@ -161,8 +173,8 @@ test('silence cannot be sent even with the explicit finish button', async ({ pag
   await page.getByRole('button', { name: 'Speak a response', exact: true }).click();
   await page.getByRole('button', { name: 'Finish and send now' }).click();
   await expect(
-    page.getByText('No clear speech was heard. Nothing was sent. Try speaking again.', {
-      exact: true,
+    page.getByRole('status').filter({
+      hasText: 'No clear speech was heard. Nothing was sent. Try speaking again.',
     })
   ).toBeVisible();
   await micIsReleased(page);
@@ -177,7 +189,11 @@ test('an interrupted microphone does not send a truncated response', async ({ pa
   await page.evaluate(() =>
     window.__voiceTest.streams[0].getTracks().forEach((track) => track.stop())
   );
-  await expect(page.getByText(/The microphone stopped before the response finished/)).toBeVisible();
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: /The microphone stopped before the response finished/ })
+  ).toBeVisible();
   expect(await page.evaluate(() => window.__voiceTest.calls)).toBe(0);
   await expect(page.getByRole('button', { name: 'Commit Decision', exact: true })).toBeEnabled();
 });
@@ -185,7 +201,11 @@ test('an interrupted microphone does not send a truncated response', async ({ pa
 test('denied permission leaves a usable typed decision and sends nothing', async ({ page }) => {
   await prepare(page, { denied: true });
   await page.getByRole('button', { name: 'Speak a response', exact: true }).click();
-  await expect(page.getByText(/Microphone access or audio capture was unavailable/)).toBeVisible();
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: /Microphone access or audio capture was unavailable/ })
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Commit Decision', exact: true })).toBeEnabled();
   expect(await page.evaluate(() => window.__voiceTest.calls)).toBe(0);
 });

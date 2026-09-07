@@ -22,7 +22,10 @@ assert.ok(
   configuration.adb && configuration.devices?.length,
   'Configuration needs adb and devices.'
 );
-const output = resolve('qa-output/android');
+const output = resolve(
+  'qa-output',
+  configuration.mobileQualification ? 'android-mobile' : 'android'
+);
 const cycles = Math.max(1, Math.min(10, configuration.sceneCycles ?? 5));
 await mkdir(output, { recursive: true });
 const results = [];
@@ -596,6 +599,46 @@ for (const device of configuration.devices) {
     await area('Decide');
     await tap(page.getByRole('button', { name: /Evidence, reasoning & safeguards/ }));
     await tap(page.getByRole('checkbox', { name: /Mara Chen/ }));
+    if (configuration.mobileQualification) {
+      const input = page.getByLabel('Rationale', { exact: true });
+      const before = await page.evaluate(() => visualViewport?.height ?? innerHeight);
+      await tap(input);
+      const keyboardOpened = await page
+        .waitForFunction(
+          (height) => (visualViewport?.height ?? innerHeight) < height - 100,
+          before,
+          { timeout: 5000 }
+        )
+        .then(() => true)
+        .catch(() => false);
+      result.keyboard = await input.evaluate(
+        (element, keyboardOpened) => ({
+          keyboardOpened,
+          focused: document.activeElement === element,
+          fontSize: parseFloat(getComputedStyle(element).fontSize),
+          viewportHeight: visualViewport?.height ?? innerHeight,
+          viewportScale: visualViewport?.scale ?? 1,
+          width: innerWidth,
+          contentWidth: document.documentElement.scrollWidth,
+        }),
+        keyboardOpened
+      );
+      assert.ok(result.keyboard.focused, 'Native touch focuses the text input.');
+      assert.ok(
+        result.keyboard.fontSize >= 16,
+        'Mobile input remains readable without forced zoom.'
+      );
+      assert.ok(
+        result.keyboard.contentWidth <= result.keyboard.width + 1,
+        'Keyboard entry preserves horizontal reflow.'
+      );
+      await screenshot('native-keyboard');
+      result.checks.push(
+        keyboardOpened
+          ? 'Native soft keyboard opened by touch; focused input, readable text and reflow preserved'
+          : 'Touch input focus and readable text preserved; no native soft-keyboard resize observed'
+      );
+    }
     await page
       .getByLabel('Rationale', { exact: true })
       .fill('Obtain a timestamped entrance observation before broad disruption.');

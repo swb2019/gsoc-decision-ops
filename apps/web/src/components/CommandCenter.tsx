@@ -1130,7 +1130,7 @@ export default function CommandCenter({
   });
   const [reducedMotion, setReducedMotion] = useState(false);
   const [lastInjectTime, setLastInjectTime] = useState(0);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('intel');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('decision');
   const [copActiveLayers, setCopActiveLayers] = useState(
     () => new Set(['heat', 'entities', 'injects'])
   );
@@ -3427,7 +3427,7 @@ export default function CommandCenter({
                     aria-hidden="true"
                   />
                   <div
-                    className="fixed w-52 sm:w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[200] animate-scale-in-fast max-h-[70vh] overflow-y-auto"
+                    className="hc-mobile-menu fixed w-52 sm:w-56 py-2 rounded-xl bg-gray-900/98 border border-gray-700/60 shadow-2xl backdrop-blur-xl z-[200] animate-scale-in-fast max-h-[70dvh] overflow-y-auto"
                     role="menu"
                     style={{
                       top: mobileMenuPosition?.top ?? 60,
@@ -3779,7 +3779,7 @@ export default function CommandCenter({
       </nav>
 
       {voiceResponseStatus && (
-        <aside className="fixed bottom-20 left-4 right-4 z-[80] rounded-xl border border-emerald-600/50 bg-gray-950 px-4 py-3 text-sm text-emerald-100 shadow-xl sm:bottom-4 sm:right-auto sm:max-w-xl">
+        <aside className="hc-response-receipt fixed bottom-20 left-4 right-4 z-[80] rounded-xl border border-emerald-600/50 bg-gray-950 px-4 py-3 text-sm text-emerald-100 shadow-xl lg:bottom-4 lg:right-auto lg:max-w-xl">
           <p role="status" className="max-h-32 overflow-y-auto break-words">
             {voiceResponseStatus}
           </p>
@@ -4748,8 +4748,13 @@ export default function CommandCenter({
 
       {/* Local Voice Settings Panel */}
       {showLocalVoicePanel && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md animate-scale-in">
+        <div
+          className="hc-voice-dialog fixed inset-0 bg-black/90 backdrop-blur-xl z-[90] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Two-way audio settings"
+        >
+          <div className="w-full max-w-md animate-scale-in overflow-y-auto">
             <LocalVoicePanel
               reducedMotion={reducedMotion}
               elevenLabsPlayingChecker={isVOCurrentlyPlaying}
