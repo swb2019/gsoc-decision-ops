@@ -1,6 +1,7 @@
 /** Conservative release arithmetic; no traffic telemetry or paid service. */
 import { readFile, readdir, stat, writeFile, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { gzipSync, brotliCompressSync } from 'node:zlib';
 
 const directory = resolve(process.argv[2] ?? 'apps/web/out');
 const manifest = JSON.parse(
@@ -34,6 +35,21 @@ const initialEntryBytes =
       )
     )
   ).reduce((a, b) => a + b, 0);
+const entryBodies = [
+  Buffer.from(shell),
+  ...(await Promise.all(
+    entryPaths.map((path) =>
+      readFile(resolve(directory, path.slice(manifest.scope.length).split('?')[0]))
+    )
+  )),
+];
+const initialEntryCompression = {
+  gzipBytes: entryBodies.reduce((sum, body) => sum + gzipSync(body).byteLength, 0),
+  brotliBytes: entryBodies.reduce((sum, body) => sum + brotliCompressSync(body).byteLength, 0),
+  targetBytes: 1000000,
+  basis:
+    'Reproducible compression of each statically referenced entry body, including HTML. This is an artifact estimate, not host-transferred bytes; response headers, dynamic requests and server configuration differ.',
+};
 const plannedNewSessions = Number(process.env.HOURGLASS_PLANNED_NEW_SESSIONS ?? 10000);
 if (!Number.isSafeInteger(plannedNewSessions) || plannedNewSessions < 0)
   throw new Error('The planning session count must be a nonnegative integer.');
@@ -55,6 +71,7 @@ const result = {
   offlineVersion: manifest.version,
   siteBytes,
   initialEntryBytes,
+  initialEntryCompression,
   completeOfflineBytes: manifest.totalBytes,
   plannedNewSessions,
   bytesPerPlannedSession,

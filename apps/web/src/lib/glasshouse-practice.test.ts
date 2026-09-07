@@ -51,6 +51,25 @@ function advance(state: Session, target: number): Session {
 }
 
 describe('local practice evidence without competence claims', () => {
+  it('labels voluntary abandonment separately while preserving only behavior observed before ending', () => {
+    const pending = command(createGlasshouseSession(610, 'guided', 'history-abandoned'), {
+      type: 'plan',
+      plan: verification,
+    } as Omit<Command, 'commandId' | 'actor'>);
+    const before = projectGlasshousePractice(pending);
+    const ended = command(pending, {
+      type: 'abandon',
+      reason: 'Return to this objective in a fresh session.',
+    } as Omit<Command, 'commandId' | 'actor'>);
+    const summary = projectGlasshousePractice(ended);
+    expect(summary.lifecycle).toBe('abandoned');
+    expect(summary.statusLabel).toBe('Abandoned · practice ended voluntarily');
+    expect(summary.observations).toEqual(before.observations);
+    expect(summary.caseProgress).toBe(before.caseProgress);
+    expect(summary.retention).toBe('not-established');
+    expect(summary.observations[1].count).toBe(0);
+    expect(summary.observations[2].count).toBe(0);
+  });
   it('elapsed time and a far-later save never establish observed behavior or retention', () => {
     const initial = createGlasshouseSession(3, 'guided', 'history-idle');
     const afterTime = advance(initial, 60);

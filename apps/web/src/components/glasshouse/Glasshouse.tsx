@@ -37,6 +37,7 @@ import {
   getGlasshouseReport,
   GLASSHOUSE_CONTROLS,
   GLASSHOUSE_HANDOVER,
+  GLASSHOUSE_VERSIONS,
   type GlasshouseSession as Session,
   type GlasshouseReport as Report,
   type GlasshouseMode as Mode,
@@ -56,6 +57,8 @@ import Review from './Review';
 import { useGlasshouse } from './useGlasshouse';
 import OfflinePanel from './OfflinePanel';
 import PracticeHistory from './PracticeHistory';
+import { AudioControls, AudioStatus } from './AudioControls';
+import { useGlasshouseAudio } from './useGlasshouseAudio';
 import {
   activateGlasshouseOfflinePack,
   getGlasshouseOfflineStatus,
@@ -459,6 +462,7 @@ export default function Glasshouse() {
   const [starting, setStarting] = useState(false);
   const engine = useGlasshouse(view === 'command' && !settings);
   const { state, send } = engine;
+  const audio = useGlasshouseAudio(state, Boolean(state) && view === 'command');
   const focusContext = useRef(`${view}:${state?.sessionId ?? 'launch'}`);
   useEffect(() => {
     const nextContext = `${view}:${state?.sessionId ?? 'launch'}`;
@@ -477,7 +481,6 @@ export default function Glasshouse() {
     null
   );
   const [handoverOpen, setHandoverOpen] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [actor, setActor] = useState<ActorId>('analyst');
   const [revision, setRevision] = useState<Decision>();
@@ -497,6 +500,8 @@ export default function Glasshouse() {
     setHandoff({ summary: '', owner: '', reviewTrigger: '' });
     setBriefOpen(false);
     setHandoffOpen(false);
+    setEndPracticeOpen(false);
+    setEndPracticeReason('');
     setSelectedEvidence('');
   }, [state?.sessionId]);
   const [briefOpen, setBriefOpen] = useState(false);
@@ -509,6 +514,8 @@ export default function Glasshouse() {
   });
   const [handoff, setHandoff] = useState({ summary: '', owner: '', reviewTrigger: '' });
   const [handoffOpen, setHandoffOpen] = useState(false);
+  const [endPracticeOpen, setEndPracticeOpen] = useState(false);
+  const [endPracticeReason, setEndPracticeReason] = useState('');
   const [comparison, setComparison] = useState<Report | null>(null);
   const [comparisonNote, setComparisonNote] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -520,51 +527,14 @@ export default function Glasshouse() {
     [state, engine.activeSeconds]
   );
   const readOnly = engine.readOnly;
-  const inactive = !state || state.lifecycle !== 'active' || readOnly;
-  const stopSpeech = () => {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    setSpeaking(false);
-  };
-  useEffect(() => {
-    const stop = () => {
-      if (document.hidden && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        setSpeaking(false);
-      }
-    };
-    document.addEventListener('visibilitychange', stop);
-    return () => {
-      document.removeEventListener('visibilitychange', stop);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    };
-  }, []);
+  const historical = engine.historical;
+  const inactive = !state || state.lifecycle !== 'active' || readOnly || historical;
   function playHandover() {
-    if (!('speechSynthesis' in window)) {
-      engine.setError(
-        'This browser has no speech playback. The complete handover transcript is available below.'
-      );
-      return;
-    }
-    const voice = window.speechSynthesis
-      .getVoices()
-      .find((item) => item.localService && item.lang.startsWith('en'));
-    if (!voice) {
-      engine.setError(
-        'No local English voice is available in this browser. Read the complete handover transcript below.'
-      );
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(GLASSHOUSE_HANDOVER);
-    utterance.voice = voice;
-    utterance.rate = 1;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-    setSpeaking(true);
+    setHandoverOpen(true);
+    audio.playVoice(GLASSHOUSE_HANDOVER);
   }
   function openReview() {
-    stopSpeech();
+    audio.stopForNavigation();
     setView('review');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
@@ -612,8 +582,26 @@ export default function Glasshouse() {
     setStarting(false);
     if (offlineError) engine.setError(offlineError);
   }
+  async function prepareFreshMission() {
+    audio.stopForNavigation();
+    if (state) downloadSession(state);
+    await engine.showLaunch();
+    setSettings(false);
+    setView('command');
+    setComparison(null);
+    setComparisonNote('');
+    setQuickReplay(null);
+  }
   function fork(decisionId: string) {
     if (!state || !report) return;
+    if (historical || readOnly) {
+      engine.setError(
+        historical
+          ? 'This original version is preserved for read-only review. Start a fresh mission to use the current rules.'
+          : 'This tab is read-only. Inspect the saved run and take over before creating an alternative.'
+      );
+      return;
+    }
     try {
       const next = forkGlasshouse(state, decisionId, crypto.randomUUID());
       downloadSession(state);
@@ -632,7 +620,7 @@ export default function Glasshouse() {
     }
   }
   function compareNextConsequence() {
-    if (!state || !quickReplay) return;
+    if (!state || !quickReplay || inactive) return;
     try {
       const result = compareGlasshouseNextCheckpoint(
         quickReplay.source,
@@ -700,6 +688,46 @@ export default function Glasshouse() {
         tabIndex={-1}
         onChange={(event) => void handleImport(event.target.files?.[0])}
       />
+      {historical && state && (
+        <aside
+          className="gh-notice gh-historical"
+          role="status"
+          aria-label="Historical practice record"
+        >
+          <div>
+            <strong>Original practice versions · read-only record</strong>
+            <p>
+              This record keeps {state.rulesVersion}, {state.rubricVersion} and{' '}
+              {state.assetsVersion}. Its original assessment has not been regraded. A fresh mission
+              uses {GLASSHOUSE_VERSIONS.rules}
+              {' / '}
+              {GLASSHOUSE_VERSIONS.rubric}; the original remains available for review and export.
+            </p>
+            {state.rubricVersion === 'observable-1.0.0' && (
+              <p>
+                This rubric omitted an owner correction reminder after some structured briefs; the
+                review retains that original interpretation.
+              </p>
+            )}
+            {state.rulesVersion === 'kernel-1.0.0' && (
+              <p>
+                These original rules did not distinguish voluntarily ended practice. New practice
+                can record an explicit abandoned state.
+              </p>
+            )}
+          </div>
+          <div className="gh-button-row">
+            <button className="gh-button" onClick={() => downloadSession(state)}>
+              <Download size={15} />
+              Backup original record
+            </button>
+            <button className="gh-button" onClick={() => void prepareFreshMission()}>
+              Preserve backup & start fresh
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </aside>
+      )}
       {(engine.unsaved || readOnly) && (
         <aside className="gh-unsaved" role="status">
           <div>
@@ -710,9 +738,11 @@ export default function Glasshouse() {
             </strong>
             <p>
               {engine.saveStatus}{' '}
-              {readOnly
-                ? 'Take over explicitly to continue here.'
-                : 'You may continue in memory. Download a backup before leaving; unsaved changes can be lost.'}
+              {historical
+                ? 'This historical record remains available for inspection and export. Download a backup before leaving.'
+                : readOnly
+                  ? 'Take over explicitly to continue here.'
+                  : 'You may continue in memory. Download a backup before leaving; unsaved changes can be lost.'}
             </p>
           </div>
           <div className="gh-button-row">
@@ -722,9 +752,11 @@ export default function Glasshouse() {
                 Backup
               </button>
             )}
-            <button className="gh-button" onClick={() => void engine.takeover()}>
-              {readOnly ? 'Take over here' : 'Retry local saving'}
-            </button>
+            {!historical && (
+              <button className="gh-button" onClick={() => void engine.takeover()}>
+                {readOnly ? 'Take over here' : 'Retry local saving'}
+              </button>
+            )}
             {engine.recoveryText && (
               <button
                 className="gh-button"
@@ -783,10 +815,6 @@ export default function Glasshouse() {
                 Motion starts off. System reduced-motion settings are respected. The schematic
                 provides every essential action.
               </p>
-              <p className="gh-helper">
-                Audio starts off. Handover playback uses an available local browser voice. No
-                microphone or voice model download is requested.
-              </p>
             </div>
             <div>
               <p className="gh-save-state">
@@ -809,16 +837,7 @@ export default function Glasshouse() {
                 Import accepts validated Glasshouse JSON up to 5 MB. An existing run is downloaded
                 before it is replaced.
               </p>
-              <button
-                className="gh-text-button"
-                onClick={() => {
-                  if (state) downloadSession(state);
-                  void engine.showLaunch();
-                  setSettings(false);
-                  setView('command');
-                  setComparison(null);
-                }}
-              >
+              <button className="gh-text-button" onClick={() => void prepareFreshMission()}>
                 Start a new mission · preserve this backup
               </button>
               <button
@@ -853,6 +872,7 @@ export default function Glasshouse() {
               )}
             </div>
           </div>
+          <AudioControls audio={audio} />
           <OfflinePanel hasSession={Boolean(state)} onError={engine.setError} />
           <PracticeHistory />
         </section>
@@ -868,6 +888,12 @@ export default function Glasshouse() {
           <Review
             report={report}
             state={state}
+            readOnly={readOnly || historical}
+            readOnlyExplanation={
+              historical
+                ? 'The original versioned record is read-only. Inspect or export its evidence, or start a fresh mission with the current rules and rubric.'
+                : 'Another tab owns this journal. Review and export remain available; take over before changing this record.'
+            }
             onBack={() => setView('command')}
             onFork={fork}
             comparison={comparison}
@@ -902,9 +928,13 @@ export default function Glasshouse() {
                   <span className="gh-clock-offset">+{state.tick} min</span>
                 </div>
                 <span className="gh-clock-label">
-                  {state.paused
-                    ? 'Paused · deliberate steps still available'
-                    : 'Deliberate pace · time advances only on your step'}
+                  {historical
+                    ? 'Historical simulated time preserved'
+                    : readOnly
+                      ? 'Read-only · another tab controls this run'
+                      : state.paused
+                        ? 'Paused · deliberate steps still available'
+                        : 'Deliberate pace · time advances only on your step'}
                 </span>
               </div>
             </div>
@@ -938,6 +968,7 @@ export default function Glasshouse() {
                 {state.mode !== 'independent' && (
                   <button
                     className="gh-text-button"
+                    disabled={readOnly || historical}
                     onClick={() => {
                       if (!helpOpen) send({ type: 'help', topic: 'bounded-plan-context' });
                       setHelpOpen((value) => !value);
@@ -951,8 +982,62 @@ export default function Glasshouse() {
                   Review checkpoint
                   <ArrowUpRight size={15} />
                 </button>
+                <button
+                  className="gh-text-button"
+                  disabled={inactive}
+                  onClick={() => setEndPracticeOpen(true)}
+                >
+                  End practice here
+                </button>
               </div>
             </div>
+            {endPracticeOpen && (
+              <section className="gh-panel gh-end-practice" aria-labelledby="end-practice-title">
+                <h2 id="end-practice-title">End this practice and keep its record?</h2>
+                <p>
+                  This records the mission as abandoned at +{state.tick} simulated minutes.
+                  Decisions, evidence and unfinished commitments stay in the saved checkpoint. This
+                  run cannot resume, and ending it does not record a completed handoff.
+                </p>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!inactive && send({ type: 'abandon', reason: endPracticeReason })) {
+                      setEndPracticeOpen(false);
+                      openReview();
+                    }
+                  }}
+                >
+                  <label className="gh-field">
+                    Reason for ending practice
+                    <textarea
+                      required
+                      rows={2}
+                      maxLength={1000}
+                      disabled={inactive}
+                      value={endPracticeReason}
+                      onChange={(event) => setEndPracticeReason(event.target.value)}
+                    />
+                  </label>
+                  <div className="gh-button-row">
+                    <button
+                      className="gh-button"
+                      type="submit"
+                      disabled={inactive || !endPracticeReason.trim()}
+                    >
+                      End practice and keep record
+                    </button>
+                    <button
+                      className="gh-text-button"
+                      type="button"
+                      onClick={() => setEndPracticeOpen(false)}
+                    >
+                      Keep practicing
+                    </button>
+                  </div>
+                </form>
+              </section>
+            )}
             {helpOpen && state.mode !== 'independent' && (
               <aside className="gh-help">
                 <HelpCircle size={20} />
@@ -1006,7 +1091,9 @@ export default function Glasshouse() {
                   <h2>
                     {state.lifecycle === 'completed'
                       ? 'The watch is handed over.'
-                      : 'The scenario ended with unresolved work.'}
+                      : state.lifecycle === 'abandoned'
+                        ? 'Practice ended here.'
+                        : 'The scenario ended with unresolved work.'}
                   </h2>
                   <p>{state.terminalReason}</p>
                 </div>
@@ -1032,6 +1119,7 @@ export default function Glasshouse() {
                     </button>
                     <button
                       className="gh-button gh-primary"
+                      disabled={inactive}
                       onClick={() => send({ type: 'continue' })}
                     >
                       Continue mission
@@ -1052,8 +1140,8 @@ export default function Glasshouse() {
                   <ChevronRight size={17} className={handoverOpen ? 'is-rotated' : ''} />
                 </button>
                 <div className="gh-handover-audio">
-                  {speaking ? (
-                    <button className="gh-text-button" onClick={stopSpeech}>
+                  {audio.voiceState !== 'stopped' ? (
+                    <button className="gh-text-button" onClick={audio.stopVoice}>
                       <Square size={14} />
                       Stop playback
                     </button>
@@ -1067,6 +1155,7 @@ export default function Glasshouse() {
               </div>
               {handoverOpen && <p>{GLASSHOUSE_HANDOVER}</p>}
             </section>
+            <AudioStatus audio={audio} />
             <nav className="gh-mobile-tabs" aria-label="Workspace areas">
               {(
                 [
@@ -1505,7 +1594,11 @@ export default function Glasshouse() {
                           />
                         </label>
                       ))}
-                      <button className="gh-button gh-primary gh-full" type="submit">
+                      <button
+                        className="gh-button gh-primary gh-full"
+                        type="submit"
+                        disabled={inactive}
+                      >
                         Send structured brief
                         <ArrowUpRight size={16} />
                       </button>

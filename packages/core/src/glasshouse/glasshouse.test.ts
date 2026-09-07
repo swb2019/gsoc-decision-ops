@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { GLASSHOUSE_CONTROLS } from './content.js';
 import {
   createGlasshouseSession,
@@ -305,6 +306,165 @@ describe('Glasshouse independent semantic contracts', () => {
     expect(getGlasshouseReport(state).unresolved.join(' ')).toMatch(/send an updated brief/);
     state = choose(state, 'monitor', { evidenceIds: ['image'] });
     expect(getGlasshouseReport(state).findings[0].score).toBe(0);
+  });
+  it('tracks a correction obligation after a brief and settles it only when the correction is shared', () => {
+    let state = advance(createGlasshouseSession(610, 'guided'), 3);
+    state = choose(state, 'monitor', { evidenceIds: ['image'], notify: false });
+    const brief = (
+      evidenceIds: string[]
+    ): Omit<Extract<Command, { type: 'brief' }>, 'commandId' | 'actor'> => ({
+      type: 'brief',
+      scope: 'dispatch',
+      evidenceIds,
+      recommendation: 'Continue bounded observation.',
+      uncertainty: 'Source unverified.',
+      alternative: 'Direct check.',
+      consequence: 'Dispatch continues.',
+      reviewTrigger: 'Review source correction.',
+    });
+    state = commit(state, brief(['image']));
+    expect(state.events.some((event) => event.type === 'owner.notified')).toBe(false);
+    state = advance(state, 12);
+    const before = getGlasshouseReport(state);
+    expect(getGlasshouseObservations(state, 'owner').map((item) => item.id)).toContain('image');
+    expect(getGlasshouseObservations(state, 'owner').map((item) => item.id)).not.toContain(
+      'image-correction'
+    );
+    expect(before.unresolved.join(' ')).toMatch(/owner received image.*send an updated brief/);
+    state = commit(state, brief(['image']));
+    expect(getGlasshouseReport(state).unresolved.join(' ')).toMatch(/send an updated brief/);
+    state = commit(state, brief(['image-correction']));
+    expect(getGlasshouseReport(state).unresolved.join(' ')).not.toMatch(/send an updated brief/);
+    expect(getGlasshouseObservations(state, 'owner', 11).map((item) => item.id)).not.toContain(
+      'image-correction'
+    );
+    expect(before.unresolved.join(' ')).toMatch(/send an updated brief/);
+  });
+  it('restores a pre-patch record with its exact original assessment and preserves the rubric in forks', () => {
+    const text = readFileSync(
+      new URL('./fixtures/observable-1.0.0-session.json', import.meta.url),
+      'utf8'
+    );
+    const originalReport = JSON.parse(
+      readFileSync(new URL('./fixtures/observable-1.0.0-report.json', import.meta.url), 'utf8')
+    );
+    const restored = restoreGlasshouseSession(text);
+    expect(restored.rubricVersion).toBe('observable-1.0.0');
+    expect(canonicalGlasshouseState(restored)).toBe(
+      canonicalGlasshouseState(JSON.parse(text).state)
+    );
+    const report = getGlasshouseReport(restored);
+    expect(report.limitations.join(' ')).toMatch(
+      /Historical rubric observable-1.0.0.*has not been regraded/
+    );
+    expect({
+      ...report,
+      limitations: report.limitations.filter((note) => !note.startsWith('Historical ')),
+    }).toEqual(originalReport);
+    expect(restoreGlasshouseSession(serializeGlasshouseSession(restored))).toEqual(restored);
+    const branch = forkGlasshouse(restored, 'd1');
+    expect(branch.rubricVersion).toBe('observable-1.0.0');
+    expect(branch.rulesVersion).toBe('kernel-1.0.0');
+    expect(branch.assetsVersion).toBe('campus-1.0.0');
+    expect(branch.events[0].payload.versions).toEqual(restored.events[0].payload.versions);
+    expect(restoreGlasshouseSession(serializeGlasshouseSession(branch))).toEqual(branch);
+    expect(createGlasshouseSession(610, 'guided', 'fresh-current').rubricVersion).toBe(
+      'observable-1.0.1'
+    );
+    expect(() =>
+      createGlasshouseSession(610, 'guided', 'unknown-rubric', 'observable-0.9.0')
+    ).toThrow(/Unsupported rubric/);
+    expect(() =>
+      createGlasshouseSession(610, 'guided', 'unknown-rules', 'observable-1.0.1', 'kernel-unknown')
+    ).toThrow(/Unsupported rules/);
+    expect(() =>
+      createGlasshouseSession(
+        610,
+        'guided',
+        'unknown-assets',
+        'observable-1.0.1',
+        'kernel-1.1.0',
+        'campus-unknown'
+      )
+    ).toThrow(/Unsupported assets/);
+    expect(
+      transitionGlasshouse(restored, {
+        actor: 'commander',
+        commandId: 'historical-abandon',
+        type: 'abandon',
+        reason: 'Stop here.',
+      }).error
+    ).toMatch(/historical rules version/);
+  });
+  it('records voluntary abandonment without changing unfinished world state or granting completion', () => {
+    const before = advance(choose(createGlasshouseSession(610, 'guided'), 'verify-entrance'), 3);
+    const reason = 'Private abandonment note: return to this objective in another session.';
+    const abandoned = commit(before, { type: 'abandon', reason } as Omit<
+      Command,
+      'actor' | 'commandId'
+    >);
+    expect(abandoned.lifecycle).toBe('abandoned');
+    expect(abandoned.abandonment).toEqual({ reason, at: 3 });
+    for (const field of [
+      'tick',
+      'queue',
+      'actions',
+      'ledger',
+      'observations',
+      'decisions',
+      'world',
+      'actorKnowledge',
+      'resources',
+    ] as const)
+      expect(abandoned[field]).toEqual(before[field]);
+    expect(abandoned.events.slice(0, -1)).toEqual(before.events);
+    expect(abandoned.events.at(-1)?.type).toBe('session.abandoned');
+    expect(abandoned.handoff).toBeUndefined();
+    const report = getGlasshouseReport(abandoned);
+    expect(report.lifecycle).toBe('abandoned');
+    expect(report.findings.find((finding) => finding.id === 'gh-8')?.score).toBeNull();
+    expect(report.abandonment?.reason).toBe(reason);
+    expect(JSON.stringify(getGlasshouseReport(abandoned, 0, true))).not.toContain(reason);
+    expect(restoreGlasshouseSession(serializeGlasshouseSession(abandoned))).toEqual(abandoned);
+    expect(transitionGlasshouse(abandoned, abandoned.commands.at(-1)!).state).toBe(abandoned);
+    expect(
+      transitionGlasshouse(abandoned, {
+        actor: 'commander',
+        commandId: 'after-end',
+        type: 'advance',
+        to: 4,
+      }).error
+    ).toMatch(/ended/);
+    expect(
+      transitionGlasshouse(abandoned, {
+        actor: 'commander',
+        commandId: 'after-end-plan',
+        type: 'plan',
+        plan: plan('monitor'),
+      }).error
+    ).toMatch(/ended/);
+    expect(before.lifecycle).toBe('active');
+  });
+  it('bounds an abandonment reason and refuses malformed termination without changing the run', () => {
+    const state = createGlasshouseSession(610, 'guided');
+    for (const reason of ['', '   ', 'x'.repeat(1001)]) {
+      const result = transitionGlasshouse(state, {
+        actor: 'commander',
+        commandId: 'invalid-end',
+        type: 'abandon',
+        reason,
+      });
+      expect(result.error).toMatch(/reason.*1,000/);
+      expect(result.state).toBe(state);
+    }
+    const atLimit = transitionGlasshouse(state, {
+      actor: 'commander',
+      commandId: 'at-limit',
+      type: 'abandon',
+      reason: 'x'.repeat(1000),
+    });
+    expect(atLimit.error).toBeUndefined();
+    expect(atLimit.state.abandonment?.reason).toHaveLength(1000);
   });
   it('preview continues the same choice/evidence without a reset', () => {
     let state = choose(createGlasshouseSession(1, 'preview'), 'verify-entrance');

@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
-const root = resolve('apps/web/out');
+const root = resolve(process.env.HOURGLASS_QA_ROOT || 'apps/web/out');
 const port = Number(process.env.HOURGLASS_QA_PORT || 4181);
 const manifest = await readFile(resolve(root, 'glasshouse-offline-manifest.json'), 'utf8')
   .then(JSON.parse)
@@ -20,6 +20,9 @@ const mime = {
   '.webp': 'image/webp',
   '.mp3': 'audio/mpeg',
   '.wasm': 'application/wasm',
+  '.webm': 'video/webm',
+  '.wav': 'audio/wav',
+  '.md': 'text/plain; charset=utf-8',
 };
 http
   .createServer(async (req, res) => {

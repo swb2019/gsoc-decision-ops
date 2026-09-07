@@ -4,6 +4,8 @@ const route = '/scenarios/access-control-ransomware/';
 const storageKey = 'hourglass-command-session';
 
 async function beginLegacyExercise(page) {
+  // Avoid freezing a decorative CSS transition when this timing regression pauses the clock.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install();
   await page.goto(route);
   await page.getByRole('button', { name: 'Begin Mission', exact: true }).click();
@@ -36,7 +38,10 @@ test('partial review preserves saved bytes and the decision window without compl
   expect(Number.parseInt(await decisionTimer.textContent(), 10)).toBe(remainingBefore);
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.clock.runFor(1_000);
-  expect(Number.parseInt(await decisionTimer.textContent(), 10)).toBe(remainingBefore - 1);
+  // The clock delivers the interval; React may commit its render in the next browser task.
+  await expect
+    .poll(async () => Number.parseInt(await decisionTimer.textContent(), 10))
+    .toBe(remainingBefore - 1);
 });
 
 test('explicit TRANSFER and its concrete control survive the decision and report', async ({

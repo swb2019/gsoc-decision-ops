@@ -47,7 +47,7 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: /gsoc-decision-ops
 
       - name: Verify the built artifact
-        run: npx playwright install --with-deps chromium && npx playwright test
+        run: npx playwright install --with-deps chromium firefox webkit && npx playwright test && npx playwright test --config playwright.engines.config.mjs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa

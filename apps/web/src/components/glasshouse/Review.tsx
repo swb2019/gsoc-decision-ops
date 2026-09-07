@@ -20,6 +20,8 @@ export default function Review({
   comparison,
   comparisonNote,
   onError,
+  readOnly,
+  readOnlyExplanation,
 }: {
   report: Report;
   state: Session;
@@ -35,6 +37,8 @@ export default function Review({
   comparison: Report | null;
   comparisonNote?: string;
   onError: (error: string) => void;
+  readOnly: boolean;
+  readOnlyExplanation: string;
 }) {
   const [selectedDecision, setSelectedDecision] = useState(report.decisions.at(-1)?.id ?? '');
   const [redacted, setRedacted] = useState(false);
@@ -80,17 +84,25 @@ export default function Review({
           {state.lifecycle === 'active' ? 'Return to command' : 'Return to situation'}
         </button>
       </div>
+      {readOnly && <p className="gh-notice">{readOnlyExplanation}</p>}
       <section className="gh-review-status gh-panel">
         <div>
           <span className={`gh-pill ${report.lifecycle === 'completed' ? 'gh-pill-green' : ''}`}>
             {report.lifecycle === 'completed'
               ? 'Scenario completed'
-              : report.lifecycle === 'incomplete'
-                ? 'Incomplete scenario'
-                : 'Partial review · mission active'}
+              : report.lifecycle === 'abandoned'
+                ? 'Abandoned · practice ended voluntarily'
+                : report.lifecycle === 'incomplete'
+                  ? 'Incomplete scenario'
+                  : 'Partial review · mission active'}
           </span>
           <h2>{report.terminalReason || 'A checkpoint, with work still open.'}</h2>
           <p>Opening this review does not advance time or complete the exercise.</p>
+          {report.abandonment && (
+            <p>
+              <b>Reason for ending:</b> {report.abandonment.reason}
+            </p>
+          )}
         </div>
         <dl>
           <div>
@@ -175,6 +187,7 @@ export default function Review({
                 </details>
                 <button
                   className="gh-text-button"
+                  disabled={readOnly}
                   onClick={() => {
                     setDispute(finding.id);
                     setReason('');
@@ -190,7 +203,7 @@ export default function Review({
                     className="gh-dispute"
                     onSubmit={(event) => {
                       event.preventDefault();
-                      if (onDispute(finding.id, reason)) {
+                      if (!readOnly && onDispute(finding.id, reason)) {
                         setDispute('');
                         setReason('');
                       }
@@ -199,6 +212,7 @@ export default function Review({
                     <label className="gh-field">
                       Reason for disagreement
                       <textarea
+                        disabled={readOnly}
                         autoFocus
                         maxLength={1000}
                         required
@@ -208,7 +222,7 @@ export default function Review({
                       />
                     </label>
                     <div className="gh-button-row">
-                      <button className="gh-button" type="submit">
+                      <button className="gh-button" type="submit" disabled={readOnly}>
                         Save disagreement
                       </button>
                       <button
@@ -321,12 +335,13 @@ export default function Review({
             <form
               onSubmit={(event) => {
                 event.preventDefault();
-                onImprove(improvement);
+                if (!readOnly) onImprove(improvement);
               }}
             >
               <label className="gh-field">
                 Action
                 <textarea
+                  disabled={readOnly}
                   required
                   maxLength={1000}
                   rows={2}
@@ -340,6 +355,7 @@ export default function Review({
                 <label className="gh-field">
                   Responsible label
                   <input
+                    disabled={readOnly}
                     required
                     maxLength={100}
                     value={improvement.owner}
@@ -352,6 +368,7 @@ export default function Review({
                 <label className="gh-field">
                   Target date
                   <input
+                    disabled={readOnly}
                     required
                     type="date"
                     value={improvement.targetDate}
@@ -364,6 +381,7 @@ export default function Review({
               <label className="gh-field">
                 Retest condition
                 <input
+                  disabled={readOnly}
                   required
                   maxLength={1000}
                   value={improvement.retest}
@@ -372,7 +390,7 @@ export default function Review({
                   }
                 />
               </label>
-              <button type="submit" className="gh-button gh-full">
+              <button type="submit" className="gh-button gh-full" disabled={readOnly}>
                 Save improvement locally
               </button>
               {report.improvement && (
@@ -437,7 +455,11 @@ export default function Review({
                     <b>Review trigger:</b> {decision.reviewTrigger || 'Not recorded'}
                   </p>
                   <p className="gh-mono">Snapshot {decision.evidenceSnapshotId}</p>
-                  <button className="gh-button" onClick={() => onFork(decision.id)}>
+                  <button
+                    className="gh-button"
+                    disabled={readOnly}
+                    onClick={() => !readOnly && onFork(decision.id)}
+                  >
                     <GitBranch size={16} />
                     Try another approach here
                   </button>
@@ -627,8 +649,8 @@ export default function Review({
         </button>
         <button
           className="gh-button"
-          disabled={!decision}
-          onClick={() => decision && onFork(decision.id)}
+          disabled={!decision || readOnly}
+          onClick={() => !readOnly && decision && onFork(decision.id)}
         >
           Try another approach
           <ArrowUpRight size={17} />

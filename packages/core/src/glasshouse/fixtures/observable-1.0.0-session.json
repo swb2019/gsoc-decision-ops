@@ -1,0 +1,514 @@
+{
+  "format": "hourglass-session",
+  "version": 1,
+  "state": {
+    "schemaVersion": 1,
+    "sessionId": "historical-rubric-852495f",
+    "seed": 610,
+    "initialMode": "guided",
+    "mode": "guided",
+    "scenarioVersion": "glasshouse-1.0.0",
+    "rubricVersion": "observable-1.0.0",
+    "rulesVersion": "kernel-1.0.0",
+    "assetsVersion": "campus-1.0.0",
+    "tick": 12,
+    "paused": true,
+    "lifecycle": "active",
+    "world": {
+      "connector": "fault",
+      "image": "current",
+      "capacity": "constrained",
+      "owner": "delayed"
+    },
+    "observations": [
+      {
+        "id": "reader-alert",
+        "claim": "Two service-entrance badge readers disagree on six access attempts. No entry breach is confirmed.",
+        "source": "Mara Chen · duty analyst",
+        "observedAt": 0,
+        "receivedAt": 0,
+        "asset": "entrance",
+        "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+        "limitation": "Reader disagreement does not establish an unauthorized person.",
+        "status": "reported",
+        "knownBy": ["commander", "analyst", "cyber"],
+        "corroborates": [],
+        "contradicts": []
+      },
+      {
+        "id": "vendor-alert",
+        "claim": "The vendor identity connector is returning intermittent errors. Local cached badges still work.",
+        "source": "Elias Reed · cyber lead",
+        "observedAt": 0,
+        "receivedAt": 0,
+        "asset": "connector",
+        "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+        "limitation": "Fault and compromise remain viable explanations.",
+        "status": "reported",
+        "knownBy": ["commander", "analyst", "cyber"],
+        "corroborates": [],
+        "contradicts": []
+      },
+      {
+        "id": "shipment",
+        "claim": "A temperature-controlled research shipment is due to leave at 06:40. Its receiving window cannot absorb a long hold.",
+        "source": "Jordan Vale · asset owner",
+        "observedAt": 0,
+        "receivedAt": 0,
+        "asset": "dispatch",
+        "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+        "limitation": "A late dispatch has a modeled service consequence, not a real financial forecast.",
+        "status": "confirmed",
+        "knownBy": ["commander", "analyst", "owner"],
+        "corroborates": [],
+        "contradicts": []
+      },
+      {
+        "id": "image",
+        "claim": "A forwarded image appears to show a crowd beside the service entrance. Its capture time is missing.",
+        "source": "Duty inbox · forwarded image description",
+        "observedAt": 2,
+        "receivedAt": 3,
+        "asset": "entrance",
+        "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+        "limitation": "Unverified provenance; the image may be stale.",
+        "status": "reported",
+        "knownBy": ["commander", "analyst"],
+        "corroborates": [],
+        "contradicts": ["guard-check"]
+      },
+      {
+        "id": "queue",
+        "claim": "Shift-change arrivals exceed the available manual-check capacity. A guard at the entrance cannot also cover the patrol route.",
+        "source": "Mara Chen · capacity update",
+        "observedAt": 7,
+        "receivedAt": 8,
+        "asset": "entrance",
+        "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+        "limitation": "Capacity is specific to this shift and can change.",
+        "status": "assessed",
+        "knownBy": ["commander", "analyst"],
+        "corroborates": [],
+        "contradicts": []
+      },
+      {
+        "id": "image-correction",
+        "claim": "The image was taken this morning, but the apparent crowd is the scheduled shift-change queue. It does not confirm hostile intent.",
+        "source": "Mara Chen · source check",
+        "observedAt": 11,
+        "receivedAt": 12,
+        "asset": "entrance",
+        "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+        "limitation": "A corrected image does not resolve connector integrity.",
+        "status": "confirmed",
+        "knownBy": ["commander", "analyst"],
+        "corroborates": [],
+        "contradicts": ["image"],
+        "corrects": "image"
+      }
+    ],
+    "actorKnowledge": {
+      "commander": [
+        "reader-alert",
+        "vendor-alert",
+        "shipment",
+        "image",
+        "queue",
+        "image-correction"
+      ],
+      "analyst": ["reader-alert", "vendor-alert", "shipment", "image", "queue", "image-correction"],
+      "cyber": ["reader-alert", "vendor-alert"],
+      "owner": ["shipment", "image"]
+    },
+    "decisions": [
+      {
+        "control": "monitor",
+        "scope": "dispatch",
+        "posture": "CONTINUE",
+        "treatments": ["MITIGATE"],
+        "authority": "delegated",
+        "evidenceIds": ["image"],
+        "rationale": "",
+        "assumption": "",
+        "hypothesis": "",
+        "likelihood": "unknown",
+        "confidence": "low",
+        "alternative": "",
+        "reviewTrigger": "Review source correction",
+        "uncertainty": "unverified",
+        "notify": false,
+        "id": "d1",
+        "actionId": "a1",
+        "eventId": "historical-rubric-852495f:e7",
+        "at": 3,
+        "evidenceSnapshotId": "historical-rubric-852495f:snapshot:7",
+        "knownEvidenceIds": ["reader-alert", "vendor-alert", "shipment", "image"]
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "decisionId": "d1",
+        "control": "monitor",
+        "scope": "dispatch",
+        "owner": "commander",
+        "resources": [],
+        "status": "completed",
+        "expectedUpdate": 4,
+        "costCents": 0,
+        "eventId": "historical-rubric-852495f:e7",
+        "startedAt": 3,
+        "result": "Dispatch continues. Monitoring does not itself establish connector integrity."
+      }
+    ],
+    "events": [
+      {
+        "eventId": "historical-rubric-852495f:e1",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 1,
+        "simulatedAt": 0,
+        "type": "session.started",
+        "actorId": "commander",
+        "payload": {
+          "seed": 610,
+          "mode": "guided",
+          "versions": {
+            "scenario": "glasshouse-1.0.0",
+            "rubric": "observable-1.0.0",
+            "rules": "kernel-1.0.0",
+            "assets": "campus-1.0.0"
+          }
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e2",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 2,
+        "simulatedAt": 0,
+        "type": "observation.received",
+        "actorId": "analyst",
+        "payload": {
+          "observationId": "reader-alert",
+          "claim": "Two service-entrance badge readers disagree on six access attempts. No entry breach is confirmed."
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e3",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 3,
+        "simulatedAt": 0,
+        "type": "observation.received",
+        "actorId": "cyber",
+        "payload": {
+          "observationId": "vendor-alert",
+          "claim": "The vendor identity connector is returning intermittent errors. Local cached badges still work."
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e4",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 4,
+        "simulatedAt": 0,
+        "type": "observation.received",
+        "actorId": "analyst",
+        "payload": {
+          "observationId": "shipment",
+          "claim": "A temperature-controlled research shipment is due to leave at 06:40. Its receiving window cannot absorb a long hold."
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e5",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 5,
+        "simulatedAt": 3,
+        "type": "clock.advanced",
+        "actorId": "commander",
+        "payload": { "to": 3 },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e6",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 6,
+        "simulatedAt": 3,
+        "type": "observation.received",
+        "actorId": "analyst",
+        "payload": {
+          "observationId": "image",
+          "claim": "A forwarded image appears to show a crowd beside the service entrance. Its capture time is missing."
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e7",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 7,
+        "simulatedAt": 3,
+        "type": "decision.committed",
+        "actorId": "commander",
+        "payload": {
+          "decisionId": "d1",
+          "actionId": "a1",
+          "control": "monitor",
+          "treatments": ["MITIGATE"],
+          "posture": "CONTINUE",
+          "authority": "delegated"
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e8",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 8,
+        "simulatedAt": 3,
+        "type": "action.started",
+        "actorId": "commander",
+        "payload": {
+          "actionId": "a1",
+          "expectedUpdate": 4,
+          "impact": "Preserves service; does not reduce connector exposure by itself."
+        },
+        "causalParentIds": ["historical-rubric-852495f:e7"],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e9",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 9,
+        "simulatedAt": 3,
+        "type": "brief.sent",
+        "actorId": "commander",
+        "payload": {
+          "recommendation": "Continue bounded observation",
+          "scope": "dispatch",
+          "evidenceIds": ["image"],
+          "uncertainty": "Source unverified",
+          "alternative": "Direct check",
+          "consequence": "Shipment remains moving",
+          "reviewTrigger": "Review source correction",
+          "missing": [],
+          "approval": false
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e10",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 10,
+        "simulatedAt": 3,
+        "type": "brief.acknowledged",
+        "actorId": "owner",
+        "payload": {
+          "result": "Jordan: The proposal, uncertainty and business consequence are clear in the record. Submit an approval request for a control beyond your delegation; this acknowledgment does not authorize it."
+        },
+        "causalParentIds": ["historical-rubric-852495f:e9"],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e11",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 11,
+        "simulatedAt": 4,
+        "type": "clock.advanced",
+        "actorId": "commander",
+        "payload": { "to": 4 },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e12",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 12,
+        "simulatedAt": 4,
+        "type": "action.completed",
+        "actorId": "commander",
+        "payload": {
+          "actionId": "a1",
+          "control": "monitor",
+          "result": "Dispatch continues. Monitoring does not itself establish connector integrity."
+        },
+        "causalParentIds": ["historical-rubric-852495f:e8"],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e13",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 13,
+        "simulatedAt": 8,
+        "type": "clock.advanced",
+        "actorId": "commander",
+        "payload": { "to": 8 },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e14",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 14,
+        "simulatedAt": 8,
+        "type": "observation.received",
+        "actorId": "analyst",
+        "payload": {
+          "observationId": "queue",
+          "claim": "Shift-change arrivals exceed the available manual-check capacity. A guard at the entrance cannot also cover the patrol route."
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e15",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 15,
+        "simulatedAt": 12,
+        "type": "clock.advanced",
+        "actorId": "commander",
+        "payload": { "to": 12 },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      },
+      {
+        "eventId": "historical-rubric-852495f:e16",
+        "sessionId": "historical-rubric-852495f",
+        "sequence": 16,
+        "simulatedAt": 12,
+        "type": "observation.corrected",
+        "actorId": "analyst",
+        "payload": {
+          "observationId": "image-correction",
+          "claim": "The image was taken this morning, but the apparent crowd is the scheduled shift-change queue. It does not confirm hostile intent."
+        },
+        "causalParentIds": [],
+        "schemaVersion": 1
+      }
+    ],
+    "queue": [
+      {
+        "id": "release-owner-status",
+        "at": 18,
+        "priority": 10,
+        "kind": "evidence",
+        "ref": "owner-status",
+        "parentIds": [],
+        "order": 7
+      },
+      {
+        "id": "release-vendor-repair",
+        "at": 24,
+        "priority": 10,
+        "kind": "evidence",
+        "ref": "vendor-repair",
+        "parentIds": [],
+        "order": 8
+      },
+      {
+        "id": "dispatch-deadline",
+        "at": 30,
+        "priority": 20,
+        "kind": "deadline",
+        "ref": "dispatch",
+        "parentIds": [],
+        "order": 11
+      },
+      {
+        "id": "release-relief",
+        "at": 38,
+        "priority": 10,
+        "kind": "evidence",
+        "ref": "relief",
+        "parentIds": [],
+        "order": 9
+      },
+      {
+        "id": "release-hour-end",
+        "at": 55,
+        "priority": 10,
+        "kind": "evidence",
+        "ref": "hour-end",
+        "parentIds": [],
+        "order": 10
+      },
+      {
+        "id": "session-horizon",
+        "at": 60,
+        "priority": 30,
+        "kind": "deadline",
+        "ref": "horizon",
+        "parentIds": [],
+        "order": 12
+      }
+    ],
+    "resources": { "guard": null, "analyst": null, "responder": null },
+    "commands": [
+      { "actor": "commander", "commandId": "c1", "type": "advance", "to": 3 },
+      {
+        "actor": "commander",
+        "commandId": "c2",
+        "type": "plan",
+        "plan": {
+          "control": "monitor",
+          "scope": "dispatch",
+          "posture": "CONTINUE",
+          "treatments": ["MITIGATE"],
+          "authority": "delegated",
+          "evidenceIds": ["image"],
+          "rationale": "",
+          "assumption": "",
+          "hypothesis": "",
+          "likelihood": "unknown",
+          "confidence": "low",
+          "alternative": "",
+          "reviewTrigger": "Review source correction",
+          "uncertainty": "unverified",
+          "notify": false
+        }
+      },
+      {
+        "actor": "commander",
+        "commandId": "c3",
+        "type": "brief",
+        "recommendation": "Continue bounded observation",
+        "scope": "dispatch",
+        "evidenceIds": ["image"],
+        "uncertainty": "Source unverified",
+        "alternative": "Direct check",
+        "consequence": "Shipment remains moving",
+        "reviewTrigger": "Review source correction"
+      },
+      { "actor": "commander", "commandId": "c4", "type": "advance", "to": 4 },
+      { "actor": "commander", "commandId": "c5", "type": "advance", "to": 8 },
+      { "actor": "commander", "commandId": "c6", "type": "advance", "to": 12 }
+    ],
+    "assistance": [],
+    "disputes": [],
+    "ledger": {
+      "exposureId": "glasshouse-access-hour-1",
+      "currency": "USD",
+      "horizon": "first simulated hour",
+      "baselineLossCents": 12000000,
+      "residualLossCents": 12000000,
+      "treatmentCostCents": 0,
+      "avoidedLossCents": 0,
+      "netBenefitCents": 0,
+      "roiPercent": null,
+      "assumptions": [
+        "Synthetic common one-hour exposure: USD 120,000 expected loss without a control; illustrative range USD 60,000–180,000.",
+        "Completed control periods reduce only the same exposure; reductions use the strongest applicable control per minute, never their sum.",
+        "Guard labor, investigation and committed control costs remain after cancellation. No activity, speed or documentation multipliers.",
+        "Life safety and authority are separate constraints and cannot be exchanged for modeled money."
+      ]
+    }
+  },
+  "digest": "fnv1a-1b214652"
+}

@@ -1,4 +1,10 @@
-import { GLASSHOUSE_CONTROLS, GLASSHOUSE_VERSIONS } from './content.js';
+import {
+  GLASSHOUSE_CONTROLS,
+  GLASSHOUSE_SUPPORTED_RUBRICS,
+  GLASSHOUSE_SUPPORTED_RULES,
+  GLASSHOUSE_SUPPORTED_ASSETS,
+  GLASSHOUSE_VERSIONS,
+} from './content.js';
 import {
   createGlasshouseSession,
   getGlasshouseObservations,
@@ -62,6 +68,7 @@ const commandKeys: Record<Command['type'], string[]> = {
     'reviewTrigger',
   ],
   handoff: ['summary', 'owner', 'reviewTrigger'],
+  abandon: ['reason'],
   help: ['topic'],
   continue: [],
   improvement: ['improvement'],
@@ -85,16 +92,23 @@ export function restoreGlasshouseSession(text: string): Session {
   if (
     saved.schemaVersion !== 1 ||
     saved.scenarioVersion !== GLASSHOUSE_VERSIONS.scenario ||
-    saved.rubricVersion !== GLASSHOUSE_VERSIONS.rubric ||
-    saved.rulesVersion !== GLASSHOUSE_VERSIONS.rules ||
-    saved.assetsVersion !== GLASSHOUSE_VERSIONS.assets
+    !GLASSHOUSE_SUPPORTED_RUBRICS.some((version) => version === saved.rubricVersion) ||
+    !GLASSHOUSE_SUPPORTED_RULES.some((version) => version === saved.rulesVersion) ||
+    !GLASSHOUSE_SUPPORTED_ASSETS.some((version) => version === saved.assetsVersion)
   )
     throw new Error(
       'This session needs its original content and rule versions. It cannot be silently migrated.'
     );
   if (!Array.isArray(saved.commands) || saved.commands.length > 10000)
     throw new Error('Invalid command journal.');
-  let replay = createGlasshouseSession(saved.seed, saved.initialMode, saved.sessionId);
+  let replay = createGlasshouseSession(
+    saved.seed,
+    saved.initialMode,
+    saved.sessionId,
+    saved.rubricVersion,
+    saved.rulesVersion,
+    saved.assetsVersion
+  );
   for (const command of saved.commands) {
     if (
       !command ||
@@ -375,7 +389,9 @@ export function getGlasshouseReport(
             o.corrects &&
             state.events.some(
               (e) =>
-                e.type === 'owner.notified' &&
+                (state.rubricVersion === 'observable-1.0.0'
+                  ? e.type === 'owner.notified'
+                  : ['owner.notified', 'brief.sent'].includes(e.type)) &&
                 e.simulatedAt < o.receivedAt &&
                 (e.payload.evidenceIds as string[] | undefined)?.includes(o.corrects!)
             ) &&
@@ -388,8 +404,24 @@ export function getGlasshouseReport(
     ],
     ...(state.improvement ? { improvement: structuredClone(state.improvement) } : {}),
     ...(state.handoff ? { handoff: structuredClone(state.handoff) } : {}),
+    ...(state.abandonment ? { abandonment: structuredClone(state.abandonment) } : {}),
     disputes: structuredClone(state.disputes),
     limitations: [
+      ...(state.rulesVersion === 'kernel-1.0.0'
+        ? [
+            'Historical rules kernel-1.0.0: original lifecycle and commands are preserved for read-only review. This version did not distinguish voluntarily ended practice. A fresh run under kernel-1.1.0 supports an explicit abandoned state.',
+          ]
+        : []),
+      ...(state.assetsVersion !== GLASSHOUSE_VERSIONS.assets
+        ? [
+            `Historical assets ${state.assetsVersion}: the original presentation version remains pinned to this record; current optional audio has not changed its assessment.`,
+          ]
+        : []),
+      ...(state.rubricVersion === 'observable-1.0.0'
+        ? [
+            'Historical rubric observable-1.0.0: original assessment preserved for read-only review. This version omitted an owner correction reminder when the original report was shared only through a structured brief. The observable-1.0.1 correction applies to fresh runs; this record has not been regraded.',
+          ]
+        : []),
       'Synthetic educational practice. Independent content/rubric calibration and formative user studies remain pending; no efficacy, certification, employer endorsement or real-world readiness is claimed.',
       'Structured rules observe a limited set of recorded behaviors. Interpretive reasoning is not automatically assessed; outcomes can include luck.',
       'The client-side world and unsigned records are inspectable and editable. The digest detects accidental changes, not authorship or tamper resistance.',
@@ -427,6 +459,8 @@ export function getGlasshouseReport(
         at: report.handoff.at,
       };
     for (const dispute of report.disputes) dispute.reason = '[removed for sharing]';
+    if (report.abandonment)
+      report.abandonment = { reason: '[removed for sharing]', at: report.abandonment.at };
     const safeKeys = new Set([
       'seed',
       'mode',

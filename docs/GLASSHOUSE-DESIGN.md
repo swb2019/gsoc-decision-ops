@@ -2,25 +2,32 @@
 
 This branch implements the next-generation Hourglass public solo architecture and the Glasshouse flagship. It preserves the source history, the `/gsoc-decision-ops/` deployment base and every existing scenario route. The old landing is available at `/legacy/`; old records retain their original interpretation. Nothing in this branch establishes learning efficacy or qualifies a public release by itself.
 
-Product direction and accountability: Shannon Brown. Engineering executor: Shannon Brown’s AI-assisted development workflow. Automated independent review is recorded as engineering evidence, never substituted for the named human domain and exercise reviewers required by the PRD. Those reviewer assignments remain an open qualification dependency.
+Product direction and accountability: Shannon Brown. Engineering executor: Shannon Brown’s AI-assisted development workflow. Automated independent review is recorded as engineering evidence, never substituted for the named human domain and exercise reviewers required by the PRD. Those reviewer assignments remain an open qualification dependency. [Twenty generated traces](../qa-output/calibration/README.md) and [blank review templates](../release/review-materials/README.md) make the remaining work concrete. All candidates were engineering-authored; no human calibration or true held-out independence is claimed.
 
 ## Architecture
 
 - `packages/core/src/glasshouse/types.ts`: pinned session, event, command, plan, action, evidence, report and finding contracts.
 - `content.ts`: original fictional handover, seven controls, ten authored evidence releases, three roles and three dependent assets. Four independent hidden factors use stable event-keyed draws.
 - `kernel.ts`: pure validated transitions, monotonic manual time, complete causal queue, resource reservations, authority requests, cancellation, expiry and terminal conditions. UI and 3D never own consequential state.
-- `record.ts`: replay-validated import, canonical digest, immutable report, observed-behavior feedback, redaction and separate counterfactual checkpoints.
+- `record.ts`: replay-validated import, canonical digest, immutable report, observed-behavior feedback, redaction and historical-version reconstruction. `counterfactual.ts` bounds the next-consequence comparison to a shared horizon.
 - `apps/web/src/lib/glasshouse-storage.ts`: namespaced IndexedDB journal and checkpoints, atomic writer lease, stale-prefix protection and quarantine. Wall-time lease metadata stays outside canonical simulation state.
 - `apps/web/src/lib/glasshouse-export.ts`: one full frozen report rendered to escaped HTML, structured JSON and paginated selectable-text PDF. HTML remains the canonical accessible alternative.
-- `apps/web/src/components/glasshouse/`: launch, chronological evidence, plan composer, actor brief, commitments, accessible situation diagram, optional lazy 3D, handoff and causal review.
+- `apps/web/src/components/glasshouse/`: launch, chronological evidence, plan composer, actor brief, commitments, accessible situation diagram, optional lazy 3D, controlled audio, handoff, explicit voluntary end and causal review.
+- `useGlasshouseAudio.ts` and `AudioControls.tsx`: observation-only sound projection with independent voice/effects/ambience controls; no domain write path.
 
 ## Minimum complete mission
 
 Preview uses the same opening and stops after one completed consequence. Continue keeps its choices and evidence and changes to Guided Practice. Guided and Independent both use deliberate, pausable time. Independent disables substantive coaching. No time or mode multiplier changes evaluation.
 
-Investigate the connector and verify the service entrance. Observe the results, image correction, capacity constraint and owner availability. Choose continued monitoring, bounded manual verification or approved isolation. Review dispatch at minute 30 and the relief handover at minute 38. A controlled terminal requires three recorded consequential decisions, at least one completed verification, settled pending actions, at least minute 30 and an explicit summary, owner and review condition. Early handoffs and an expired exercise hour are explicitly incomplete. Unresolved questions and active bounded controls remain visible.
+Investigate the connector and verify the service entrance. Observe the results, image correction, capacity constraint and owner availability. Choose continued monitoring, bounded manual verification or approved isolation. Review dispatch at minute 30 and the relief handover at minute 38. A controlled terminal requires three recorded consequential decisions, at least one completed verification, settled pending actions, at least minute 30 and an explicit summary, owner and review condition. Early handoffs and an expired exercise hour are explicitly incomplete. Unresolved questions and active bounded controls remain visible. A separate confirmed voluntary-end command records `abandoned` and its reason without advancing the clock, changing commitments or claiming a completed handoff. The saved terminal preserves unfinished work; operational commands cannot resume it. Supported historical rules retain their original lifecycle semantics in read-only review.
 
 These are authored teaching paths, not real operational instructions. Narrow fault, scoped compromise, constrained manual capacity and delayed ownership support different defensible choices. A temporary pause is not automatically permanent avoidance. A transfer recommendation does not transfer accountability or silently execute a control.
+
+## Optional sound and presentation
+
+All voice/effects/ambience channels start off and have independent levels. A deliberately selected local browser voice can read the handover; the same speaker/timestamp transcript remains visible. Original procedural WebAudio cues mark received observations or action receipts, and quiet original room tone carries no facts. Voice has priority: effects remain quiet and ambience is reduced, with readable receipt summaries and no replayed backlog. Immediate pause/stop and navigation/background cleanup preserve quiet control; no microphone, downloaded samples/model or remote speech service is added. Missing local voice/output leaves the complete text path.
+
+The current asset contract versions procedural audio separately from historical campus assets. Its [asset provenance](ASSET-REGISTER.md) and [art/audio comparator](../release/review-materials/art-audio-comparison.md) remain reviewable. Mechanism checks do not establish human perceptual quality or a comprehension benefit.
 
 ## Model and uncertainty
 
@@ -45,16 +52,17 @@ Feedback exposes eight dimensions. Automated rules assess evidence references/co
 
 ## Feature decisions and removal conditions
 
-| System              | Objective and dependency                                    | Smaller/rejected alternative                        | Evidence and deletion condition                                                        |
-| ------------------- | ----------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Event kernel        | Faithful decisions and recovery; requires versioned content | Multiple UI effect authorities rejected             | Replay/causal tests; retain only rules with a scenario effect                          |
-| Plan composer       | Scope, treatment and authority survive end to end           | One posture button rejected                         | Semantic and browser checks; remove optional fields if unused by review                |
-| Authored actors     | Make owner availability and agreement legible               | General AI agents deferred                          | Approval/knowledge fixtures and human review; remove dialogue that adds no information |
-| Local journal       | Durable account-free practice                               | localStorage partial state rejected                 | Abort/quota/lease tests; no backend without a distinct approved need                   |
-| Schematic and 3D    | Explain dependencies and commitments                        | Free-roaming world rejected                         | Human comparator pending; ship schematic if graphics do not improve the task           |
-| Structured feedback | Inspect observable behavior                                 | Global leadership grade and keyword scorer rejected | Held-out independent calibration pending; withdraw unsupported automatic anchors       |
-| Counterfactual      | Test another hypothesis from known-then evidence            | Restarting with new random state rejected           | Checkpoint and same-horizon tests; do not infer retention from immediate replay        |
-| Export              | Complete locally held evidence                              | Raster-only primary report rejected                 | 100-decision HTML/JSON/PDF reconciliation; HTML retained until tagged PDF qualifies    |
+| System              | Objective and dependency                                      | Smaller/rejected alternative                                           | Evidence and deletion condition                                                        |
+| ------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Event kernel        | Faithful decisions and recovery; requires versioned content   | Multiple UI effect authorities rejected                                | Replay/causal tests; retain only rules with a scenario effect                          |
+| Plan composer       | Scope, treatment and authority survive end to end             | One posture button rejected                                            | Semantic and browser checks; remove optional fields if unused by review                |
+| Authored actors     | Make owner availability and agreement legible                 | General AI agents deferred                                             | Approval/knowledge fixtures and human review; remove dialogue that adds no information |
+| Local journal       | Durable account-free practice                                 | localStorage partial state rejected                                    | Abort/quota/lease tests; no backend without a distinct approved need                   |
+| Schematic and 3D    | Explain dependencies and commitments                          | Free-roaming world rejected                                            | Human comparator pending; ship schematic if graphics do not improve the task           |
+| Structured feedback | Inspect observable behavior                                   | Global leadership grade and keyword scorer rejected                    | Held-out independent calibration pending; withdraw unsupported automatic anchors       |
+| Counterfactual      | Test another hypothesis from known-then evidence              | Restarting with new random state rejected                              | Checkpoint and same-horizon tests; do not infer retention from immediate replay        |
+| Export              | Complete locally held evidence                                | Raster-only primary report rejected                                    | 100-decision HTML/JSON/PDF reconciliation; HTML retained until tagged PDF qualifies    |
+| Optional audio      | Communicate observable updates while retaining identical text | Audio off remains complete; remote speech and repeated alarms excluded | Human matched comparator pending; remove any interference or unsupported sound cue     |
 
 ## Version and legacy correction policy
 

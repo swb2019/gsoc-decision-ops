@@ -32,6 +32,10 @@ test('returning to launch flushes the final reading interval to the original sav
   await page.clock.install();
   await page.goto('/glasshouse/');
   await page.getByRole('button', { name: /^Guided practice/ }).click();
+  // Launch checks offline state asynchronously. Measure only after the mission exists.
+  await expect(
+    page.getByRole('heading', { name: 'Make a bounded plan', exact: true })
+  ).toBeVisible();
   await page.clock.runFor(7000); // shorter than the periodic fifteen-second save
   await page.getByRole('button', { name: 'Open display and local data settings' }).click();
   await page

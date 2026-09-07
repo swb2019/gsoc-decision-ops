@@ -3,22 +3,56 @@
   "product": "Hourglass Command Glasshouse",
   "baseline": "94486155e77a6dddd8293900a83e443679361e33",
   "scenarioVersion": "glasshouse-1.0.0",
-  "rulesVersion": "kernel-1.0.0",
-  "rubricVersion": "observable-1.0.0",
+  "rulesVersion": "kernel-1.1.0",
+  "rubricVersion": "observable-1.0.1",
   "publicRelease": "hold",
   "accountableOwner": "Shannon Brown",
   "qualificationRevision": null,
   "gates": {
-    "semanticEngineering": "passed: 425 unit/semantic tests and 26 browser journeys; see docs/ENGINEERING-VALIDATION.md; offline artifact 98200f6986b10efa88ee4960",
-    "independentContentAndRubricReview": "pending named physical-security, cyber and exercise reviewers",
-    "formativePlaytest": "pending ten intended users including accessibility accommodations",
-    "manualAccessibilityAndDevices": "pending NVDA, VoiceOver Safari, Android and iPhone journeys",
-    "artAudioComparator": "pending qualified schematic versus optional 3D comparison",
-    "publicRollbackRehearsal": "pending staging exercise with owner"
+    "semanticEngineering": {
+      "status": "automated-checks-passed",
+      "evidence": ["docs/ENGINEERING-VALIDATION.md", "docs/DEVICE-VALIDATION.md"],
+      "signoffs": [],
+      "note": "430 unit/semantic tests, 12 architecture/release checks, 33 Chrome journeys; 54 supplemental engine checks passed with two explicitly unsupported WebKit audio cases. Owner review remains pending."
+    },
+    "independentContentAndRubricReview": {
+      "status": "pending",
+      "evidence": ["release/review-materials/domain-calibration-review.md"],
+      "signoffs": [],
+      "note": "20 replay-validated engineering-authored traces prepared; three independent human disciplines and actual ratings required."
+    },
+    "formativePlaytest": {
+      "status": "pending",
+      "evidence": ["release/review-materials/formative-observer.md"],
+      "signoffs": [],
+      "note": "Ten intended users including accessibility accommodations; no participants recruited or scored."
+    },
+    "manualAccessibilityAndDevices": {
+      "status": "pending",
+      "evidence": [
+        "docs/DEVICE-VALIDATION.md",
+        "release/review-materials/accessibility-device-review.md"
+      ],
+      "signoffs": [],
+      "note": "Both connected Android phones passed the engineering scope. Manual assistive technology, native iPhone/Safari, integrated graphics, soft keyboard and OS sharing remain pending."
+    },
+    "artAudioComparator": {
+      "status": "pending",
+      "evidence": ["release/review-materials/art-audio-comparison.md"],
+      "signoffs": [],
+      "note": "Three-state actual app recordings and procedural audio prepared; human schematic/3D/text/audio and local voice comparison remains pending."
+    },
+    "publicRollbackRehearsal": {
+      "status": "pending",
+      "evidence": ["docs/OPERATIONS.md", "release/review-materials/rollback-rehearsal.md"],
+      "signoffs": [],
+      "note": "Automated local artifact rollback/recovery passed in 1.321 seconds with journal bytes preserved. Named owner and intended-host review remain pending."
+    }
   },
   "deferred": [
     "G3 additional cases and facilitated use",
     "consented learning-signal study",
     "G4 networked roles, enterprise authoring and AI"
-  ]
+  ],
+  "assetsVersion": "campus-audio-1.1.0"
 }

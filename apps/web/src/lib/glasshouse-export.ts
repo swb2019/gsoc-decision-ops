@@ -57,7 +57,8 @@ export function glasshouseReportBlocks(report: Report): GlasshouseReportBlock[] 
   ]);
   const metadata = Object.fromEntries(
     Object.entries(report).filter(
-      ([key]) => !collections.has(key) && !['ledger', 'improvement', 'handoff'].includes(key)
+      ([key]) =>
+        !collections.has(key) && !['ledger', 'improvement', 'handoff', 'abandonment'].includes(key)
     )
   );
   blocks.push({
@@ -65,7 +66,7 @@ export function glasshouseReportBlocks(report: Report): GlasshouseReportBlock[] 
     id: 'context',
     fields: objectFields(metadata),
   });
-  for (const key of ['ledger', 'handoff', 'improvement'] as const) {
+  for (const key of ['ledger', 'handoff', 'improvement', 'abandonment'] as const) {
     const record = report[key];
     blocks.push({
       title: readableKey(key),

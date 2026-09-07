@@ -108,9 +108,11 @@ export function projectGlasshousePractice(
     statusLabel:
       session.lifecycle === 'completed'
         ? 'Completed · authored handoff conditions'
-        : session.lifecycle === 'incomplete'
-          ? 'Partial · incomplete handoff or horizon'
-          : 'Partial · saved in progress',
+        : session.lifecycle === 'abandoned'
+          ? 'Abandoned · practice ended voluntarily'
+          : session.lifecycle === 'incomplete'
+            ? 'Partial · incomplete handoff or horizon'
+            : 'Partial · saved in progress',
     mode: session.mode,
     initialMode: session.initialMode,
     assistance: [...session.assistance],

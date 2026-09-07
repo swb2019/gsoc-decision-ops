@@ -133,6 +133,7 @@ export type Command = {
       reviewTrigger: string;
     }
   | { type: 'handoff'; summary: string; owner: string; reviewTrigger: string }
+  | { type: 'abandon'; reason: string }
   | { type: 'help'; topic: string }
   | { type: 'continue' }
   | { type: 'improvement'; improvement: Improvement }
@@ -152,7 +153,7 @@ export interface Session {
   mode: Mode;
   tick: number;
   paused: boolean;
-  lifecycle: 'active' | 'completed' | 'incomplete';
+  lifecycle: 'active' | 'completed' | 'incomplete' | 'abandoned';
   terminalReason?: string;
   world: {
     connector: 'fault' | 'compromise';
@@ -173,6 +174,7 @@ export interface Session {
   improvement?: Improvement;
   disputes: { findingId: string; reason: string; eventId: string }[];
   handoff?: { summary: string; owner: string; reviewTrigger: string; at: number };
+  abandonment?: { reason: string; at: number };
 }
 export interface Control {
   id: ControlId;
@@ -226,6 +228,7 @@ export interface Report {
   unresolved: string[];
   improvement?: Improvement;
   handoff?: Session['handoff'];
+  abandonment?: Session['abandonment'];
   disputes: Session['disputes'];
   limitations: string[];
   redacted: boolean;

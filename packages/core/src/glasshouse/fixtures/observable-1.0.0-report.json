@@ -1,0 +1,518 @@
+{
+  "reportVersion": 1,
+  "executiveBrief": {
+    "objective": "Protect people, preserve essential operations, establish scope and hand over a controlled Glasshouse campus situation.",
+    "pivotalDecisions": [
+      "Minute 3: Continue with a review commitment. CONTINUE; treatments MITIGATE; delegated. Evidence: historical-rubric-852495f:e7."
+    ],
+    "observedBehavior": [
+      "Evidence and source handling: 1 of 1 decisions reference actual observations available at commitment. (observable-1.0.0/gh-1)",
+      "Authority and escalation: Committed actions passed the scenario’s delegated, approval, recommendation or emergency authority checks. Notifications do not count as approval. (observable-1.0.0/gh-5)"
+    ],
+    "nextPractice": "Choose one action to repeat and one assumption or follow-through condition to revisit in another approach."
+  },
+  "sessionId": "historical-rubric-852495f",
+  "scenario": "Glasshouse / 06:10",
+  "versions": {
+    "scenario": "glasshouse-1.0.0",
+    "rubric": "observable-1.0.0",
+    "rules": "kernel-1.0.0",
+    "assets": "campus-1.0.0"
+  },
+  "mode": "guided",
+  "assistance": [],
+  "simulatedMinutes": 12,
+  "activePlaySeconds": 0,
+  "lifecycle": "active",
+  "decisions": [
+    {
+      "control": "monitor",
+      "scope": "dispatch",
+      "posture": "CONTINUE",
+      "treatments": ["MITIGATE"],
+      "authority": "delegated",
+      "evidenceIds": ["image"],
+      "rationale": "",
+      "assumption": "",
+      "hypothesis": "",
+      "likelihood": "unknown",
+      "confidence": "low",
+      "alternative": "",
+      "reviewTrigger": "Review source correction",
+      "uncertainty": "unverified",
+      "notify": false,
+      "id": "d1",
+      "actionId": "a1",
+      "eventId": "historical-rubric-852495f:e7",
+      "at": 3,
+      "evidenceSnapshotId": "historical-rubric-852495f:snapshot:7",
+      "knownEvidenceIds": ["reader-alert", "vendor-alert", "shipment", "image"]
+    }
+  ],
+  "observations": [
+    {
+      "id": "reader-alert",
+      "claim": "Two service-entrance badge readers disagree on six access attempts. No entry breach is confirmed.",
+      "source": "Mara Chen · duty analyst",
+      "observedAt": 0,
+      "receivedAt": 0,
+      "asset": "entrance",
+      "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+      "limitation": "Reader disagreement does not establish an unauthorized person.",
+      "status": "reported",
+      "knownBy": ["commander", "analyst", "cyber"],
+      "corroborates": [],
+      "contradicts": []
+    },
+    {
+      "id": "vendor-alert",
+      "claim": "The vendor identity connector is returning intermittent errors. Local cached badges still work.",
+      "source": "Elias Reed · cyber lead",
+      "observedAt": 0,
+      "receivedAt": 0,
+      "asset": "connector",
+      "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+      "limitation": "Fault and compromise remain viable explanations.",
+      "status": "reported",
+      "knownBy": ["commander", "analyst", "cyber"],
+      "corroborates": [],
+      "contradicts": []
+    },
+    {
+      "id": "shipment",
+      "claim": "A temperature-controlled research shipment is due to leave at 06:40. Its receiving window cannot absorb a long hold.",
+      "source": "Jordan Vale · asset owner",
+      "observedAt": 0,
+      "receivedAt": 0,
+      "asset": "dispatch",
+      "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+      "limitation": "A late dispatch has a modeled service consequence, not a real financial forecast.",
+      "status": "confirmed",
+      "knownBy": ["commander", "analyst", "owner"],
+      "corroborates": [],
+      "contradicts": []
+    },
+    {
+      "id": "image",
+      "claim": "A forwarded image appears to show a crowd beside the service entrance. Its capture time is missing.",
+      "source": "Duty inbox · forwarded image description",
+      "observedAt": 2,
+      "receivedAt": 3,
+      "asset": "entrance",
+      "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+      "limitation": "Unverified provenance; the image may be stale.",
+      "status": "reported",
+      "knownBy": ["commander", "analyst"],
+      "corroborates": [],
+      "contradicts": ["guard-check"]
+    },
+    {
+      "id": "queue",
+      "claim": "Shift-change arrivals exceed the available manual-check capacity. A guard at the entrance cannot also cover the patrol route.",
+      "source": "Mara Chen · capacity update",
+      "observedAt": 7,
+      "receivedAt": 8,
+      "asset": "entrance",
+      "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+      "limitation": "Capacity is specific to this shift and can change.",
+      "status": "assessed",
+      "knownBy": ["commander", "analyst"],
+      "corroborates": [],
+      "contradicts": []
+    },
+    {
+      "id": "image-correction",
+      "claim": "The image was taken this morning, but the apparent crowd is the scheduled shift-change queue. It does not confirm hostile intent.",
+      "source": "Mara Chen · source check",
+      "observedAt": 11,
+      "receivedAt": 12,
+      "asset": "entrance",
+      "provenance": "Authored synthetic Glasshouse case; no real incident data.",
+      "limitation": "A corrected image does not resolve connector integrity.",
+      "status": "confirmed",
+      "knownBy": ["commander", "analyst"],
+      "corroborates": [],
+      "contradicts": ["image"],
+      "corrects": "image"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "historical-rubric-852495f:e1",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 1,
+      "simulatedAt": 0,
+      "type": "session.started",
+      "actorId": "commander",
+      "payload": {
+        "seed": 610,
+        "mode": "guided",
+        "versions": {
+          "scenario": "glasshouse-1.0.0",
+          "rubric": "observable-1.0.0",
+          "rules": "kernel-1.0.0",
+          "assets": "campus-1.0.0"
+        }
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e2",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 2,
+      "simulatedAt": 0,
+      "type": "observation.received",
+      "actorId": "analyst",
+      "payload": {
+        "observationId": "reader-alert",
+        "claim": "Two service-entrance badge readers disagree on six access attempts. No entry breach is confirmed."
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e3",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 3,
+      "simulatedAt": 0,
+      "type": "observation.received",
+      "actorId": "cyber",
+      "payload": {
+        "observationId": "vendor-alert",
+        "claim": "The vendor identity connector is returning intermittent errors. Local cached badges still work."
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e4",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 4,
+      "simulatedAt": 0,
+      "type": "observation.received",
+      "actorId": "analyst",
+      "payload": {
+        "observationId": "shipment",
+        "claim": "A temperature-controlled research shipment is due to leave at 06:40. Its receiving window cannot absorb a long hold."
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e5",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 5,
+      "simulatedAt": 3,
+      "type": "clock.advanced",
+      "actorId": "commander",
+      "payload": { "to": 3 },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e6",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 6,
+      "simulatedAt": 3,
+      "type": "observation.received",
+      "actorId": "analyst",
+      "payload": {
+        "observationId": "image",
+        "claim": "A forwarded image appears to show a crowd beside the service entrance. Its capture time is missing."
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e7",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 7,
+      "simulatedAt": 3,
+      "type": "decision.committed",
+      "actorId": "commander",
+      "payload": {
+        "decisionId": "d1",
+        "actionId": "a1",
+        "control": "monitor",
+        "treatments": ["MITIGATE"],
+        "posture": "CONTINUE",
+        "authority": "delegated"
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e8",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 8,
+      "simulatedAt": 3,
+      "type": "action.started",
+      "actorId": "commander",
+      "payload": {
+        "actionId": "a1",
+        "expectedUpdate": 4,
+        "impact": "Preserves service; does not reduce connector exposure by itself."
+      },
+      "causalParentIds": ["historical-rubric-852495f:e7"],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e9",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 9,
+      "simulatedAt": 3,
+      "type": "brief.sent",
+      "actorId": "commander",
+      "payload": {
+        "recommendation": "Continue bounded observation",
+        "scope": "dispatch",
+        "evidenceIds": ["image"],
+        "uncertainty": "Source unverified",
+        "alternative": "Direct check",
+        "consequence": "Shipment remains moving",
+        "reviewTrigger": "Review source correction",
+        "missing": [],
+        "approval": false
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e10",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 10,
+      "simulatedAt": 3,
+      "type": "brief.acknowledged",
+      "actorId": "owner",
+      "payload": {
+        "result": "Jordan: The proposal, uncertainty and business consequence are clear in the record. Submit an approval request for a control beyond your delegation; this acknowledgment does not authorize it."
+      },
+      "causalParentIds": ["historical-rubric-852495f:e9"],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e11",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 11,
+      "simulatedAt": 4,
+      "type": "clock.advanced",
+      "actorId": "commander",
+      "payload": { "to": 4 },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e12",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 12,
+      "simulatedAt": 4,
+      "type": "action.completed",
+      "actorId": "commander",
+      "payload": {
+        "actionId": "a1",
+        "control": "monitor",
+        "result": "Dispatch continues. Monitoring does not itself establish connector integrity."
+      },
+      "causalParentIds": ["historical-rubric-852495f:e8"],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e13",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 13,
+      "simulatedAt": 8,
+      "type": "clock.advanced",
+      "actorId": "commander",
+      "payload": { "to": 8 },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e14",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 14,
+      "simulatedAt": 8,
+      "type": "observation.received",
+      "actorId": "analyst",
+      "payload": {
+        "observationId": "queue",
+        "claim": "Shift-change arrivals exceed the available manual-check capacity. A guard at the entrance cannot also cover the patrol route."
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e15",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 15,
+      "simulatedAt": 12,
+      "type": "clock.advanced",
+      "actorId": "commander",
+      "payload": { "to": 12 },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    },
+    {
+      "eventId": "historical-rubric-852495f:e16",
+      "sessionId": "historical-rubric-852495f",
+      "sequence": 16,
+      "simulatedAt": 12,
+      "type": "observation.corrected",
+      "actorId": "analyst",
+      "payload": {
+        "observationId": "image-correction",
+        "claim": "The image was taken this morning, but the apparent crowd is the scheduled shift-change queue. It does not confirm hostile intent."
+      },
+      "causalParentIds": [],
+      "schemaVersion": 1
+    }
+  ],
+  "actions": [
+    {
+      "id": "a1",
+      "decisionId": "d1",
+      "control": "monitor",
+      "scope": "dispatch",
+      "owner": "commander",
+      "resources": [],
+      "status": "completed",
+      "expectedUpdate": 4,
+      "costCents": 0,
+      "eventId": "historical-rubric-852495f:e7",
+      "startedAt": 3,
+      "result": "Dispatch continues. Monitoring does not itself establish connector integrity."
+    }
+  ],
+  "findings": [
+    {
+      "id": "gh-1",
+      "dimension": "Evidence and source handling",
+      "score": 2,
+      "result": "Target behavior observed",
+      "explanation": "1 of 1 decisions reference actual observations available at commitment.",
+      "eventIds": ["historical-rubric-852495f:e7"],
+      "evidenceSnapshotIds": ["historical-rubric-852495f:snapshot:7"],
+      "evaluatorType": "structured-rule",
+      "ruleVersion": "observable-1.0.0/gh-1",
+      "boundary": "Checks reference availability and corrections only; citing evidence does not establish a sound interpretation."
+    },
+    {
+      "id": "gh-2",
+      "dimension": "Uncertainty and alternatives",
+      "score": null,
+      "result": "Not assessed automatically",
+      "explanation": "0 alternatives and 0 assumptions are preserved for reflection. Likelihood and confidence are distinct.",
+      "eventIds": ["historical-rubric-852495f:e7"],
+      "evidenceSnapshotIds": ["historical-rubric-852495f:snapshot:7"],
+      "evaluatorType": "human-review",
+      "ruleVersion": "observable-1.0.0/gh-2",
+      "boundary": "The meaning and quality of free text require human review; length, keywords and a favorable outcome receive no quality credit."
+    },
+    {
+      "id": "gh-3",
+      "dimension": "Proportionality and reversibility",
+      "score": null,
+      "result": "Not assessed automatically",
+      "explanation": "0 bounded-control choices are available for review against known-then conditions.",
+      "eventIds": ["historical-rubric-852495f:e7"],
+      "evidenceSnapshotIds": ["historical-rubric-852495f:snapshot:7"],
+      "evaluatorType": "human-review",
+      "ruleVersion": "observable-1.0.0/gh-3",
+      "boundary": "Multiple strategies can be defensible. The model does not infer proportionality from posture labels."
+    },
+    {
+      "id": "gh-4",
+      "dimension": "Asset and business impact",
+      "score": null,
+      "result": "Not assessed automatically",
+      "explanation": "Compare the recorded scope, displaced coverage, dispatch deadline and synthetic ledger with the stated business consequence.",
+      "eventIds": ["historical-rubric-852495f:e7"],
+      "evidenceSnapshotIds": ["historical-rubric-852495f:snapshot:7"],
+      "evaluatorType": "human-review",
+      "ruleVersion": "observable-1.0.0/gh-4",
+      "boundary": "Operational outcomes and synthetic money are separate from judgment. Business reasoning requires human interpretation."
+    },
+    {
+      "id": "gh-5",
+      "dimension": "Authority and escalation",
+      "score": 2,
+      "result": "Target behavior observed",
+      "explanation": "Committed actions passed the scenario’s delegated, approval, recommendation or emergency authority checks. Notifications do not count as approval.",
+      "eventIds": ["historical-rubric-852495f:e7"],
+      "evidenceSnapshotIds": ["historical-rubric-852495f:snapshot:7"],
+      "evaluatorType": "structured-rule",
+      "ruleVersion": "observable-1.0.0/gh-5",
+      "boundary": "Observes procedural authorization of accepted actions only. Rejected attempts remain in the trace. An emergency declaration still requires human review of proportionality."
+    },
+    {
+      "id": "gh-6",
+      "dimension": "Concise communication",
+      "score": null,
+      "result": "Not assessed automatically",
+      "explanation": "1 structured brief(s) retain recommendation, scope, evidence, uncertainty, alternative, consequence and review condition.",
+      "eventIds": ["historical-rubric-852495f:e9"],
+      "evidenceSnapshotIds": [],
+      "evaluatorType": "human-review",
+      "ruleVersion": "observable-1.0.0/gh-6",
+      "boundary": "Completing fields does not establish communication quality. Authored acknowledgments are not independent assessment."
+    },
+    {
+      "id": "gh-7",
+      "dimension": "Verification and monitoring",
+      "score": 1,
+      "result": "Partly observed",
+      "explanation": "0 completed verification actions and 1 recorded review commitments. 0 actions remain pending.",
+      "eventIds": ["historical-rubric-852495f:e7"],
+      "evidenceSnapshotIds": ["historical-rubric-852495f:snapshot:7"],
+      "evaluatorType": "structured-rule",
+      "ruleVersion": "observable-1.0.0/gh-7",
+      "boundary": "Observes completed checks and recorded triggers only. Whether a trigger is meaningful or a check was worth its cost requires human review."
+    },
+    {
+      "id": "gh-8",
+      "dimension": "Recovery and follow-through",
+      "score": null,
+      "result": "Not observed",
+      "explanation": "A handoff has not been observed. Opening this review does not complete the exercise.",
+      "eventIds": [],
+      "evidenceSnapshotIds": [],
+      "evaluatorType": "structured-rule",
+      "ruleVersion": "observable-1.0.0/gh-8",
+      "boundary": "Completion means the authored handoff conditions were met; it is not professional readiness or retained skill."
+    }
+  ],
+  "ledger": {
+    "exposureId": "glasshouse-access-hour-1",
+    "currency": "USD",
+    "horizon": "first simulated hour",
+    "baselineLossCents": 12000000,
+    "residualLossCents": 12000000,
+    "treatmentCostCents": 0,
+    "avoidedLossCents": 0,
+    "netBenefitCents": 0,
+    "roiPercent": null,
+    "assumptions": [
+      "Synthetic common one-hour exposure: USD 120,000 expected loss without a control; illustrative range USD 60,000–180,000.",
+      "Completed control periods reduce only the same exposure; reductions use the strongest applicable control per minute, never their sum.",
+      "Guard labor, investigation and committed control costs remain after cancellation. No activity, speed or documentation multipliers.",
+      "Life safety and authority are separate constraints and cannot be exchanged for modeled money."
+    ]
+  },
+  "unresolved": [
+    "Connector scope has not been independently investigated.",
+    "No direct entrance verification has been received.",
+    "An accountable handoff remains outstanding."
+  ],
+  "disputes": [],
+  "limitations": [
+    "Synthetic educational practice. Independent content/rubric calibration and formative user studies remain pending; no efficacy, certification, employer endorsement or real-world readiness is claimed.",
+    "Structured rules observe a limited set of recorded behaviors. Interpretive reasoning is not automatically assessed; outcomes can include luck.",
+    "The client-side world and unsigned records are inspectable and editable. The digest detects accidental changes, not authorship or tamper resistance.",
+    "The ledger is a modeled common first-hour exposure, not actual loss savings, a forecast or professional financial advice.",
+    "Active play time is descriptive local metadata. It is separate from simulated time and export time.",
+    "HTML is the canonical accessible report. Text PDF is not claimed to meet tagged-PDF accessibility requirements."
+  ],
+  "redacted": false,
+  "canonicalDigest": "fnv1a-1b214652"
+}

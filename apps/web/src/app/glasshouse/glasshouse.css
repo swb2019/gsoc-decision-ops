@@ -917,7 +917,11 @@
 .gh-workspace-area {
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
+}
+.gh-workspace-area > section {
+  min-width: 0;
 }
 .gh-mobile-tabs {
   display: none;
@@ -3505,5 +3509,107 @@
 @media (max-width: 360px) {
   .gh-app .gh-command-heading h1 {
     font-size: 1.8rem;
+  }
+}
+
+.gh-audio-controls {
+  border-top: 1px solid #c9c7be;
+  margin-top: 24px;
+  padding-top: 24px;
+}
+.gh-audio-controls .gh-panel-heading {
+  flex-wrap: wrap;
+}
+.gh-audio-controls h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1rem;
+}
+.gh-audio-channels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 18px 0;
+}
+.gh-audio-channel {
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #c9c7be;
+  border-radius: 8px;
+}
+.gh-audio-channel legend {
+  padding: 0 6px;
+  font-size: 1rem;
+  font-weight: 650;
+}
+.gh-audio-channel .gh-checkbox {
+  font-size: 0.875rem;
+}
+.gh-audio-channel .gh-field {
+  margin-top: 18px;
+  font-size: 0.875rem;
+}
+.gh-audio-channel .gh-field > span {
+  color: #5d5b56;
+}
+.gh-audio-channel input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  min-height: 36px;
+  accent-color: #74613d;
+  background: transparent;
+  border: none;
+}
+.gh-audio-channel p,
+.gh-audio-controls > p {
+  color: #5d5b56;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.gh-audio-status {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  background: #eeece4;
+  border: 1px solid #cfccc2;
+  border-radius: 8px;
+  color: #494842;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.gh-audio-status > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.gh-audio-status > div > svg {
+  flex-shrink: 0;
+}
+.gh-audio-status .gh-button-row {
+  margin-left: auto;
+}
+.gh-audio-status p {
+  margin: 7px 0 0;
+}
+.gh-audio-status summary {
+  cursor: pointer;
+  margin-top: 8px;
+}
+.gh-audio-status ul {
+  padding-left: 20px;
+}
+.gh-audio-error {
+  color: #734c2d !important;
+}
+@media (max-width: 760px) {
+  .gh-audio-channels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gh-audio-status .gh-button-row {
+    margin-left: 0;
   }
 }

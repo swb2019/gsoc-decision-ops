@@ -1,6 +1,9 @@
 import {
   GLASSHOUSE_CONTROLS,
   GLASSHOUSE_RELEASES,
+  GLASSHOUSE_SUPPORTED_RUBRICS,
+  GLASSHOUSE_SUPPORTED_RULES,
+  GLASSHOUSE_SUPPORTED_ASSETS,
   GLASSHOUSE_VERSIONS,
   glasshouseEvidence,
 } from './content.js';
@@ -70,13 +73,22 @@ function reveal(state: Session, observation: Observation, parents: string[] = []
 export function createGlasshouseSession(
   seed: number,
   mode: Mode,
-  sessionId = `glasshouse-${seed.toString(16)}-${mode}`
+  sessionId = `glasshouse-${seed.toString(16)}-${mode}`,
+  rubricVersion: string = GLASSHOUSE_VERSIONS.rubric,
+  rulesVersion: string = GLASSHOUSE_VERSIONS.rules,
+  assetsVersion: string = GLASSHOUSE_VERSIONS.assets
 ): Session {
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
     throw new Error('Seed must be a full unsigned 32-bit integer.');
   if (!['preview', 'guided', 'independent'].includes(mode))
     throw new Error('Unknown practice mode.');
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(sessionId)) throw new Error('Invalid session identifier.');
+  if (!GLASSHOUSE_SUPPORTED_RUBRICS.some((version) => version === rubricVersion))
+    throw new Error('Unsupported rubric version; its original interpretation is required.');
+  if (!GLASSHOUSE_SUPPORTED_RULES.some((version) => version === rulesVersion))
+    throw new Error('Unsupported rules version; its original transition contract is required.');
+  if (!GLASSHOUSE_SUPPORTED_ASSETS.some((version) => version === assetsVersion))
+    throw new Error('Unsupported assets version; its original presentation contract is required.');
   const state: Session = {
     schemaVersion: 1,
     sessionId,
@@ -84,9 +96,9 @@ export function createGlasshouseSession(
     initialMode: mode,
     mode,
     scenarioVersion: GLASSHOUSE_VERSIONS.scenario,
-    rubricVersion: GLASSHOUSE_VERSIONS.rubric,
-    rulesVersion: GLASSHOUSE_VERSIONS.rules,
-    assetsVersion: GLASSHOUSE_VERSIONS.assets,
+    rubricVersion,
+    rulesVersion,
+    assetsVersion,
     tick: 0,
     paused: true,
     lifecycle: 'active',
@@ -124,7 +136,16 @@ export function createGlasshouseSession(
       ],
     },
   };
-  emit(state, 'session.started', { seed, mode, versions: GLASSHOUSE_VERSIONS });
+  emit(state, 'session.started', {
+    seed,
+    mode,
+    versions: {
+      ...GLASSHOUSE_VERSIONS,
+      rubric: rubricVersion,
+      rules: rulesVersion,
+      assets: assetsVersion,
+    },
+  });
   for (const id of ['reader-alert', 'vendor-alert', 'shipment'])
     reveal(state, glasshouseEvidence(state, id));
   for (const [id, at] of GLASSHOUSE_RELEASES)
@@ -812,6 +833,23 @@ export function transitionGlasshouse(
       lifecycle: state.lifecycle,
       pendingActionIds: pending.map((a) => a.id),
     });
+  } else if (command.type === 'abandon') {
+    if (state.rulesVersion === 'kernel-1.0.0')
+      return fail(
+        'This historical rules version has no voluntary-end command. Preserve its original record and start a fresh current-version mission.'
+      );
+    if (
+      typeof command.reason !== 'string' ||
+      !command.reason.trim() ||
+      command.reason.length > 1000
+    )
+      return fail('Record a reason for ending practice, within 1,000 characters.');
+    state.lifecycle = 'abandoned';
+    state.paused = true;
+    state.abandonment = { reason: command.reason, at: state.tick };
+    state.terminalReason =
+      'Practice was ended voluntarily. The saved checkpoint retains unfinished work; no completed handoff or competence is implied.';
+    emit(state, 'session.abandoned', { reason: command.reason, at: state.tick });
   } else if (command.type === 'help') {
     if (typeof command.topic !== 'string' || command.topic.length > 1000)
       return fail('Help topic exceeds the supported limit.');
@@ -874,7 +912,14 @@ export function forkGlasshouse(source: Session, decisionId: string, branchId: st
   if (!target) throw new Error('Select a recorded decision to explore an alternative.');
   if (branchId === source.sessionId)
     throw new Error('An alternative needs its own session identifier.');
-  let branch = createGlasshouseSession(source.seed, source.initialMode, branchId);
+  let branch = createGlasshouseSession(
+    source.seed,
+    source.initialMode,
+    branchId,
+    source.rubricVersion,
+    source.rulesVersion,
+    source.assetsVersion
+  );
   const targetIndex = source.decisions.indexOf(target);
   for (const command of source.commands) {
     const result = transitionGlasshouse(branch, command);

@@ -138,6 +138,9 @@ test('atomic checkpoint, command journal, rollback on quota failure, reload and 
     const journal = await window.harness.storage.openGlasshouseJournal();
     const loaded = await journal.load();
     const status = await journal.getSaveStatus();
+    // close() may be interrupted by immediate navigation before asynchronous lease cleanup.
+    // Inspect the recovered checkpoint, then explicitly claim this isolated test journal.
+    if (journal.readOnly) await journal.takeover();
     await journal.deleteAll();
     const deleted = await journal.load();
     journal.close();
@@ -305,7 +308,6 @@ test('text PDF renders a complete long report with transfer, known-then referenc
 
 test('explicit complete offline packs survive network loss; cancellation and eviction never report ready', async ({
   page,
-  context,
 }) => {
   await ready(page);
   const completed = await page.evaluate(async () => {
@@ -331,7 +333,22 @@ test('explicit complete offline packs survive network loss; cancellation and evi
   expect(completed.cancelledStatus.ready).toBe(false);
   expect(completed.status.ready).toBe(true);
   expect(completed.status.active).toBe(true);
-  await context.setOffline(true);
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+  // Stop the dedicated origin instead of emulating offline. Windows WebKit's protocol offline
+  // mode rejects even a minimal cache-only worker navigation; an unreachable real server works.
+  // This tests actual origin loss without weakening the cached-page or export assertions.
+  const serverPort = server.address().port;
+  await new Promise((done) => server.close(done));
+  expect(
+    await page.evaluate(async () => {
+      try {
+        await fetch('/uncached-offline-probe', { cache: 'no-store' });
+        return false;
+      } catch {
+        return true;
+      }
+    })
+  ).toBe(true);
   await page.goto(`${origin}/glasshouse/`);
   await expect(page.getByRole('heading', { name: 'Adapter qualification harness' })).toBeVisible();
   await page.waitForFunction(() => Boolean(window.harness));
@@ -344,7 +361,7 @@ test('explicit complete offline packs survive network loss; cancellation and evi
     ).size;
   });
   expect(pdf).toBeGreaterThan(1000);
-  await context.setOffline(false);
+  await new Promise((done) => server.listen(serverPort, '127.0.0.1', done));
   const retired = await page.evaluate(async () => {
     const { offline, storage } = window.harness;
     const status = await offline.getGlasshouseOfflineStatus();

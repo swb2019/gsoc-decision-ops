@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createGlasshouseSession,
+  GLASSHOUSE_VERSIONS,
   transitionGlasshouse,
   type GlasshouseSession as Session,
   type GlasshouseCommand as Command,
@@ -16,6 +17,14 @@ type Intent = Command extends infer C
     : never
   : never;
 type Journal = Awaited<ReturnType<typeof openGlasshouseJournal>>;
+const currentRubric = (value: Session | null): boolean =>
+  Boolean(
+    value &&
+    value.rubricVersion === GLASSHOUSE_VERSIONS.rubric &&
+    value.rulesVersion === GLASSHOUSE_VERSIONS.rules &&
+    value.assetsVersion === GLASSHOUSE_VERSIONS.assets &&
+    value.scenarioVersion === GLASSHOUSE_VERSIONS.scenario
+  );
 
 export function useGlasshouse(activeView = true) {
   const [state, setState] = useState<Session | null>(null);
@@ -30,6 +39,7 @@ export function useGlasshouse(activeView = true) {
   const journal = useRef<Journal | null>(null);
   const saveChain = useRef(Promise.resolve());
   const activeSecondsRef = useRef(0);
+  const historical = Boolean(state && !currentRubric(state));
 
   const persist = useCallback((next: Session) => {
     const measuredSeconds = activeSecondsRef.current;
@@ -126,6 +136,12 @@ export function useGlasshouse(activeView = true) {
     (intent: Intent): boolean => {
       const current = stateRef.current;
       if (!current) return false;
+      if (!currentRubric(current)) {
+        setError(
+          'This historical rules, rubric and asset contract is preserved for read-only review. Start a fresh mission to use the current version.'
+        );
+        return false;
+      }
       if (journal.current?.readOnly) {
         setReadOnly(true);
         setError(
@@ -148,7 +164,12 @@ export function useGlasshouse(activeView = true) {
 
   useEffect(() => {
     const pause = () => {
-      if (document.hidden && stateRef.current?.lifecycle === 'active' && !stateRef.current.paused)
+      if (
+        document.hidden &&
+        currentRubric(stateRef.current) &&
+        stateRef.current?.lifecycle === 'active' &&
+        !stateRef.current.paused
+      )
         send({ type: 'pause', paused: true });
     };
     document.addEventListener('visibilitychange', pause);
@@ -161,7 +182,8 @@ export function useGlasshouse(activeView = true) {
         activeView &&
         !document.hidden &&
         !journal.current?.readOnly &&
-        stateRef.current?.lifecycle === 'active'
+        stateRef.current?.lifecycle === 'active' &&
+        currentRubric(stateRef.current)
       ) {
         activeSecondsRef.current += 1;
         setActiveSeconds(activeSecondsRef.current);
@@ -193,6 +215,7 @@ export function useGlasshouse(activeView = true) {
         activeView &&
         !document.hidden &&
         stateRef.current &&
+        currentRubric(stateRef.current) &&
         journal.current &&
         !journal.current.readOnly
       )
@@ -226,7 +249,7 @@ export function useGlasshouse(activeView = true) {
         }
       }
       setReadOnly(false);
-      if (stateRef.current) persist(stateRef.current);
+      if (stateRef.current && currentRubric(stateRef.current)) persist(stateRef.current);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not take over this journal.');
     }
@@ -235,7 +258,8 @@ export function useGlasshouse(activeView = true) {
   const deleteLocal = useCallback(async () => {
     try {
       await saveChain.current;
-      await journal.current?.deleteAll();
+      if (!journal.current) journal.current = await openGlasshouseJournal();
+      await journal.current.deleteAll();
       stateRef.current = null;
       setState(null);
       setSaveStatus('Glasshouse journal deleted');
@@ -244,12 +268,20 @@ export function useGlasshouse(activeView = true) {
       setActiveSeconds(0);
       activeSecondsRef.current = 0;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not delete the journal.');
+      setError(
+        `The Glasshouse journal could not be deleted. No deletion was confirmed. ${cause instanceof Error ? cause.message : 'Local storage is unavailable.'}`
+      );
     }
   }, []);
 
   const showLaunch = useCallback(async () => {
-    if (stateRef.current && journal.current && !journal.current.readOnly) persist(stateRef.current);
+    if (
+      stateRef.current &&
+      currentRubric(stateRef.current) &&
+      journal.current &&
+      !journal.current.readOnly
+    )
+      persist(stateRef.current);
     await saveChain.current;
     stateRef.current = null;
     setState(null);
@@ -263,6 +295,7 @@ export function useGlasshouse(activeView = true) {
     saveStatus,
     unsaved,
     readOnly,
+    historical,
     recoveryText,
     error,
     setError,

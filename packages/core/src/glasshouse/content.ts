@@ -2,10 +2,17 @@ import type { Control, Observation, Session } from './types.js';
 
 export const GLASSHOUSE_VERSIONS = {
   scenario: 'glasshouse-1.0.0',
-  rubric: 'observable-1.0.0',
-  rules: 'kernel-1.0.0',
-  assets: 'campus-1.0.0',
+  rubric: 'observable-1.0.1',
+  rules: 'kernel-1.1.0',
+  assets: 'campus-audio-1.1.0',
 } as const;
+/** Historical records are replayed under their original interpretation, never silently regraded. */
+export const GLASSHOUSE_SUPPORTED_RUBRICS = [
+  'observable-1.0.0',
+  GLASSHOUSE_VERSIONS.rubric,
+] as const;
+export const GLASSHOUSE_SUPPORTED_RULES = ['kernel-1.0.0', GLASSHOUSE_VERSIONS.rules] as const;
+export const GLASSHOUSE_SUPPORTED_ASSETS = ['campus-1.0.0', GLASSHOUSE_VERSIONS.assets] as const;
 export const GLASSHOUSE_HANDOVER =
   '06:10 · Mara Chen, duty analyst: You are the watch commander for Glasshouse, a fictional research and distribution campus. Protect people, preserve essential operations, and hand over a controlled situation. Two badge readers disagree; the vendor connector reports errors. A shipment must leave by 06:40. An image from the service entrance is unverified. You may assign our guard and analyst, or run a 12-minute manual access control. Connector isolation and dispatch suspension require asset-owner approval. A credible immediate safety concern permits a documented, temporary emergency pause. Notification is never approval. Simulated time advances only when you choose it; action lead times are shown. We need a bounded first step, not an answer to every question.';
 

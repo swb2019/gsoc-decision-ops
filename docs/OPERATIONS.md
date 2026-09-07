@@ -18,7 +18,9 @@ The script emits an owner-review warning at 70% of either known limit and calcul
 4. Retire the faulty Glasshouse offline pack from Display & local data. This removes only namespaced pack caches/workers; it does not delete the journal. Verify neighboring portfolio data before and after rollback.
 5. Promote that same tested static artifact. A later source change requires renewed affected checks and qualification of the new revision. The deployment workflow rejects executable changes after the recorded review revision.
 
-The staged exercise remains pending. A successful local build or offline test does not stand in for that rehearsal.
+The [local engineering rehearsal](../qa-output/rollback/rehearsal.json) passed: candidate pack `93781ed04a3f81597bbfbd90` was switched to previous pack `98200f6986b10efa88ee4960`, with the previous launch, all eight scenario links, every pinned asset and original-save continuation verified in 1.321 seconds. Both checkpoint byte hashes were preserved after returning to the candidate; offline removal left neighboring data intact and no page errors were recorded. The raw result identifies this as an automated local staging rehearsal, not a public-host result.
+
+The [script](../scripts/rehearse-static-rollback.mjs) and [blank owner recording template](../release/review-materials/rollback-rehearsal.md) retain the repeatable procedure. Named owner review and the intended-host/staging scope remain pending. Record any environmental difference and the final go/hold reason; local timing and byte preservation do not alone qualify public promotion.
 
 ## Maintenance
 
