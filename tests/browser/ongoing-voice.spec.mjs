@@ -28,6 +28,11 @@ test('one activation runs successive Glasshouse decisions and a spoken handoff o
   await expect(panel.getByRole('status')).toHaveText('Conversation off');
   await expect
     .poll(() =>
+      page.evaluate(() => window.__conversation.contexts.every((c) => c.state === 'closed'))
+    )
+    .toBe(true);
+  await expect
+    .poll(() =>
       page.evaluate(() =>
         window.__conversation.streams.every((s) =>
           s.getTracks().every((t) => t.readyState === 'ended')
@@ -56,6 +61,11 @@ test('legacy decisions collect missing choices through speech and record without
   await utter(page, 'Medium temporary coverage gap', /Decision recorded/);
   await utter(page, 'Stop listening');
   await expect(panel.getByRole('status')).toHaveText('Conversation off');
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__conversation.contexts.every((c) => c.state === 'closed'))
+    )
+    .toBe(true);
   await expect(page.getByText(/^Decision recorded\./).first()).toBeVisible();
   expect(
     await page.evaluate(

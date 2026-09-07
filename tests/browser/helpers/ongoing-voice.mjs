@@ -8,7 +8,7 @@ export async function setup(page, path) {
       'hourglass-local-voice-config',
       JSON.stringify({ enabled: false, sttEnabled: true, ttsEnabled: true })
     );
-    window.__conversation = { texts: [], replies: [], streams: [], calls: 0 };
+    window.__conversation = { texts: [], replies: [], streams: [], contexts: [], calls: 0 };
     navigator.mediaDevices.getUserMedia = async () => {
       const context = new AudioContext();
       await context.resume();
@@ -19,8 +19,26 @@ export async function setup(page, path) {
       oscillator.connect(gain).connect(destination);
       oscillator.start();
       window.__conversation.streams.push(destination.stream);
+      window.__conversation.contexts.push(context);
       window.__conversation.gain = gain;
-      destination.stream.getTracks()[0].addEventListener('ended', () => context.close());
+      // MediaStreamTrack.stop() does not emit "ended". Release the synthetic
+      // source explicitly so fast-forwarded idle rotations cannot exhaust the
+      // Linux audio server's client limit before the next spoken turn.
+      const track = destination.stream.getTracks()[0];
+      const nativeStop = track.stop.bind(track);
+      let released = false;
+      const release = () => {
+        if (released) return;
+        released = true;
+        oscillator.stop();
+        gain.disconnect();
+        void context.close();
+      };
+      track.stop = () => {
+        nativeStop();
+        release();
+      };
+      track.addEventListener('ended', release);
       return destination.stream;
     };
   });
