@@ -181,7 +181,7 @@ describe('ongoing voice turn ownership', () => {
     let finish!: (value: { reply: string }) => void;
     h.port.respond = vi.fn(
       () =>
-        new Promise((resolve) => {
+        new Promise<{ reply: string }>((resolve) => {
           finish = resolve;
         })
     );
