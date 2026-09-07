@@ -53,7 +53,7 @@ test('Command Center voice records a spoken control without taps', async ({ page
   await expect(panel.getByRole('status')).toHaveText('Listening — speak naturally');
   await page.clock.runFor(311000);
   await page.clock.resume();
-  await expect(page.getByText('Select Risk Treatment')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Select Risk Treatment' }).first()).toBeVisible();
   await utter(page, 'Pause the mission', /Simulation paused/);
   await utter(page, 'Manual verification', /Which asset/);
   await utter(page, 'Physical access control', /Which residual risk/);
@@ -81,7 +81,7 @@ test('Command Center voice commits a Decision panel posture the same as a tap', 
   await utter(page, 'Start mission', /Mission running/);
   await page.clock.runFor(311000);
   await page.clock.resume();
-  await expect(page.getByText('Select Risk Treatment')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Select Risk Treatment' }).first()).toBeVisible();
   await utter(page, 'Help', /continue/i);
   await utter(page, 'Show COP', /COP open/);
   await utter(page, 'Continue', /CONTINUE posture/);
