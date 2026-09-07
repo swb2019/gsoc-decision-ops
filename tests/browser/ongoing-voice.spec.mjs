@@ -46,16 +46,15 @@ test('one activation runs successive Glasshouse decisions and a spoken handoff o
   await page.screenshot({ path: 'qa-output/ongoing-voice-mobile-handoff.png', fullPage: true });
 });
 
-test('legacy decisions collect missing choices through speech and record without taps', async ({
-  page,
-}) => {
+test('Command Center voice records a spoken control without taps', async ({ page }) => {
   test.setTimeout(120000);
   const panel = await setup(page, '/scenarios/access-control-ransomware/');
   await utter(page, 'Start mission', /Mission running/);
   await expect(panel.getByRole('status')).toHaveText('Listening — speak naturally');
   await page.clock.runFor(311000);
   await page.clock.resume();
-  await utter(page, 'Pause', /Simulation paused/);
+  await expect(page.getByText('Select Risk Treatment')).toBeVisible();
+  await utter(page, 'Pause the mission', /Simulation paused/);
   await utter(page, 'Manual verification', /Which asset/);
   await utter(page, 'Physical access control', /Which residual risk/);
   await utter(page, 'Medium temporary coverage gap', /Decision recorded/);
@@ -70,6 +69,26 @@ test('legacy decisions collect missing choices through speech and record without
   expect(
     await page.evaluate(
       () => window.__conversation.replies.filter((t) => t.startsWith('Decision recorded.')).length
+    )
+  ).toBe(1);
+});
+
+test('Command Center voice commits a Decision panel posture the same as a tap', async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await setup(page, '/scenarios/access-control-ransomware/');
+  await utter(page, 'Start mission', /Mission running/);
+  await page.clock.runFor(311000);
+  await page.clock.resume();
+  await expect(page.getByText('Select Risk Treatment')).toBeVisible();
+  await utter(page, 'Help', /continue/i);
+  await utter(page, 'Show COP', /COP open/);
+  await utter(page, 'Continue', /CONTINUE posture/);
+  await utter(page, 'Stop listening');
+  expect(
+    await page.evaluate(
+      () => window.__conversation.replies.filter((t) => /CONTINUE posture/.test(t)).length
     )
   ).toBe(1);
 });

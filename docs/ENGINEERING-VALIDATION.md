@@ -1,6 +1,6 @@
 # Engineering validation — 6 September 2026
 
-The [ongoing two-way voice update](TWO-WAY-AUDIO.md) adds speech-driven decisions and automatic listening between replies in Glasshouse and legacy scenarios. Actual Whisper recognition and speech playback were exercised on desktop Chrome and both connected Android phones. [Mobile results](MOBILE-VALIDATION.md) distinguish the current voice checks from the earlier full offline/keyboard/graphics qualification. The delivery manifest pins source, static pack, test results and archive checksums.
+The [ongoing two-way voice update](TWO-WAY-AUDIO.md) adds speech-driven decisions and automatic listening between replies in Hourglass Command Center and Glasshouse. Actual Whisper recognition and speech playback were exercised on desktop Chrome and both connected Android phones. [Mobile results](MOBILE-VALIDATION.md) distinguish the current voice checks from the earlier full offline/keyboard/graphics qualification. The delivery manifest pins source, static pack, test results and archive checksums.
 
 The Glasshouse engineering candidate passes the automated checks below. These establish specific software behavior, not completed human qualification or learning efficacy. The delivery manifest identifies the exact source revision and archive checksums. The tested static pack is **93781ed04a3f81597bbfbd90**, scoped to `/gsoc-decision-ops/`.
 

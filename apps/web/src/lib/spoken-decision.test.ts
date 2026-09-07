@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SpokenDecisionDialogue, type SpokenControl } from './spoken-decision';
+import { SpokenDecisionDialogue, spokenOrdinalIndex, type SpokenControl } from './spoken-decision';
 const choices = {
   assets: [
     { id: 'doors', label: 'Physical Access Control System', aliases: ['physical access control'] },
@@ -68,5 +68,25 @@ describe('spoken decision dialogue', () => {
     );
     expect(result.decision).toBeUndefined();
     expect(result.reply).toContain('multiple actions');
+  });
+  it('accepts option-letter ordinals while awaiting a choice', () => {
+    const d = new SpokenDecisionDialogue();
+    expect(d.receive('Manual verification', 'a', choices).reply).toContain('Which asset');
+    expect(d.receive('option A', 'a', choices).reply).toContain('Which residual risk');
+  });
+  it('marks unknown speech as not understood', () => {
+    const d = new SpokenDecisionDialogue();
+    expect(d.receive('unrelated speech', 'a', choices).understood).toBe(false);
+    expect(d.receive('Manual verification', 'a', choices).understood).toBe(true);
+  });
+});
+
+describe('spoken ordinals', () => {
+  it('resolves first-one, option B, and choice 2', () => {
+    expect(spokenOrdinalIndex('first one')).toBe(0);
+    expect(spokenOrdinalIndex('option B')).toBe(1);
+    expect(spokenOrdinalIndex('choice 2')).toBe(1);
+    expect(spokenOrdinalIndex('the third option')).toBe(2);
+    expect(spokenOrdinalIndex('continue')).toBeNull();
   });
 });
