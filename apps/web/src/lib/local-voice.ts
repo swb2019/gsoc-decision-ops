@@ -28,6 +28,11 @@ import {
 } from './local-voice-load-policy';
 import { createModelDownloadSession } from './model-download-session';
 import { createVoiceEndpoint } from './voice-endpoint';
+import {
+  WHISPER_TRANSCRIBE_OPTIONS,
+  exactTranscript,
+  trimSpeechSamples,
+} from './whisper-transcript';
 
 // Configuration
 const LOCAL_VOICE_STORAGE_KEY = 'hourglass-local-voice-config';
@@ -1020,30 +1025,40 @@ async function processRecording(
     const blob = new Blob(chunks, { type: mimeType });
     const buffer = await audioContext.decodeAudioData(await blob.arrayBuffer());
     if (generation !== recordingGeneration) return;
-    const audio = resampleAudio(buffer.getChannelData(0), buffer.sampleRate, 16000);
+    const audio = trimSpeechSamples(
+      resampleAudio(buffer.getChannelData(0), buffer.sampleRate, 16000)
+    );
     const startedAt = performance.now();
     const previous = transcriptionTail;
     let release!: () => void;
     transcriptionTail = new Promise<void>((resolve) => {
       release = resolve;
     });
-    let result: { text: string };
+    let text = '';
     try {
       await previous;
       if (generation !== recordingGeneration) return;
-      result = await (
-        whisperPipeline as (audio: Float32Array, options?: object) => Promise<{ text: string }>
-      )(audio, { language: 'en', task: 'transcribe', return_timestamps: false });
+      if (audio.length) {
+        const result = await (
+          whisperPipeline as (audio: Float32Array, options?: object) => Promise<{ text?: string }>
+        )(audio, WHISPER_TRANSCRIBE_OPTIONS);
+        text = exactTranscript(result?.text);
+      }
     } finally {
       release();
     }
     if (generation !== recordingGeneration || !config.enabled) return;
-    const text = result?.text?.trim();
-    if (!text) throw new Error('No speech recognized.');
     if (text.length > 2000) {
       updateState({
         error:
           'The spoken response exceeds 2,000 characters. Nothing was sent. Try a shorter response.',
+      });
+      return;
+    }
+    if (!text && !conversationActive) {
+      updateState({
+        error:
+          'The response could not be understood. Nothing was sent. Try again or type your response.',
       });
       return;
     }
@@ -1054,11 +1069,16 @@ async function processRecording(
       duration: (performance.now() - startedAt) / 1000,
     });
   } catch {
-    if (generation === recordingGeneration)
-      updateState({
-        error:
-          'The response could not be understood. Nothing was sent. Try again or type your response.',
-      });
+    if (generation === recordingGeneration) {
+      if (conversationActive) {
+        notifyTranscription({ turnId: generation, contextId, text: '' });
+      } else {
+        updateState({
+          error:
+            'The response could not be understood. Nothing was sent. Try again or type your response.',
+        });
+      }
+    }
   } finally {
     if (generation === recordingGeneration) updateState({ isTranscribing: false });
   }

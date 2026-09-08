@@ -149,10 +149,11 @@ export default function OngoingVoicePanel(props: OngoingVoiceProps): JSX.Element
           </p>
         )}
         {(conversation.heard || conversation.reply) && (
-          <details>
+          <details open>
             <summary>Latest voice exchange</summary>
             <p>
-              <strong>You:</strong> {conversation.heard || '—'}
+              <strong>You:</strong>{' '}
+              {conversation.heard.trim() ? conversation.heard : '(nothing recognized)'}
             </p>
             <p>
               <strong>Game:</strong> {conversation.reply || '—'}

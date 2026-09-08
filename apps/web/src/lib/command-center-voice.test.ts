@@ -192,8 +192,79 @@ describe('Command Center voice control plane', () => {
     const voice = new CommandCenterVoice();
     const result = voice.resolve('launch the missiles', 's1:dec1', snapshot());
     expect(result.action).toEqual({ type: 'none' });
-    expect(result.reply).toMatch(/did not catch/i);
+    expect(result.reply).toContain('I heard "launch the missiles"');
     expect(result.reply).toMatch(/help/i);
+  });
+
+  it('clarifies empty recognition instead of pretending a command ran', () => {
+    const voice = new CommandCenterVoice();
+    const result = voice.resolve('   ', 's1:dec1', snapshot());
+    expect(result.action).toEqual({ type: 'none' });
+    expect(result.reply).toMatch(/didn.t catch that/i);
+    expect(result.reply).toMatch(/help/i);
+  });
+
+  it('commits high-frequency commands despite mild Whisper mishears', () => {
+    const voice = new CommandCenterVoice();
+    const pending = snapshot();
+    for (const spoken of ['contin', 'continued', 'go ahead', 'keep going', 'proceed']) {
+      expect(voice.resolve(spoken, 's1:dec1', pending).action).toMatchObject({
+        type: 'commit-posture',
+        posture: 'CONTINUE',
+      });
+    }
+    for (const spoken of ['degree', 'degraded', 'degrade posture']) {
+      expect(voice.resolve(spoken, 's1:dec1', pending).action).toMatchObject({
+        type: 'commit-posture',
+        posture: 'DEGRADE',
+      });
+    }
+    for (const spoken of ['paused', 'paws']) {
+      expect(voice.resolve(spoken, 's1:dec1', pending).action).toMatchObject({
+        type: 'commit-posture',
+        posture: 'PAUSE',
+      });
+    }
+  });
+
+  it('does not treat continue mishears as sim resume when no decision is waiting', () => {
+    const waiting = snapshot({
+      pendingDecision: null,
+      conversationContext: 's1:waiting',
+      selectedAsset: null,
+      isRunning: false,
+    });
+    const voice = new CommandCenterVoice();
+    expect(voice.resolve('go ahead', 's1:waiting', waiting).action).toEqual({ type: 'none' });
+    expect(voice.resolve('proceed', 's1:waiting', waiting).action).toEqual({ type: 'none' });
+    expect(voice.resolve('contin', 's1:waiting', waiting).action).toEqual({ type: 'none' });
+    expect(voice.resolve('continue', 's1:waiting', waiting).action).toEqual({ type: 'resume-sim' });
+    expect(voice.resolve('paused', 's1:waiting', { ...waiting, isRunning: true }).action).toEqual({
+      type: 'pause-sim',
+    });
+  });
+
+  it('starts the mission from common ASR variants and treats commands as help', () => {
+    const idle = snapshot({
+      missionStarted: false,
+      isRunning: false,
+      pendingDecision: null,
+      selectedAsset: null,
+      conversationContext: 's1:waiting',
+      intel: [],
+    });
+    const voice = new CommandCenterVoice();
+    expect(voice.resolve('start the mission', 's1:waiting', idle).action).toEqual({
+      type: 'start-mission',
+    });
+    expect(voice.resolve('begin mission', 's1:waiting', idle).action).toEqual({
+      type: 'start-mission',
+    });
+    expect(voice.resolve('start game', 's1:waiting', idle).action).toEqual({
+      type: 'start-mission',
+    });
+    expect(voice.resolve('commands', 's1:waiting', idle).reply).toContain('start mission');
+    expect(voice.resolve('what can I say', 's1:waiting', idle).reply).toContain('start mission');
   });
 
   it('does not commit tentative speech', () => {
