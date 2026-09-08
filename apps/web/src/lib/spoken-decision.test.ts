@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { SpokenDecisionDialogue, spokenOrdinalIndex, type SpokenControl } from './spoken-decision';
+import {
+  SpokenDecisionDialogue,
+  isHelpSpeech,
+  spokenOrdinalIndex,
+  voiceHeardClarify,
+  type SpokenControl,
+} from './spoken-decision';
 const choices = {
   assets: [
     { id: 'doors', label: 'Physical Access Control System', aliases: ['physical access control'] },
@@ -78,6 +84,28 @@ describe('spoken decision dialogue', () => {
     const d = new SpokenDecisionDialogue();
     expect(d.receive('unrelated speech', 'a', choices).understood).toBe(false);
     expect(d.receive('Manual verification', 'a', choices).understood).toBe(true);
+  });
+});
+
+describe('help and heard-clarify speech', () => {
+  it('treats common help phrasings as help', () => {
+    expect(isHelpSpeech('help')).toBe(true);
+    expect(isHelpSpeech('What can I say?')).toBe(true);
+    expect(isHelpSpeech('commands')).toBe(true);
+    expect(isHelpSpeech('show commands')).toBe(true);
+    expect(isHelpSpeech('continue')).toBe(false);
+  });
+
+  it('echoes the exact heard text so ASR misses can be debugged', () => {
+    expect(voiceHeardClarify('degree')).toBe(
+      'I heard "degree". Say help for commands that work now.'
+    );
+    expect(voiceHeardClarify('   ')).toBe(
+      "I didn't catch that. Say help for commands that work now."
+    );
+    expect(voiceHeardClarify('He said "pause"', 'Say help.')).toBe(
+      'I heard "He said \'pause\'". Say help.'
+    );
   });
 });
 

@@ -26,6 +26,9 @@ export interface ConversationPort {
   respond(text: string, context: string): Promise<{ reply: string; stop?: boolean }>;
 }
 
+/** Delay after a spoken reply so TTS echo is less likely to be captured as the next turn. */
+const LISTEN_AFTER_REPLY_MS = 400;
+
 /** One explicit activation owns the whole listen → act → reply → listen loop. */
 export class VoiceConversation {
   state: ConversationState = { active: false, phase: 'off', heard: '', reply: '', error: '' };
@@ -194,7 +197,7 @@ export class VoiceConversation {
     } finally {
       if (epoch === this.epoch) {
         this.busy = false;
-        this.schedule(200);
+        this.schedule(LISTEN_AFTER_REPLY_MS);
       }
     }
   }

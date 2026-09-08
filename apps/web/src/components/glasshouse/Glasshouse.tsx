@@ -64,7 +64,13 @@ import PracticeHistory from './PracticeHistory';
 import { AudioControls, AudioStatus } from './AudioControls';
 import { useGlasshouseAudio } from './useGlasshouseAudio';
 import OngoingVoicePanel from '../OngoingVoicePanel';
-import { speechWords, spokenMatches, isTentativeSpeech } from '@/lib/spoken-decision';
+import {
+  isHelpSpeech,
+  isTentativeSpeech,
+  speechWords,
+  spokenMatches,
+  voiceHeardClarify,
+} from '@/lib/spoken-decision';
 import { skipVO } from '@/lib/voice';
 import {
   activateGlasshouseOfflinePack,
@@ -576,7 +582,7 @@ export default function Glasshouse() {
           'The mission changed while you were speaking. Please repeat your command for the current mission.',
       };
     }
-    if (/^(?:help|what can i say)$/.test(words))
+    if (isHelpSpeech(text))
       return {
         reply:
           'You can say verify the entrance, investigate the connector, activate manual verification, isolate the connector, pause dispatch, monitor, or restore the connector. Say next update, advance one minute, pause, resume, status, review, cancel an action by name, or handoff. Say stop listening to end voice.',
@@ -691,7 +697,10 @@ export default function Glasshouse() {
       return {
         reply: matches.length
           ? 'I heard multiple actions. Please give one action at a time so each result is clear.'
-          : 'I could not resolve that action. Say help to hear the available actions, or state a concrete action such as verify the service entrance.',
+          : voiceHeardClarify(
+              text,
+              'Say help to hear the available actions, or state a concrete action such as verify the service entrance.'
+            ),
       };
     const control = matches[0];
     if (/^cancel\b/.test(words)) {

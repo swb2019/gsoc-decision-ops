@@ -1,10 +1,12 @@
 import type { DecisionPosture } from '@gsoc-decision-ops/core';
 import {
   SpokenDecisionDialogue,
+  isHelpSpeech,
   isTentativeSpeech,
   speechWords,
   spokenMatches,
   spokenOrdinalIndex,
+  voiceHeardClarify,
   type SpokenCategory,
   type SpokenControl,
   type SpokenDecision,
@@ -184,12 +186,14 @@ function statusReply(snapshot: CommandCenterVoiceSnapshot): string {
     : 'Clock is paused. Say resume, start mission, or help.';
 }
 
-function unknownReply(): CommandCenterVoiceResult {
-  return none('I did not catch a command. Say help to hear what works now.');
+function unknownReply(text: string): CommandCenterVoiceResult {
+  return none(voiceHeardClarify(text));
 }
 
 function matchSimPause(words: string): boolean {
-  return /^(?:please )?pause(?: the)?(?: mission|simulation|sim|game|clock)$/.test(words);
+  return /^(?:please )?(?:pause|paused|paws)(?: the)?(?: mission|simulation|sim|game|clock)$/.test(
+    words
+  );
 }
 
 function matchSimResume(words: string): boolean {
@@ -200,7 +204,9 @@ function matchSimResume(words: string): boolean {
 }
 
 function matchStartMission(words: string): boolean {
-  return /^(?:please )?(?:begin|start)(?: the)? (?:mission|simulation|game|clock)$/.test(words);
+  return /^(?:(?:please |lets |let us )?(?:begin|start)(?: the)? (?:mission|simulation|game|clock)(?: now)?)$/.test(
+    words
+  );
 }
 
 function matchPanel(words: string): CommandCenterPanel | null {
@@ -257,7 +263,13 @@ function matchDirectTreatment(
   ) {
     return { posture: 'CONTINUE', category: 'ACCEPT' };
   }
-  if (/^(?:please )?(?:mitigate|degrade(?: posture)?)$/.test(words)) {
+  if (
+    preferPosture &&
+    /^(?:please )?(?:contin|continued|go ahead|keep going|proceed)$/.test(words)
+  ) {
+    return { posture: 'CONTINUE', category: 'ACCEPT' };
+  }
+  if (/^(?:please )?(?:mitigate|degrade(?:d)?(?: posture)?|degree(?: posture)?)$/.test(words)) {
     return { posture: 'DEGRADE', category: 'MITIGATE' };
   }
   if (/^(?:please )?transfer(?: (?:the )?risk)?$/.test(words)) {
@@ -268,7 +280,8 @@ function matchDirectTreatment(
   }
   if (!preferPosture) return null;
   if (/^(?:please )?continue$/.test(words)) return { posture: 'CONTINUE', category: 'ACCEPT' };
-  if (/^(?:please )?pause$/.test(words)) return { posture: 'PAUSE', category: 'AVOID' };
+  if (/^(?:please )?(?:pause|paused|paws)$/.test(words))
+    return { posture: 'PAUSE', category: 'AVOID' };
   return null;
 }
 
@@ -290,9 +303,9 @@ export class CommandCenterVoice {
   ): CommandCenterVoiceResult {
     const words = speechWords(text);
     if (!words) {
-      return none('I did not hear a command. Say help to hear what works now.');
+      return none(voiceHeardClarify(text));
     }
-    if (/^(?:help|what can i say)$/.test(words)) {
+    if (isHelpSpeech(text)) {
       return none(commandCenterVoiceHelp(snapshot));
     }
     if (isTentativeSpeech(text)) {
@@ -425,10 +438,10 @@ export class CommandCenterVoice {
       }
       const enrichment = this.enrichDecision(text, snapshot);
       if (enrichment) return enrichment;
-      return unknownReply();
+      return unknownReply(text);
     }
 
-    if (/^(?:please )?pause$/.test(words)) {
+    if (/^(?:please )?(?:pause|paused|paws)$/.test(words)) {
       return {
         reply: snapshot.isRunning
           ? 'Simulation paused. Voice remains available.'
@@ -448,7 +461,7 @@ export class CommandCenterVoice {
         action: snapshot.isRunning ? { type: 'none' } : { type: 'resume-sim' },
       };
     }
-    return unknownReply();
+    return unknownReply(text);
   }
 
   private selectIntel(

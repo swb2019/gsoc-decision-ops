@@ -61,10 +61,10 @@ describe('ongoing voice turn ownership', () => {
     h.loop.start();
     await vi.advanceTimersByTimeAsync(50);
     await h.loop.transcribed({ turnId: 1, contextId: h.contexts[0], text: 'first decision' });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(500);
     expect(h.port.listen).toHaveBeenCalledTimes(2);
     await h.loop.transcribed({ turnId: 2, contextId: h.contexts[1], text: 'second decision' });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(500);
     expect(h.port.listen).toHaveBeenCalledTimes(3);
     expect(h.port.respond).toHaveBeenCalledTimes(2);
     expect(h.port.speak).toHaveBeenCalledWith('Recorded second decision');
@@ -86,7 +86,7 @@ describe('ongoing voice turn ownership', () => {
     expect(h.port.listen).toHaveBeenCalledTimes(1);
     finish();
     await turn;
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(500);
     expect(h.port.listen).toHaveBeenCalledTimes(2);
     h.loop.stop();
   });
@@ -225,6 +225,21 @@ describe('ongoing voice turn ownership', () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(h.port.speak).toHaveBeenCalledWith('Decision recorded');
     expect(h.port.respond).toHaveBeenCalledTimes(1);
+    h.loop.stop();
+  });
+  it('forwards empty recognition into a spoken clarify instead of dropping the turn', async () => {
+    const h = harness();
+    h.port.respond = vi.fn(async () => ({
+      reply: "I didn't catch that. Say help for commands that work now.",
+    }));
+    h.loop.start();
+    await vi.advanceTimersByTimeAsync(50);
+    await h.loop.transcribed({ turnId: 1, contextId: h.contexts[0], text: '' });
+    expect(h.loop.state.heard).toBe('');
+    expect(h.port.respond).toHaveBeenCalledWith('', expect.any(String));
+    expect(h.port.speak).toHaveBeenCalledWith(
+      "I didn't catch that. Say help for commands that work now."
+    );
     h.loop.stop();
   });
 });

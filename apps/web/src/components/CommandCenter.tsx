@@ -1357,6 +1357,7 @@ export default function CommandCenter({
   }, []);
 
   const [voiceResponseStatus, setVoiceResponseStatus] = useState('');
+  const [voiceResponseClarify, setVoiceResponseClarify] = useState(false);
   const voiceSubmissionRef = useRef<string | null>(null);
   const voiceStartAttemptRef = useRef(0);
   const consumedVoiceTurnRef = useRef<number | null>(null);
@@ -1388,6 +1389,7 @@ export default function CommandCenter({
     const attempt = ++voiceStartAttemptRef.current;
     voiceSubmissionRef.current = voiceContext;
     setVoiceResponseStatus('');
+    setVoiceResponseClarify(false);
     skipVO();
     localVoice.stopSpeech();
     const started = await localVoice.startRecording(voiceContext);
@@ -1399,6 +1401,7 @@ export default function CommandCenter({
     voiceSubmissionRef.current = null;
     localVoice.cancelRecording();
     setVoiceResponseStatus('Response cancelled. Nothing was sent.');
+    setVoiceResponseClarify(true);
   }, [localVoice.cancelRecording]);
 
   // Handle voice toggle
@@ -2851,6 +2854,7 @@ export default function CommandCenter({
       setVoiceResponseStatus(
         'The decision changed before the response finished. Nothing was sent. Speak again for the current decision.'
       );
+      setVoiceResponseClarify(true);
       return;
     }
     const postureMap: Record<string, DecisionPosture> = {
@@ -2861,6 +2865,7 @@ export default function CommandCenter({
     };
     handlePostureCommit(postureMap[selectedTreatmentCategory], response.text);
     setVoiceResponseStatus(`Response sent: ${response.text}`);
+    setVoiceResponseClarify(false);
   }, [
     localVoice.lastResponse,
     localVoice.clearTranscription,
@@ -2972,7 +2977,8 @@ export default function CommandCenter({
       case 'none':
         break;
     }
-    if (result.action.type !== 'none') setVoiceResponseStatus(result.reply);
+    setVoiceResponseStatus(result.reply);
+    setVoiceResponseClarify(result.action.type === 'none');
     return { reply: result.reply };
   };
 
@@ -3906,13 +3912,26 @@ export default function CommandCenter({
       </nav>
 
       {voiceResponseStatus && (
-        <aside className="hc-response-receipt fixed bottom-20 left-4 right-4 z-[80] rounded-xl border border-emerald-600/50 bg-gray-950 px-4 py-3 text-sm text-emerald-100 shadow-xl lg:bottom-4 lg:right-auto lg:max-w-xl">
+        <aside
+          className={clsx(
+            'hc-response-receipt fixed bottom-20 left-4 right-4 z-[80] rounded-xl border bg-gray-950 px-4 py-3 text-sm shadow-xl lg:bottom-4 lg:right-auto lg:max-w-xl',
+            voiceResponseClarify
+              ? 'border-amber-600/50 text-amber-100'
+              : 'border-emerald-600/50 text-emerald-100'
+          )}
+        >
           <p role="status" className="max-h-32 overflow-y-auto break-words">
             {voiceResponseStatus}
           </p>
           <button
-            className="mt-1 min-h-11 text-xs text-emerald-200 underline"
-            onClick={() => setVoiceResponseStatus('')}
+            className={clsx(
+              'mt-1 min-h-11 text-xs underline',
+              voiceResponseClarify ? 'text-amber-200' : 'text-emerald-200'
+            )}
+            onClick={() => {
+              setVoiceResponseStatus('');
+              setVoiceResponseClarify(false);
+            }}
           >
             Dismiss response status
           </button>

@@ -23,6 +23,22 @@ export const speechWords = (text: string): string =>
 export const hasPhrase = (text: string, phrase: string): boolean =>
   ` ${speechWords(text)} `.includes(` ${speechWords(phrase)} `);
 
+export function isHelpSpeech(text: string): boolean {
+  return /^(?:help|what can i say|commands|what are the commands|show commands)$/.test(
+    speechWords(text)
+  );
+}
+
+/** Clarifying reply that always names what ASR heard so a miss is visible, never silent. */
+export function voiceHeardClarify(
+  text: string,
+  next = 'Say help for commands that work now.'
+): string {
+  const heard = text.trim().replace(/\s+/g, ' ').slice(0, 160).replace(/"/g, "'");
+  if (!heard) return `I didn't catch that. ${next}`;
+  return `I heard "${heard}". ${next}`;
+}
+
 const ORDINAL_WORDS: Record<string, number> = {
   first: 0,
   one: 0,
