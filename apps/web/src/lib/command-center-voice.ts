@@ -27,6 +27,20 @@ export interface CommandCenterVoiceIntel {
   handled: boolean;
 }
 
+export type CommandCenterVoiceMicroTaskType =
+  'MULTIPLE_CHOICE' | 'RANKING' | 'TRADEOFF' | 'SCENARIO';
+
+export interface CommandCenterVoiceMicroTask {
+  id: string;
+  title: string;
+  question: string;
+  type: CommandCenterVoiceMicroTaskType;
+  answered: boolean;
+  selectedOptionId: string | null;
+  rankingOrder: string[];
+  options: SpokenOption[];
+}
+
 export interface CommandCenterVoiceSnapshot {
   missionStarted: boolean;
   isRunning: boolean;
@@ -34,9 +48,13 @@ export interface CommandCenterVoiceSnapshot {
   conversationContext: string;
   pendingDecision: { id: string; title: string; content: string } | null;
   selectedAsset: CommandCenterVoiceAsset | null;
+  selectedTreatmentCategory: SpokenCategory | null;
+  selectedTreatmentOption: string | null;
+  selectedResidualRisk: string | null;
   assets: CommandCenterVoiceAsset[];
   intel: CommandCenterVoiceIntel[];
   panel: CommandCenterPanel;
+  microTask: CommandCenterVoiceMicroTask | null;
   choices: {
     assets: SpokenOption[];
     controls: SpokenControl[];
@@ -55,6 +73,16 @@ export type CommandCenterVoiceAction =
   | { type: 'select-intel'; injectId: string }
   | { type: 'select-asset'; assetId: string }
   | { type: 'brief-owner'; assetId: string }
+  | { type: 'select-treatment'; category: SpokenCategory }
+  | { type: 'select-control'; controlId: string }
+  | { type: 'select-risk'; riskId: string }
+  | { type: 'commit-selected' }
+  | { type: 'hear-intel' }
+  | { type: 'skip-micro-task' }
+  | { type: 'select-micro-task-option'; optionId: string }
+  | { type: 'submit-micro-task'; answer: string | string[] }
+  | { type: 'dismiss-micro-task' }
+  | { type: 'hear-micro-task' }
   | { type: 'commit-posture'; posture: DecisionPosture; decision: SpokenDecision };
 
 export interface CommandCenterVoiceResult {
@@ -101,6 +129,18 @@ function isBareAssetUtterance(words: string, asset: CommandCenterVoiceAsset): bo
       words === `select ${name}` ||
       words === `choose ${name}` ||
       words === `use ${name}`
+  );
+}
+
+function isBareIntelUtterance(words: string, item: CommandCenterVoiceIntel): boolean {
+  const names = [item.title, item.title.replace(/ anomaly$| note$/i, '')].map(speechWords);
+  return names.some(
+    (name) =>
+      words === name ||
+      words === `select ${name}` ||
+      words === `open ${name}` ||
+      words === `show ${name}` ||
+      words === `read ${name}`
   );
 }
 
@@ -153,20 +193,42 @@ export function commandCenterVoiceHelp(snapshot: CommandCenterVoiceSnapshot): st
   const clock = snapshot.isRunning
     ? 'Say pause mission to pause the clock.'
     : 'Say resume or continue mission to start the clock.';
+  if (snapshot.microTask) {
+    if (snapshot.microTask.answered) {
+      return `${snapshot.microTask.title} is answered. Say continue or next to dismiss it, or say skip. ${clock} ${nav} Say stop listening to end voice.`;
+    }
+    const letters = snapshot.microTask.options
+      .map((option, index) => `${String.fromCharCode(65 + index)} ${option.label}`)
+      .join('; ');
+    const ranking = snapshot.microTask.type === 'RANKING';
+    return `${snapshot.microTask.title} is waiting. ${
+      ranking
+        ? 'Say the letters in order, such as A D C B, then say submit, or say skip.'
+        : `Say option A through D, first through fourth, or the answer text.${letters ? ` ${letters}.` : ''} Say submit after a selection, or skip.`
+    } ${clock} ${nav} Say stop listening to end voice.`;
+  }
   if (!snapshot.pendingDecision) {
     const waiting = unhandledIntel(snapshot);
     const intelHint = waiting.length
-      ? ` Say select first intel or next intel to open an item. ${waiting.length} unhandled.`
+      ? ` Say select first intel, next, or respond to oldest to open an item. ${waiting.length} unhandled.`
       : ' No intel is waiting.';
     return `No decision is waiting. ${clock}${intelHint} ${nav} Say status for the latest update. Say stop listening to end voice.`;
   }
   const asset = snapshot.selectedAsset?.name ?? 'a named asset';
-  return `${snapshot.pendingDecision.title} is waiting. Say continue, degrade, or pause for ${asset} — the same Decision panel postures. You can also say accept, mitigate, transfer, or avoid, or first one through option D. ${clock} Name an asset or say brief owner. ${nav} Say stop listening to end voice.`;
+  const commitHint = snapshot.selectedTreatmentCategory
+    ? ' Say commit when the treatment, action, and residual risk are selected.'
+    : ' Say commit after selecting a treatment, action, and residual risk.';
+  return `${snapshot.pendingDecision.title} is waiting. Say continue, degrade, or pause for ${asset} — the same Decision panel postures. You can also say accept, mitigate, transfer, or avoid, or first one through option D.${commitHint} ${clock} Name an asset or say brief owner. ${nav} Say stop listening to end voice.`;
 }
 
 function statusReply(snapshot: CommandCenterVoiceSnapshot): string {
   if (snapshot.showDebrief) {
     return 'Debrief is open. Say close review to return to the mission.';
+  }
+  if (snapshot.microTask) {
+    return snapshot.microTask.answered
+      ? `${snapshot.microTask.title} is answered. Say continue or next.`
+      : `${snapshot.microTask.title}. ${snapshot.microTask.question} Say option A through D, submit, skip, or help.`;
   }
   if (snapshot.pendingDecision) {
     const asset = snapshot.selectedAsset
@@ -234,8 +296,18 @@ function matchPanel(words: string): CommandCenterPanel | null {
   return null;
 }
 
-function matchIntelSelect(words: string): number | 'next' | 'open' | null {
+function matchIntelSelect(words: string): number | 'next' | 'open' | 'oldest' | null {
+  if (
+    /^(?:please )?(?:respond to (?:the )?oldest(?: intel| item| card| update)?|oldest(?: intel)?)$/.test(
+      words
+    )
+  ) {
+    return 'oldest';
+  }
   if (/^(?:select |open |show )?(?:the )?next intel(?: item| card| update)?$/.test(words)) {
+    return 'next';
+  }
+  if (/^(?:please )?(?:next|next one)$/.test(words)) {
     return 'next';
   }
   const ordinal =
@@ -252,6 +324,68 @@ function matchIntelSelect(words: string): number | 'next' | 'open' | null {
     return 'open';
   }
   return null;
+}
+
+function matchSkip(words: string): boolean {
+  return /^(?:please )?(?:skip|skipped)(?: (?:it|this|(?:the )?(?:task|question|challenge|microtask|micro task)))?$/.test(
+    words
+  );
+}
+
+function matchCommit(words: string): boolean {
+  return /^(?:please )?(?:commit(?: (?:the )?(?:decision|answer))?|submit(?: (?:the )?answer)?)$/.test(
+    words
+  );
+}
+
+function matchHear(words: string): boolean {
+  return /^(?:please )?(?:hear(?: (?:it|this|(?:the )?(?:task|question|challenge|inject)))?|read aloud|read (?:it|this|(?:the )?(?:task|question|inject)) aloud|repeat (?:the )?(?:task|question))$/.test(
+    words
+  );
+}
+
+function matchSelectTreatment(words: string): SpokenCategory | null {
+  const match =
+    /^(?:please )?(?:select|choose|pick)(?: the)? (accept|mitigate|transfer|avoid|continue|degrade|pause)(?: treatment| posture| category)?$/.exec(
+      words
+    );
+  if (!match) return null;
+  const token = match[1];
+  if (token === 'accept' || token === 'continue') return 'ACCEPT';
+  if (token === 'mitigate' || token === 'degrade') return 'MITIGATE';
+  if (token === 'transfer') return 'TRANSFER';
+  return 'AVOID';
+}
+
+function matchRankOrder(words: string, options: SpokenOption[]): string[] | null {
+  const stripped = words.replace(/^(?:please )?(?:rank|order) /, '');
+  const tokens = stripped
+    .split(' ')
+    .filter((token) => token && token !== 'then' && token !== 'and');
+  if (tokens.length !== options.length || tokens.length < 2) return null;
+  const ids = tokens.map((token) => {
+    if (/^[a-e]$/.test(token)) {
+      const option = options[token.charCodeAt(0) - 97];
+      return option?.id ?? null;
+    }
+    const named = spokenMatches(token, options);
+    return named.length === 1 ? named[0].id : null;
+  });
+  if (ids.some((id) => !id) || new Set(ids).size !== ids.length) return null;
+  return ids as string[];
+}
+
+function namedIntel(text: string, snapshot: CommandCenterVoiceSnapshot): CommandCenterVoiceIntel[] {
+  return spokenMatches(
+    text,
+    snapshot.intel.map((item) => ({
+      id: item.id,
+      label: item.title,
+      aliases: [item.title.replace(/ anomaly$| note$/i, '')],
+    }))
+  )
+    .map((option) => snapshot.intel.find((item) => item.id === option.id))
+    .filter((item): item is CommandCenterVoiceIntel => Boolean(item));
 }
 
 function matchDirectTreatment(
@@ -364,10 +498,27 @@ export class CommandCenterVoice {
         action: snapshot.isRunning ? { type: 'none' } : { type: 'resume-sim' },
       };
     }
+    const micro = this.resolveMicroTask(text, words, turnContext, snapshot);
+    if (micro) return micro;
     const intelSelect = matchIntelSelect(words);
     if (intelSelect !== null) {
       const result = this.selectIntel(intelSelect, snapshot);
       if (result) return result;
+    }
+    const titledIntel = namedIntel(text, snapshot).filter(
+      (item) => !item.handled && isBareIntelUtterance(words, item)
+    );
+    if (titledIntel.length === 1) {
+      const waiting = unhandledIntel(snapshot);
+      const index = waiting.findIndex((item) => item.id === titledIntel[0].id);
+      if (index >= 0) {
+        const result = this.selectIntel(index, snapshot);
+        if (result) return result;
+      }
+    } else if (titledIntel.length > 1) {
+      return none(
+        `Which intel? ${titledIntel.map((item, index) => `${index + 1}, ${item.title}`).join('. ')}.`
+      );
     }
     const panel = matchPanel(words);
     if (panel) {
@@ -400,6 +551,54 @@ export class CommandCenterVoice {
       if (this.dialogue.isAwaiting()) {
         const enrichment = this.enrichDecision(text, snapshot);
         if (enrichment) return enrichment;
+      }
+      if (matchSkip(words)) {
+        return none('There is no skip on this decision. Say continue, degrade, pause, or commit.');
+      }
+      if (matchHear(words)) {
+        return {
+          reply: `${snapshot.pendingDecision.title}. ${snapshot.pendingDecision.content}`,
+          action: { type: 'hear-intel' },
+        };
+      }
+      const selectedTreatment = matchSelectTreatment(words);
+      if (selectedTreatment) {
+        return {
+          reply: `${selectedTreatment} selected. Choose a specific action, then residual risk, then say commit.`,
+          action: { type: 'select-treatment', category: selectedTreatment },
+        };
+      }
+      if (matchCommit(words)) {
+        if (
+          snapshot.selectedTreatmentCategory &&
+          snapshot.selectedTreatmentOption &&
+          snapshot.selectedResidualRisk
+        ) {
+          this.dialogue.clear();
+          return {
+            reply: `${snapshot.selectedTreatmentCategory} committed — same as Commit Decision.`,
+            action: { type: 'commit-selected' },
+          };
+        }
+        return none(
+          'Select a treatment, a specific action, and a residual risk, then say commit. Or say continue, degrade, or pause.'
+        );
+      }
+      if (/^(?:please )?(?:select|choose|pick) /.test(words)) {
+        const controls = spokenMatches(text, snapshot.choices.controls);
+        if (controls.length === 1) {
+          return {
+            reply: `Selected ${controls[0].label}.`,
+            action: { type: 'select-control', controlId: controls[0].id },
+          };
+        }
+        const risks = spokenMatches(text, snapshot.choices.risks);
+        if (risks.length === 1) {
+          return {
+            reply: `Selected ${risks[0].label}.`,
+            action: { type: 'select-risk', riskId: risks[0].id },
+          };
+        }
       }
       const treatment = matchDirectTreatment(words, preferPosture);
       if (treatment) {
@@ -464,8 +663,109 @@ export class CommandCenterVoice {
     return unknownReply(text);
   }
 
+  private resolveMicroTask(
+    text: string,
+    words: string,
+    turnContext: string,
+    snapshot: CommandCenterVoiceSnapshot
+  ): CommandCenterVoiceResult | null {
+    const task = snapshot.microTask;
+    if (!task) {
+      if (matchSkip(words) && !snapshot.pendingDecision) {
+        return none('No task is waiting to skip. Say help for commands that work now.');
+      }
+      return null;
+    }
+    const intelSelect = matchIntelSelect(words);
+    const ranked = matchRankOrder(words, task.options);
+    const named = spokenMatches(text, task.options);
+    const ordinal = spokenOrdinalIndex(text);
+    const dismiss =
+      task.answered && /^(?:please )?(?:continue|next|dismiss|done|close)$/.test(words);
+    const isCommand =
+      matchSkip(words) ||
+      matchCommit(words) ||
+      matchHear(words) ||
+      dismiss ||
+      ranked !== null ||
+      ordinal !== null ||
+      named.length > 0 ||
+      intelSelect === 'next' ||
+      intelSelect === 'oldest';
+    if (!isCommand) return null;
+    if (turnContext !== snapshot.conversationContext) {
+      return none(
+        `The situation changed while you were speaking. ${task.title}. Please restate your command for this update.`
+      );
+    }
+    if (matchSkip(words)) {
+      return { reply: 'Task skipped.', action: { type: 'skip-micro-task' } };
+    }
+    if (matchHear(words)) {
+      return {
+        reply: `${task.title}. ${task.question}`,
+        action: { type: 'hear-micro-task' },
+      };
+    }
+    if (task.answered) {
+      if (dismiss || matchCommit(words) || intelSelect === 'next' || intelSelect === 'oldest') {
+        return { reply: 'Task closed.', action: { type: 'dismiss-micro-task' } };
+      }
+      return none('That task is already answered. Say continue or next.');
+    }
+    if (intelSelect === 'next' || intelSelect === 'oldest') {
+      return none('A task is waiting. Say option A through D, submit, or skip.');
+    }
+    if (matchCommit(words)) {
+      if (task.type === 'RANKING') {
+        const order = task.rankingOrder.length
+          ? task.rankingOrder
+          : task.options.map((option) => option.id);
+        return {
+          reply: 'Answer submitted.',
+          action: { type: 'submit-micro-task', answer: order },
+        };
+      }
+      if (!task.selectedOptionId) {
+        return none('Select an answer first, then say submit. Or say skip.');
+      }
+      return {
+        reply: 'Answer submitted.',
+        action: { type: 'submit-micro-task', answer: task.selectedOptionId },
+      };
+    }
+    if (ranked && task.type === 'RANKING') {
+      return {
+        reply: 'Answer submitted.',
+        action: { type: 'submit-micro-task', answer: ranked },
+      };
+    }
+    let optionId: string | null = null;
+    if (ordinal !== null) {
+      optionId = task.options[ordinal]?.id ?? null;
+      if (!optionId) {
+        return none('Say option A through D, or say skip.');
+      }
+    } else if (named.length === 1) {
+      optionId = named[0].id;
+    } else if (named.length > 1) {
+      return none(
+        `Which answer? ${named.map((option, index) => `${index + 1}, ${option.label}`).join('. ')}.`
+      );
+    }
+    if (!optionId) return null;
+    if (task.type === 'RANKING') {
+      return none('Say the letters in order, such as A D C B, then say submit, or say skip.');
+    }
+    const label = task.options.find((option) => option.id === optionId)?.label ?? optionId;
+    return {
+      reply: `Selected ${label}. Say submit or skip.`,
+      action: { type: 'select-micro-task-option', optionId },
+    };
+  }
+
   private selectIntel(
-    select: number | 'next' | 'open',
+    select: number | 'next' | 'open' | 'oldest',
     snapshot: CommandCenterVoiceSnapshot
   ): CommandCenterVoiceResult | null {
     const waiting = unhandledIntel(snapshot);
@@ -484,7 +784,7 @@ export class CommandCenterVoice {
       }
       return {
         reply: waiting.length
-          ? `Intel feed open. ${waiting.length} unhandled. Say select first intel or next intel.`
+          ? `Intel feed open. ${waiting.length} unhandled. Say select first intel, next, or respond to oldest.`
           : 'Intel feed open. No unhandled intel.',
         action: { type: 'set-panel', panel: 'intel' },
       };
@@ -492,13 +792,20 @@ export class CommandCenterVoice {
     if (!waiting.length) {
       return none('No unhandled intel is available. Say status or help.');
     }
+    if (select === 'oldest') {
+      select = 0;
+    }
     if (select === 'next') {
       const current = snapshot.pendingDecision
         ? waiting.findIndex((item) => item.id === snapshot.pendingDecision?.id)
         : -1;
       const next = waiting[current + 1];
       if (!next) {
-        return none('That is the last unhandled intel. Say show intel or help.');
+        return none(
+          snapshot.pendingDecision
+            ? 'That is the last unhandled intel. Say show intel or help.'
+            : 'No further unhandled intel. Say show intel or help.'
+        );
       }
       return {
         reply: `Opened ${next.title}. Say continue, degrade, or pause.`,

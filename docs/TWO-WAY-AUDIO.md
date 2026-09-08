@@ -14,18 +14,22 @@ Say **stop listening** to end the conversation. The floating **Stop voice** butt
 
 ## Hourglass Command Center
 
-Say **start mission** to begin. While a decision is waiting, **continue**, **degrade**, and **pause** commit the same postures as the Decision panel and the C / D / P hotkeys. You can also say the panel labels **accept**, **mitigate**, **transfer**, or **avoid**, or choose by ordinal such as **first one** or **option B**.
+Say **start mission** to begin. While a decision is waiting, **continue**, **degrade**, and **pause** commit the same postures as the Decision panel and the C / D / P hotkeys. You can also say the panel labels **accept**, **mitigate**, **transfer**, or **avoid**, or choose by ordinal such as **first one**, **option B**, **answer D**, or **B**.
 
 When a decision is waiting, bare **pause** and **continue** prefer those postures. Say **pause mission** or **pause simulation** to pause the clock, and **resume** or **continue mission** to start it again.
+
+The Decision panel **Commit Decision** button is also speakable: fill treatment, action, and residual risk by tap or by **select mitigate** / **select** plus the action or risk name, then say **commit** or **commit decision**. **Read aloud** reads the open inject.
 
 You can also:
 
 - **status** / **read intel** — hear the current update
-- **select first intel** / **next intel** / **open intel** — open the intel feed or an unhandled item
+- **select first intel** / **next** / **next intel** / **respond to oldest** / **open intel** — open the intel feed or an unhandled item; naming an intel title selects that card
 - **show intel**, **show decision**, **show COP** — switch the same panels as the mobile tabs
 - **brief owner** (optionally with an asset name)
 - name an asset to select it
 - **review** / **close review** / **return to command**
+
+When a wait-gap task is on screen, the overlay controls are speakable too: **option A** through **D**, **first** through **fourth**, or the answer text to select; **submit** / **submit answer** to commit the selection; **skip** to skip; **continue** or **next** after the result to dismiss; **hear** or **read aloud** to replay the prompt. Ranking tasks accept an order such as **A D C B**.
 
 Optional enrichment still works: name a concrete control and residual risk, for example **manual verification for physical access control, medium temporary coverage gap**. Missing choices become spoken questions; answer by name or ordinal. That path records the same decision as the posture buttons.
 

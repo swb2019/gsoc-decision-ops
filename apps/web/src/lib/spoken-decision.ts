@@ -52,11 +52,11 @@ const ORDINAL_WORDS: Record<string, number> = {
   five: 4,
 };
 
-/** Whole-utterance ordinal such as "first one", "option B", or "choice 2". */
+/** Whole-utterance ordinal such as "first one", "option B", "answer D", or "B". */
 export function spokenOrdinalIndex(text: string): number | null {
   const words = speechWords(text);
   const option =
-    /^(?:the )?(?:option|choice|number) ([a-e]|[1-5]|first|second|third|fourth|fifth|one|two|three|four|five)$/.exec(
+    /^(?:the )?(?:option|choice|number|answer|letter) ([a-e]|[1-5]|first|second|third|fourth|fifth|one|two|three|four|five)$/.exec(
       words
     );
   if (option) {
@@ -65,6 +65,8 @@ export function spokenOrdinalIndex(text: string): number | null {
     if (/^[a-e]$/.test(token)) return token.charCodeAt(0) - 97;
     return ORDINAL_WORDS[token] ?? null;
   }
+  const letter = /^(?:the )?([a-e])$/.exec(words);
+  if (letter) return letter[1].charCodeAt(0) - 97;
   const bare =
     /^(?:the )?(first|second|third|fourth|fifth|one|two|three|four|five)(?: (?:one|option|choice))?$/.exec(
       words

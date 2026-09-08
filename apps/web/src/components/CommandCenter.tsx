@@ -921,6 +921,13 @@ function getMicroTaskVOTitle(task: Pick<MicroTask, 'title' | 'question'>): strin
   return `${task.title}. ${task.question}`;
 }
 
+function microTaskVoiceOptions(task: MicroTask): { id: string; label: string }[] {
+  if (task.tradeoffOptions) {
+    return task.tradeoffOptions.map((option) => ({ id: option.id, label: option.text }));
+  }
+  return (task.options ?? []).map((option) => ({ id: option.id, label: option.text }));
+}
+
 function shortContentForSpeech(content: string, maxLen = 180): string {
   const trimmed = content.trim();
   if (trimmed.length <= maxLen) return trimmed;
@@ -1157,6 +1164,8 @@ export default function CommandCenter({
     'pending' | 'correct' | 'wrong' | 'partial' | null
   >(null);
   const [microTaskExplanationShown, setMicroTaskExplanationShown] = useState(false);
+  const [microTaskSelection, setMicroTaskSelection] = useState<string | null>(null);
+  const [microTaskRanking, setMicroTaskRanking] = useState<string[]>([]);
 
   // Skipped micro-tasks (can return later, separate from completed)
   const [skippedMicroTasks, setSkippedMicroTasks] = useState<{ id: string; skippedAt: number }[]>(
@@ -1902,6 +1911,12 @@ export default function CommandCenter({
         setMicroTaskAnswer(null);
         setMicroTaskResult(null);
         setMicroTaskExplanationShown(false);
+        setMicroTaskSelection(null);
+        setMicroTaskRanking(
+          randomTask.options?.map((option) => option.id) ??
+            randomTask.tradeoffOptions?.map((option) => option.id) ??
+            []
+        );
         setTimeout(() => setMicroTaskAnimating(false), 500);
         playSound('tick');
       }
@@ -2024,6 +2039,8 @@ export default function CommandCenter({
     setMicroTaskAnswer(null);
     setMicroTaskResult(null);
     setMicroTaskExplanationShown(false);
+    setMicroTaskSelection(null);
+    setMicroTaskRanking([]);
     setLastActivityTime(elapsedSeconds);
   }, [activeMicroTask, elapsedSeconds]);
 
@@ -2039,6 +2056,8 @@ export default function CommandCenter({
     setMicroTaskAnswer(null);
     setMicroTaskResult(null);
     setMicroTaskExplanationShown(false);
+    setMicroTaskSelection(null);
+    setMicroTaskRanking([]);
     setLastActivityTime(elapsedSeconds);
   }, [activeMicroTask, elapsedSeconds]);
 
@@ -2874,7 +2893,7 @@ export default function CommandCenter({
     handlePostureCommit,
   ]);
 
-  const conversationContext = `${scenarioId}:${pendingDecision?.id ?? 'waiting'}`;
+  const conversationContext = `${scenarioId}:${pendingDecision?.id ?? activeMicroTask?.id ?? 'waiting'}`;
   const respondToVoice = async (text: string, context: string): Promise<{ reply: string }> => {
     const defaultAsset = selectedAsset ?? pickDefaultAsset(assets);
     const result = spokenCommand.current.resolve(text, context, {
@@ -2890,6 +2909,9 @@ export default function CommandCenter({
           }
         : null,
       selectedAsset: defaultAsset ? { id: defaultAsset.id, name: defaultAsset.name } : null,
+      selectedTreatmentCategory,
+      selectedTreatmentOption,
+      selectedResidualRisk,
       assets: assets.map((asset) => ({ id: asset.id, name: asset.name })),
       intel: revealedInjects.map((inject) => ({
         id: inject.id,
@@ -2898,6 +2920,18 @@ export default function CommandCenter({
         handled: log.decisions.some((decision) => decision.title === inject.title),
       })),
       panel: mobileTab,
+      microTask: activeMicroTask
+        ? {
+            id: activeMicroTask.id,
+            title: activeMicroTask.title,
+            question: activeMicroTask.question,
+            type: activeMicroTask.type,
+            answered: Boolean(microTaskResult),
+            selectedOptionId: microTaskSelection,
+            rankingOrder: microTaskRanking,
+            options: microTaskVoiceOptions(activeMicroTask),
+          }
+        : null,
       choices: {
         assets: assets.map((asset) => ({
           id: asset.id,
@@ -2966,6 +3000,62 @@ export default function CommandCenter({
         }
         break;
       }
+      case 'select-treatment':
+        handleTreatmentCategorySelect(result.action.category);
+        setSelectedTreatmentOption(null);
+        handleTabChange('decision');
+        break;
+      case 'select-control':
+        setSelectedTreatmentOption(result.action.controlId);
+        handleTabChange('decision');
+        break;
+      case 'select-risk': {
+        const riskId = result.action.riskId;
+        const risk = RESIDUAL_RISK_OPTIONS.find((item) => item.id === riskId);
+        setSelectedResidualRisk(riskId);
+        if (risk) setResidualRiskNote(risk.rationale);
+        handleTabChange('decision');
+        break;
+      }
+      case 'commit-selected': {
+        const postureMap: Record<string, DecisionPosture> = {
+          ACCEPT: 'CONTINUE',
+          MITIGATE: 'DEGRADE',
+          TRANSFER: 'DEGRADE',
+          AVOID: 'PAUSE',
+        };
+        if (selectedTreatmentCategory) {
+          handlePostureCommit(postureMap[selectedTreatmentCategory]);
+          handleTabChange('decision');
+        }
+        break;
+      }
+      case 'hear-intel':
+        if (pendingDecision)
+          void localVoice.readInject(pendingDecision.title, pendingDecision.content);
+        break;
+      case 'skip-micro-task':
+        skipMicroTask();
+        break;
+      case 'select-micro-task-option':
+        setMicroTaskSelection(result.action.optionId);
+        break;
+      case 'submit-micro-task':
+        if (typeof result.action.answer === 'string') setMicroTaskSelection(result.action.answer);
+        submitMicroTaskAnswer(result.action.answer);
+        break;
+      case 'dismiss-micro-task':
+        dismissMicroTask();
+        break;
+      case 'hear-micro-task':
+        if (activeMicroTask) {
+          playSpokenText(getMicroTaskVOTitle(activeMicroTask), {
+            id: activeMicroTask.id,
+            force: true,
+            priority: 8,
+          });
+        }
+        break;
       case 'commit-posture':
         handlePostureCommit(
           result.action.posture,
@@ -3013,6 +3103,8 @@ export default function CommandCenter({
     setMicroTaskAnswer(null);
     setMicroTaskResult(null);
     setMicroTaskExplanationShown(false);
+    setMicroTaskSelection(null);
+    setMicroTaskRanking([]);
     setSelectedAsset((prev) => prev ?? pickDefaultAsset(assets));
   }, [pendingDecision?.id, assets, pickDefaultAsset]);
 
@@ -5021,6 +5113,10 @@ export default function CommandCenter({
           currentAnswer={microTaskAnswer}
           result={microTaskResult}
           showExplanation={microTaskExplanationShown}
+          selection={microTaskSelection}
+          onSelectOption={setMicroTaskSelection}
+          rankingOrder={microTaskRanking}
+          onRankingChange={setMicroTaskRanking}
         />
       )}
 
@@ -10675,6 +10771,10 @@ function MicroTaskCard({
   currentAnswer,
   result,
   showExplanation,
+  selection,
+  onSelectOption,
+  rankingOrder,
+  onRankingChange,
 }: {
   task: MicroTask;
   timer: number;
@@ -10687,21 +10787,12 @@ function MicroTaskCard({
   currentAnswer: string | string[] | null;
   result: 'pending' | 'correct' | 'wrong' | 'partial' | null;
   showExplanation: boolean;
+  selection: string | null;
+  onSelectOption: (optionId: string) => void;
+  rankingOrder: string[];
+  onRankingChange: (order: string[]) => void;
 }): JSX.Element {
-  const [localSelection, setLocalSelection] = useState<string | null>(
-    typeof currentAnswer === 'string' ? currentAnswer : null
-  );
-  const [rankingOrder, setRankingOrder] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (task.type === 'RANKING' && task.options) {
-      if (Array.isArray(currentAnswer) && currentAnswer.length > 0) {
-        setRankingOrder(currentAnswer);
-      } else {
-        setRankingOrder(task.options.map((o) => o.id));
-      }
-    }
-  }, [task, currentAnswer]);
+  const localSelection = selection ?? (typeof currentAnswer === 'string' ? currentAnswer : null);
 
   const getIcon = (): JSX.Element => {
     switch (task.icon) {
@@ -10753,7 +10844,7 @@ function MicroTaskCard({
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= newOrder.length) return;
     [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
-    setRankingOrder(newOrder);
+    onRankingChange(newOrder);
   };
 
   const handleSubmit = (): void => {
@@ -10899,7 +10990,7 @@ function MicroTaskCard({
               return (
                 <button
                   key={option.id}
-                  onClick={() => !hasAnswered && setLocalSelection(option.id)}
+                  onClick={() => !hasAnswered && onSelectOption(option.id)}
                   disabled={hasAnswered}
                   className={clsx(
                     'w-full p-3 rounded-xl text-left text-sm transition-all border-2',
@@ -11024,7 +11115,7 @@ function MicroTaskCard({
               return (
                 <button
                   key={option.id}
-                  onClick={() => !hasAnswered && setLocalSelection(option.id)}
+                  onClick={() => !hasAnswered && onSelectOption(option.id)}
                   disabled={hasAnswered}
                   className={clsx(
                     'w-full p-3 rounded-xl text-left transition-all border-2',
