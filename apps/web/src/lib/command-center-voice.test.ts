@@ -46,9 +46,13 @@ function snapshot(partial: Partial<CommandCenterVoiceSnapshot> = {}): CommandCen
     conversationContext: 's1:dec1',
     pendingDecision: { id: 'dec1', title: badge.title, content: badge.content },
     selectedAsset: doors,
+    selectedTreatmentCategory: null,
+    selectedTreatmentOption: null,
+    selectedResidualRisk: null,
     assets: [doors, visitor],
     intel: [badge, vendorNote],
     panel: 'decision',
+    microTask: null,
     choices,
     ...partial,
   };
@@ -318,5 +322,199 @@ describe('Command Center voice control plane', () => {
     const result = voice.resolve('continue', 's1:waiting', snapshot());
     expect(result.action).toEqual({ type: 'none' });
     expect(result.reply).toMatch(/situation changed/i);
+  });
+
+  const quiz = {
+    id: 'asset-priority-mc',
+    title: 'Asset Priority Check',
+    question: 'Which asset owner notification takes priority?',
+    type: 'MULTIPLE_CHOICE' as const,
+    answered: false,
+    selectedOptionId: null as string | null,
+    rankingOrder: [],
+    options: [
+      { id: 'a', label: 'Marketing team workspace badge access' },
+      { id: 'b', label: 'Executive floor and data center perimeter' },
+      { id: 'c', label: 'Cafeteria turnstile systems' },
+      { id: 'd', label: 'Visitor lobby badge printers' },
+    ],
+  };
+
+  function taskSnap(partial: Partial<CommandCenterVoiceSnapshot> = {}): CommandCenterVoiceSnapshot {
+    return snapshot({
+      pendingDecision: null,
+      selectedAsset: null,
+      conversationContext: 's1:asset-priority-mc',
+      microTask: quiz,
+      ...partial,
+    });
+  }
+
+  it('skips, selects, and submits a micro-task the same as the overlay taps', () => {
+    const voice = new CommandCenterVoice();
+    const waiting = taskSnap();
+    expect(voice.resolve('skip', 's1:asset-priority-mc', waiting).action).toEqual({
+      type: 'skip-micro-task',
+    });
+    expect(voice.resolve('option B', 's1:asset-priority-mc', waiting).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(voice.resolve('B', 's1:asset-priority-mc', waiting).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(voice.resolve('second one', 's1:asset-priority-mc', waiting).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(
+      voice.resolve('Executive floor and data center perimeter', 's1:asset-priority-mc', waiting)
+        .action
+    ).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(voice.resolve('submit', 's1:asset-priority-mc', waiting).reply).toMatch(
+      /select an answer/i
+    );
+    expect(
+      voice.resolve(
+        'submit',
+        's1:asset-priority-mc',
+        taskSnap({ microTask: { ...quiz, selectedOptionId: 'b' } })
+      ).action
+    ).toEqual({
+      type: 'submit-micro-task',
+      answer: 'b',
+    });
+    expect(
+      voice.resolve(
+        'continue',
+        's1:asset-priority-mc',
+        taskSnap({ microTask: { ...quiz, answered: true, selectedOptionId: 'b' } })
+      ).action
+    ).toEqual({ type: 'dismiss-micro-task' });
+    expect(
+      voice.resolve(
+        'next',
+        's1:asset-priority-mc',
+        taskSnap({ microTask: { ...quiz, answered: true, selectedOptionId: 'b' } })
+      ).action
+    ).toEqual({ type: 'dismiss-micro-task' });
+  });
+
+  it('submits a spoken ranking order and still skips ranking tasks', () => {
+    const ranking = {
+      ...quiz,
+      id: 'risk-rank-order',
+      title: 'Threat Ranking',
+      type: 'RANKING' as const,
+      rankingOrder: ['a', 'b', 'c', 'd'],
+      options: [
+        { id: 'a', label: 'Active credential theft' },
+        { id: 'b', label: 'Physical tailgating' },
+        { id: 'c', label: 'Insider data exfiltration' },
+        { id: 'd', label: 'Social engineering call' },
+      ],
+    };
+    const waiting = taskSnap({
+      conversationContext: 's1:risk-rank-order',
+      microTask: ranking,
+    });
+    const voice = new CommandCenterVoice();
+    expect(voice.resolve('A D C B', 's1:risk-rank-order', waiting).action).toEqual({
+      type: 'submit-micro-task',
+      answer: ['a', 'd', 'c', 'b'],
+    });
+    expect(voice.resolve('skip this', 's1:risk-rank-order', waiting).action).toEqual({
+      type: 'skip-micro-task',
+    });
+    expect(voice.resolve('submit', 's1:risk-rank-order', waiting).action).toEqual({
+      type: 'submit-micro-task',
+      answer: ['a', 'b', 'c', 'd'],
+    });
+  });
+
+  it('keeps pause mission as clock control while a micro-task is waiting', () => {
+    const voice = new CommandCenterVoice();
+    expect(voice.resolve('pause mission', 's1:asset-priority-mc', taskSnap()).action).toEqual({
+      type: 'pause-sim',
+    });
+    expect(voice.resolve('help', 's1:asset-priority-mc', taskSnap()).reply).toMatch(/skip/i);
+  });
+
+  it('commits the filled Decision form the same as the Commit Decision tap', () => {
+    const voice = new CommandCenterVoice();
+    const filled = snapshot({
+      selectedTreatmentCategory: 'MITIGATE',
+      selectedTreatmentOption: 'mitigate-manual',
+      selectedResidualRisk: 'medium-gap',
+    });
+    expect(voice.resolve('commit', 's1:dec1', filled).action).toEqual({ type: 'commit-selected' });
+    expect(voice.resolve('commit decision', 's1:dec1', snapshot()).action).toEqual({
+      type: 'none',
+    });
+    expect(voice.resolve('commit decision', 's1:dec1', snapshot()).reply).toMatch(/treatment/i);
+    expect(voice.resolve('select mitigate', 's1:dec1', snapshot()).action).toEqual({
+      type: 'select-treatment',
+      category: 'MITIGATE',
+    });
+    expect(voice.resolve('select manual verification', 's1:dec1', snapshot()).action).toEqual({
+      type: 'select-control',
+      controlId: 'manual',
+    });
+    expect(
+      voice.resolve('select medium temporary coverage gap', 's1:dec1', snapshot()).action
+    ).toEqual({
+      type: 'select-risk',
+      riskId: 'gap',
+    });
+  });
+
+  it('opens oldest or named intel the same as the feed and Respond to Oldest taps', () => {
+    const voice = new CommandCenterVoice();
+    const idle = snapshot({
+      pendingDecision: null,
+      selectedAsset: null,
+      conversationContext: 's1:waiting',
+    });
+    expect(voice.resolve('respond to oldest', 's1:waiting', idle).action).toEqual({
+      type: 'select-intel',
+      injectId: 'dec1',
+    });
+    expect(voice.resolve('next', 's1:waiting', idle).action).toEqual({
+      type: 'select-intel',
+      injectId: 'dec1',
+    });
+    expect(voice.resolve('Vendor note', 's1:waiting', idle).action).toEqual({
+      type: 'select-intel',
+      injectId: 'dec2',
+    });
+    expect(voice.resolve('B', 's1:dec1', snapshot()).action).toMatchObject({
+      type: 'commit-posture',
+      posture: 'DEGRADE',
+      decision: { category: 'MITIGATE' },
+    });
+    expect(voice.resolve('read aloud', 's1:dec1', snapshot()).action).toEqual({
+      type: 'hear-intel',
+    });
+    expect(voice.resolve('hear', 's1:asset-priority-mc', taskSnap()).action).toEqual({
+      type: 'hear-micro-task',
+    });
+  });
+
+  it('does not skip a Decision panel item and still clarifies unknown skip with no task', () => {
+    const voice = new CommandCenterVoice();
+    expect(voice.resolve('skip', 's1:dec1', snapshot()).action).toEqual({ type: 'none' });
+    expect(voice.resolve('skip', 's1:dec1', snapshot()).reply).toMatch(/no skip/i);
+    const idle = snapshot({
+      pendingDecision: null,
+      selectedAsset: null,
+      conversationContext: 's1:waiting',
+      intel: [],
+    });
+    expect(voice.resolve('skip', 's1:waiting', idle).action).toEqual({ type: 'none' });
+    expect(voice.resolve('skip', 's1:waiting', idle).reply).toMatch(/no task/i);
   });
 });

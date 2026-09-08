@@ -115,6 +115,8 @@ describe('spoken ordinals', () => {
     expect(spokenOrdinalIndex('option B')).toBe(1);
     expect(spokenOrdinalIndex('choice 2')).toBe(1);
     expect(spokenOrdinalIndex('the third option')).toBe(2);
+    expect(spokenOrdinalIndex('answer D')).toBe(3);
+    expect(spokenOrdinalIndex('B')).toBe(1);
     expect(spokenOrdinalIndex('continue')).toBeNull();
   });
 });
