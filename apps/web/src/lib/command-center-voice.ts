@@ -327,9 +327,23 @@ function matchIntelSelect(words: string): number | 'next' | 'open' | 'oldest' | 
 }
 
 function matchSkip(words: string): boolean {
-  return /^(?:please )?(?:skip|skipped)(?: (?:it|this|(?:the )?(?:task|question|challenge|microtask|micro task)))?$/.test(
+  // speechWords already strips "Skip! Skip!" → "skip skip". Accept repeats plus skip this/task.
+  return /^(?:please )?(?:skip(?:ped)?(?: skip(?:ped)?)*)(?: (?:it|this|that))?(?: (?:(?:the )?(?:task|question|challenge|microtask|micro task|card|one)))?$/.test(
     words
   );
+}
+
+/** Wait-gap capture stays `:waiting` until the next listen; the overlay can appear on that same turn. */
+function isWaitGapListen(turnContext: string): boolean {
+  return turnContext === 'waiting' || turnContext.endsWith(':waiting');
+}
+
+function microTaskTurnIsCurrent(
+  turnContext: string,
+  snapshot: CommandCenterVoiceSnapshot
+): boolean {
+  if (turnContext === snapshot.conversationContext) return true;
+  return Boolean(snapshot.microTask) && isWaitGapListen(turnContext);
 }
 
 function matchCommit(words: string): boolean {
@@ -693,7 +707,7 @@ export class CommandCenterVoice {
       intelSelect === 'next' ||
       intelSelect === 'oldest';
     if (!isCommand) return null;
-    if (turnContext !== snapshot.conversationContext) {
+    if (!microTaskTurnIsCurrent(turnContext, snapshot)) {
       return none(
         `The situation changed while you were speaking. ${task.title}. Please restate your command for this update.`
       );
