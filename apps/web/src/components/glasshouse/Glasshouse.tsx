@@ -466,6 +466,38 @@ function Launch({
   );
 }
 
+function scheduleGlasshousePageTitleFocus() {
+  let cancelled = false;
+  let attempts = 0;
+  let settledFrames = 0;
+  let frame = 0;
+  const tick = () => {
+    if (cancelled) return;
+    const title = document.getElementById('gh-page-title');
+    if (title instanceof HTMLElement) {
+      if (document.activeElement !== title) {
+        title.focus({ preventScroll: true });
+        // Firefox can ignore preventScroll on a heading that just replaced launch chrome.
+        if (document.activeElement !== title) title.focus();
+      }
+      if (document.activeElement === title) {
+        settledFrames += 1;
+        if (settledFrames >= 2) return;
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+    }
+    settledFrames = 0;
+    if (attempts++ >= 12) return;
+    frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  return () => {
+    cancelled = true;
+    cancelAnimationFrame(frame);
+  };
+}
+
 export default function Glasshouse() {
   const [view, setView] = useState<'command' | 'review'>('command');
   const [settings, setSettings] = useState(false);
@@ -485,10 +517,9 @@ export default function Glasshouse() {
   const focusContext = useRef(`${view}:${state?.sessionId ?? 'launch'}`);
   useEffect(() => {
     const nextContext = `${view}:${state?.sessionId ?? 'launch'}`;
-    if (focusContext.current !== nextContext) {
-      document.getElementById('gh-page-title')?.focus({ preventScroll: true });
-      focusContext.current = nextContext;
-    }
+    if (focusContext.current === nextContext) return;
+    focusContext.current = nextContext;
+    return scheduleGlasshousePageTitleFocus();
   }, [view, state?.sessionId]);
   const [mobileArea, setMobileArea] = useState<'evidence' | 'decision' | 'situation'>('evidence');
   const [selectedAsset, setSelectedAsset] = useState<AssetId>('entrance');

@@ -264,9 +264,11 @@ test('keyboard control traversal, visible focus and reduced-motion default prese
   await page.getByRole('button', { name: /^Guided practice/ }).focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('.gh-app')).toHaveClass(/gh-motion-off/);
-  // Let the authored context-change focus settle before starting form traversal.
-  // Otherwise a fast driver can focus a new select before the heading focus effect runs.
-  await expect(page.locator('.gh-command-heading #gh-page-title')).toBeFocused();
+  // Command chrome must be on screen before focus can settle. A one-shot focused
+  // check races Firefox, which can restore launch-button focus after the heading mounts.
+  const pageTitle = page.locator('.gh-command-heading #gh-page-title');
+  await expect(pageTitle).toBeVisible();
+  await expect(pageTitle).toBeFocused();
   await page.getByRole('combobox', { name: 'Control', exact: true }).focus();
   await expect(page.getByRole('combobox', { name: 'Control', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
