@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SpokenDecisionDialogue,
   isHelpSpeech,
+  speechWords,
   spokenOrdinalIndex,
   voiceHeardClarify,
   type SpokenControl,
@@ -110,6 +111,12 @@ describe('help and heard-clarify speech', () => {
 });
 
 describe('spoken ordinals', () => {
+  it('strips punctuation so repeated Skip ASR still tokenizes', () => {
+    expect(speechWords('Skip! Skip!')).toBe('skip skip');
+    expect(speechWords('Skip.')).toBe('skip');
+    expect(speechWords('skip this')).toBe('skip this');
+  });
+
   it('resolves first-one, option B, and choice 2', () => {
     expect(spokenOrdinalIndex('first one')).toBe(0);
     expect(spokenOrdinalIndex('option B')).toBe(1);

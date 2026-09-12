@@ -29,7 +29,7 @@ You can also:
 - name an asset to select it
 - **review** / **close review** / **return to command**
 
-When a wait-gap task is on screen, the overlay controls are speakable too: **option A** through **D**, **first** through **fourth**, or the answer text to select; **submit** / **submit answer** to commit the selection; **skip** to skip; **continue** or **next** after the result to dismiss; **hear** or **read aloud** to replay the prompt. Ranking tasks accept an order such as **A D C B**.
+When a wait-gap task is on screen — including TRIAGE scenario cards such as **Urgency Assessment** — the overlay controls are speakable too: **option A** through **D**, **first** through **fourth**, or the answer text to select; **submit** / **submit answer** to commit the selection; **skip** / **skip this** / **skip task** (and repeated ASR like **Skip! Skip!**) to skip; **continue** or **next** after the result to dismiss; **hear** or **read aloud** to replay the prompt. Ranking tasks accept an order such as **A D C B**.
 
 Optional enrichment still works: name a concrete control and residual risk, for example **manual verification for physical access control, medium temporary coverage gap**. Missing choices become spoken questions; answer by name or ordinal. That path records the same decision as the posture buttons.
 

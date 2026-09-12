@@ -444,6 +444,161 @@ describe('Command Center voice control plane', () => {
     expect(voice.resolve('help', 's1:asset-priority-mc', taskSnap()).reply).toMatch(/skip/i);
   });
 
+  const urgency = {
+    id: 'time-pressure',
+    title: 'Urgency Assessment',
+    question: 'You have 3 pending items. Bridge call in 5 minutes. Which do you address NOW?',
+    type: 'SCENARIO' as const,
+    answered: false,
+    selectedOptionId: null as string | null,
+    rankingOrder: [],
+    options: [
+      { id: 'a', label: 'Update the COP with latest facts for the bridge' },
+      { id: 'b', label: 'Draft the after-action report outline' },
+      { id: 'c', label: "Review yesterday's incident logs" },
+      { id: 'd', label: 'Organize your notes from earlier' },
+    ],
+  };
+
+  function urgencySnap(
+    partial: Partial<CommandCenterVoiceSnapshot> = {}
+  ): CommandCenterVoiceSnapshot {
+    return snapshot({
+      pendingDecision: null,
+      selectedAsset: null,
+      conversationContext: 's1:time-pressure',
+      microTask: urgency,
+      ...partial,
+    });
+  }
+
+  it('skips the TRIAGE Urgency Assessment card the same as the Skip tap, including Skip! Skip!', () => {
+    const voice = new CommandCenterVoice();
+    const showing = urgencySnap();
+    for (const spoken of [
+      'Skip',
+      'skip',
+      'skip this',
+      'skip task',
+      'skip this task',
+      'Skip! Skip!',
+      'skip skip',
+    ]) {
+      expect(voice.resolve(spoken, 's1:time-pressure', showing).action).toEqual({
+        type: 'skip-micro-task',
+      });
+      expect(voice.resolve(spoken, 's1:time-pressure', showing).reply).toMatch(/skipped/i);
+    }
+  });
+
+  it('selects Urgency Assessment A–D, first–fourth, and answer text the same as tapping options', () => {
+    const voice = new CommandCenterVoice();
+    const showing = urgencySnap();
+    expect(voice.resolve('option A', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'a',
+    });
+    expect(voice.resolve('A', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'a',
+    });
+    expect(voice.resolve('first', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'a',
+    });
+    expect(voice.resolve('option B', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(voice.resolve('second one', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(voice.resolve('option C', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'c',
+    });
+    expect(voice.resolve('third', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'c',
+    });
+    expect(voice.resolve('option D', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'd',
+    });
+    expect(voice.resolve('fourth', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'd',
+    });
+    expect(voice.resolve('answer D', 's1:time-pressure', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'd',
+    });
+    expect(
+      voice.resolve('Update the COP with latest facts for the bridge', 's1:time-pressure', showing)
+        .action
+    ).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'a',
+    });
+    expect(
+      voice.resolve('Draft the after-action report outline', 's1:time-pressure', showing).action
+    ).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'b',
+    });
+    expect(
+      voice.resolve("Review yesterday's incident logs", 's1:time-pressure', showing).action
+    ).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'c',
+    });
+    expect(
+      voice.resolve('Organize your notes from earlier', 's1:time-pressure', showing).action
+    ).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'd',
+    });
+    expect(voice.resolve('help', 's1:time-pressure', showing).reply).toMatch(/Urgency Assessment/);
+    expect(voice.resolve('help', 's1:time-pressure', showing).reply).toMatch(/skip/i);
+  });
+
+  it('applies Urgency Assessment skip and A–D when listen started in the wait-gap', () => {
+    const voice = new CommandCenterVoice();
+    const showing = urgencySnap();
+    expect(voice.resolve('Skip! Skip!', 's1:waiting', showing).action).toEqual({
+      type: 'skip-micro-task',
+    });
+    expect(voice.resolve('skip this', 's1:waiting', showing).action).toEqual({
+      type: 'skip-micro-task',
+    });
+    expect(voice.resolve('option A', 's1:waiting', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'a',
+    });
+    expect(voice.resolve('D', 's1:waiting', showing).action).toEqual({
+      type: 'select-micro-task-option',
+      optionId: 'd',
+    });
+    expect(voice.resolve('skip', 's1:asset-priority-mc', showing).reply).toMatch(
+      /situation changed/i
+    );
+    expect(voice.resolve('skip', 's1:asset-priority-mc', showing).action).toEqual({
+      type: 'none',
+    });
+  });
+
+  it('still clarifies unknown speech on Urgency Assessment and does not skip a Decision item', () => {
+    const voice = new CommandCenterVoice();
+    const showing = urgencySnap();
+    const unknown = voice.resolve('launch the missiles', 's1:time-pressure', showing);
+    expect(unknown.action).toEqual({ type: 'none' });
+    expect(unknown.reply).toContain('I heard "launch the missiles"');
+    expect(unknown.reply).toMatch(/help/i);
+    expect(voice.resolve('Skip! Skip!', 's1:dec1', snapshot()).action).toEqual({ type: 'none' });
+    expect(voice.resolve('Skip! Skip!', 's1:dec1', snapshot()).reply).toMatch(/no skip/i);
+  });
+
   it('commits the filled Decision form the same as the Commit Decision tap', () => {
     const voice = new CommandCenterVoice();
     const filled = snapshot({
